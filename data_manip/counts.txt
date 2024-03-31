@@ -1,0 +1,224 @@
+Top level path =  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/ 
+
+
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi214_Av/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi214_Hdropes/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Na22/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Pa234m/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Pmt_Betagammas/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Po210/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Po210_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Po210_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Te130_0n2b_N1/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Te130_0n2b_N2/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Te130_0n2b_N3/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Te130_0n2b_N7/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Te130_2n2b_Etail/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo214-pure/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/2223kev_Gamma/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Ac228/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Ag110/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Al26/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Alphan_Telab_Avin_Av_13c/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Alphan_Telab_Avin_Av_18o/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Alphan_Telab_Avin_Ls_13c/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Alphan_Telab_Avout_Av_13c/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Alphan_Telab_Avout_Av_18o/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Ar39/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi210/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi212/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi214/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi214_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi214_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi210_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi210_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi214_Exwater/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bi214_Hupropes/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Av/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Hdropes/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212-pure/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/C14/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Co56/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Co58/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Ga68/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/K40/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/K40_Av/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/K40_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/K40_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/K40_Hdropes/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/K40_Intropes/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/K42/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Kr85/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Pb210/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Pb210_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Pb210_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Pb212/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Pb214/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Po212/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Po214/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Po216/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Po218/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Ra224/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Ra226_Alpha/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Ra228/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Rh102m/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Rb82/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Rb84/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl208_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Rh102/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Rh106/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Rn220/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Rn222/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Sb126/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Sb126m/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Sc44/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Sc46/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Th228/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Th230/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Th232/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl208_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl208/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl208_Exwater/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl208_Hupropes/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl210/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl210_Av/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl210_Av_Innerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Tl210_Av_Outerdust/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/U234/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/U238/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Y88/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Y90/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Sb124/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212-pure-cleaned/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo214-pure-cleaned/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Hdropes-cleaned/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Av_Innerdust-cleaned/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Av_Outerdust-cleaned/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_6_TeDiol/Bipo212_Av-cleaned/*.root
+Top level path =  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/ 
+
+
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Agm110/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Alphan_Telab_13c/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Co60/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/B8_Solar_Nue/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Te130_0n2b/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Te130_0n2b/merged/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/B8_Solar_Numu/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Te130_2n2b/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Te130_2n2b/merged/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Tl208_Av/*.root
+Counting  /data/snoplus/OfficialProcessing/production_6_1_2_TeDiol/Tl208_Hdropes/*.root
+                                         | 0                    | 0                   
+Bi214_Av                                 | 5121                 | 76748367            
+Bi214_Hdropes                            | 9962                 | 102575538           
+Na22                                     | 269                  | 1658017             
+Pa234m                                   | 1937                 | 38743332            
+Pmt_Betagammas                           | 1092                 | 5834396             
+Po210                                    | 1589                 | 47652203            
+Po210_Av_Innerdust                       | 6910                 | 139137735           
+Po210_Av_Outerdust                       | 4022                 | 267956992           
+Te130_0n2b_N1                            | 100                  | 805708              
+Te130_0n2b_N2                            | 95                   | 949734              
+Te130_0n2b_N3                            | 99                   | 989294              
+Te130_0n2b_N7                            | 50                   | 999724              
+Te130_2n2b_Etail                         | 6168                 | 42811132            
+Bipo214-pure                             | 14407                | 143196342           
+2223kev_Gamma                            | 92                   | 598019              
+Ac228                                    | 484                  | 4841382             
+Ag110                                    | 109                  | 1003215             
+Al26                                     | 21                   | 106201              
+Alphan_Telab_Avin_Av_13c                 | 1110                 | 7637456             
+Alphan_Telab_Avin_Av_18o                 | 876                  | 8164126             
+Alphan_Telab_Avin_Ls_13c                 | 961                  | 7262346             
+Alphan_Telab_Avout_Av_13c                | 524                  | 4145454             
+Alphan_Telab_Avout_Av_18o                | 255                  | 2336114             
+Ar39                                     | 19                   | 869342              
+Bi210                                    | 3019                 | 120717829           
+Bi212                                    | 96                   | 960045              
+Bi214                                    | 492                  | 3824736             
+Bi214_Av_Innerdust                       | 1112                 | 13118535            
+Bi214_Av_Outerdust                       | 518                  | 5860385             
+Bi210_Av_Innerdust                       | 6135                 | 176863471           
+Bi210_Av_Outerdust                       | 3652                 | 243278751           
+Bi214_Exwater                            | 987                  | 27995752            
+Bi214_Hupropes                           | 127                  | 2613553             
+Bipo212_Av                               | 136                  | 3792884             
+Bipo212_Av_Innerdust                     | 68                   | 657346              
+Bipo212_Av_Outerdust                     | 422                  | 806979              
+Bipo212_Hdropes                          | 110                  | 1853753             
+Bipo212-pure                             | 811                  | 10416481            
+C14                                      | 812                  | 146208390           
+Co56                                     | 26                   | 104159              
+Co58                                     | 7                    | 106556              
+Ga68                                     | 11                   | 93402               
+K40                                      | 5                    | 100170              
+K40_Av                                   | 9060                 | 49247313            
+K40_Av_Innerdust                         | 256                  | 6236371             
+K40_Av_Outerdust                         | 2767                 | 10841259            
+K40_Hdropes                              | 9666                 | 30940554            
+K40_Intropes                             | 29                   | 755783              
+K42                                      | 12                   | 102084              
+Kr85                                     | 19                   | 872736              
+Pb210                                    | 495                  | 112857361           
+Pb210_Av_Innerdust                       | 1478                 | 245810510           
+Pb210_Av_Outerdust                       | 3756                 | 257092355           
+Pb212                                    | 13                   | 493742              
+Pb214                                    | 137                  | 3615727             
+Po212                                    | 62                   | 619503              
+Po214                                    | 197                  | 3387576             
+Po216                                    | 24                   | 481208              
+Po218                                    | 182                  | 3636280             
+Ra224                                    | 25                   | 499367              
+Ra226_Alpha                              | 62                   | 1858644             
+Ra228                                    | 2                    | 560375              
+Rh102m                                   | 135                  | 945052              
+Rb82                                     | 17                   | 106610              
+Rb84                                     | 11                   | 109956              
+Tl208_Av_Innerdust                       | 46                   | 268939              
+Rh102                                    | 66                   | 988296              
+Rh106                                    | 12                   | 92988               
+Rn220                                    | 25                   | 500376              
+Rn222                                    | 185                  | 3696653             
+Sb126                                    | 199                  | 969686              
+Sb126m                                   | 183                  | 1008395             
+Sc44                                     | 19                   | 103167              
+Sc46                                     | 14                   | 105416              
+Th228                                    | 25                   | 499595              
+Th230                                    | 131                  | 3929285             
+Th232                                    | 13                   | 519763              
+Tl208_Av_Outerdust                       | 5647                 | 36701109            
+Tl208                                    | 47                   | 189107              
+Tl208_Exwater                            | 2112                 | 7509092             
+Tl208_Hupropes                           | 1116                 | 4554941             
+Tl210                                    | 18                   | 65173               
+Tl210_Av                                 | 0                    | 0                   
+Tl210_Av_Innerdust                       | 10                   | 939                 
+Tl210_Av_Outerdust                       | 1                    | 1343                
+U234                                     | 20                   | 601017              
+U238                                     | 43                   | 1718615             
+Y88                                      | 217                  | 983304              
+Y90                                      | 5                    | 49942               
+Sb124                                    | 142                  | 977677              
+Bipo212-pure-cleaned                     | 811                  | 3593265             
+Bipo214-pure-cleaned                     | 14407                | 34650058            
+Bipo212_Hdropes-cleaned                  | 110                  | 1853753             
+Bipo212_Av_Innerdust-cleaned             | 68                   | 657346              
+Bipo212_Av_Outerdust-cleaned             | 422                  | 806979              
+Bipo212_Av-cleaned                       | 136                  | 3792884             
+                                         | 0                    | 0                   
+Agm110                                   | 382                  | 1977879             
+Alphan_Telab_13c                         | 623                  | 4367120             
+Co60                                     | 425                  | 1949811             
+B8_Solar_Nue                             | 983                  | 3052810             
+Te130_0n2b                               | 282                  | 1821773             
+merged                                   | 2                    | 2436231             
+B8_Solar_Numu                            | 990                  | 543951              
+Te130_2n2b                               | 14617                | 146139702           
+merged                                   | 2                    | 156518239           
+Tl208_Av                                 | 3923                 | 25692125            
+Tl208_Hdropes                            | 13150                | 110277760           

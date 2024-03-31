@@ -1,0 +1,13 @@
+[?1034h-1 9426
+0 501259
+1 33258
+2 6
+3 2
+4 0
+5 0
+6 0
+7 0
+8 0
+Number of non-retriggers =  510685
+Number of entries =  543951
+Correction =  0.938843756147

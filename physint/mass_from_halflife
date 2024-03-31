@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+import rate_conversions as rc
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("hl", type=float)
+parser.add_argument("phase_space", type=float)
+parser.add_argument("nuc_mat_el", type=float)
+args = parser.parse_args()
+
+m = rc.hl_to_mass(args.hl, args.phase_space, args.nuc_mat_el)
+
+print "For a hl of {0} \n\t\t--> G =  {1} \n\t\t--> |M| = {2} mass is {3}".format(args.hl, args.phase_space, args.nuc_mat_el, m)

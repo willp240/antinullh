@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+import rate_conversions as rc
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("count_limit", type=float)
+parser.add_argument("live_time", type=float)
+parser.add_argument("sig_eff", type=float)
+parser.add_argument("--phase_space", type=float)
+parser.add_argument("--nuc_mat_el", type=float)
+args = parser.parse_args()
+
+hl = rc.counts_to_hl(args.count_limit, args.live_time, args.sig_eff,
+                     rc.SNOT_MASS, rc.SNOT_LOADING, rc.TE_130_ABUNDANCE,
+                     rc.TE_130_MASS)
+
+print "For a live time of {0} with signal efficiency {1}:\n".format(args.live_time, args.sig_eff)
+print "counts < {0}\n".format(args.count_limit)
+print "half life > {0} yr\n".format(hl)
+
+if(args.phase_space is not None and args.nuc_mat_el is not None):
+    mass = rc.hl_to_mass(hl, args.phase_space, args.nuc_mat_el)
+    print "mbb < {0} meV\n".format(mass)

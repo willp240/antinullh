@@ -1,0 +1,13 @@
+-1 42321
+0 2800775
+1 209669
+2 39
+3 6
+4 0
+5 0
+6 0
+7 0
+8 0
+Number of non-retriggers =  2843096
+Number of entries =  3052810
+Correction =  0.931304601335
