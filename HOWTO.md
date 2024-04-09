@@ -1,4 +1,4 @@
-<h1>Double Beta Likelihood Analysis How To Guide</h1>
+<h1>Antinu Likelihood Analysis How To Guide</h1>
 
 This file is a guide on how to run the most commonly used apps in the double beta likelihood analysis.  
 
