@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <Exceptions.h>
 
-namespace bbfit{
+namespace antinufit{
 
 DistConfigLoader::DistConfigLoader(const std::string& filePath_){
     fPath = filePath_;    
