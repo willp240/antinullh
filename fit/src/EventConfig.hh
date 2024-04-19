@@ -1,9 +1,9 @@
-#ifndef __BBFIT__EventConfig__
-#define __BBFIT__EventConfig__
+#ifndef __ANTINUFIT__EventConfig__
+#define __ANTINUFIT__EventConfig__
 #include <string>
 #include <vector>
 
-namespace bbfit{
+namespace antinufit{
 class EventConfig{
 public:
   EventConfig(): fRate(-1), fNgenerated(0) {}

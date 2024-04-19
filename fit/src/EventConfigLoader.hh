@@ -1,11 +1,11 @@
-#ifndef __BBFIT__EventConfigLoader__
-#define __BBFIT__EventConfigLoader__
+#ifndef __ANTINUFIT__EventConfigLoader__
+#define __ANTINUFIT__EventConfigLoader__
 #include <EventConfig.hh>
 #include <map>
 #include <string>
 #include <set>
 
-namespace bbfit{
+namespace antinufit{
 class EventConfig;
 class EventConfigLoader{
 public:

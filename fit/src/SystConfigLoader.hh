@@ -1,10 +1,10 @@
-#ifndef __BBFIT__SystConfigLoader__
-#define __BBFIT__SystConfigLoader__
+#ifndef __ANTINUFIT__SystConfigLoader__
+#define __ANTINUFIT__SystConfigLoader__
 #include <string>
 #include <SystConfig.hh>
 #include <vector>
 
-namespace bbfit{
+namespace antinufit{
 class SystConfig;
 class SystConfigLoader{
 public:

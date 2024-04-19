@@ -1,10 +1,10 @@
-#ifndef __BBFIT__FitConfig__
-#define __BBFIT__FitConfig__
+#ifndef __ANTINUFIT__FitConfig__
+#define __ANTINUFIT__FitConfig__
 #include <ParameterDict.h>
 #include <string>
 #include <set>
 
-namespace bbfit{
+namespace antinufit{
   class FitConfig{
   public:
     ParameterDict GetMinima() const;

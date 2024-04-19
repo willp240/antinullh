@@ -1,7 +1,7 @@
 #include "FitConfig.hh"
 #include <ContainerTools.hpp> 
 
-namespace bbfit{
+namespace antinufit{
 
 ParameterDict 
 FitConfig::GetMinima() const{

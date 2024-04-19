@@ -1,9 +1,9 @@
-#ifndef __BBFIT__DistConfig__
-#define __BBFIT__DistConfig__
+#ifndef __ANTINUFIT__DistConfig__
+#define __ANTINUFIT__DistConfig__
 #include <string>
 #include <vector>
 
-namespace bbfit{
+namespace antinufit{
 class DistConfig{
 public:
   int GetAxisCount() const;

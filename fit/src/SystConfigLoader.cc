@@ -4,7 +4,7 @@
 #include <map>
 #include <algorithm>
 
-namespace bbfit{
+namespace antinufit{
 
 SystConfigLoader::SystConfigLoader(const std::string& filePath_){
     fPath = filePath_;    

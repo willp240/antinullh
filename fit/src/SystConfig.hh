@@ -1,9 +1,9 @@
-#ifndef __BBFIT__SystConfig__
-#define __BBFIT__SystConfig__
+#ifndef __ANTINUFIT__SystConfig__
+#define __ANTINUFIT__SystConfig__
 #include <ParameterDict.h>
 #include <string>
 
-namespace bbfit{
+namespace antinufit{
 class SystConfig{
 public:
 

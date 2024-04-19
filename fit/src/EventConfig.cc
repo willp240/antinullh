@@ -1,5 +1,5 @@
 #include <EventConfig.hh>
-namespace bbfit{
+namespace antinufit{
 double
 EventConfig::GetRate() const{
   return fRate;

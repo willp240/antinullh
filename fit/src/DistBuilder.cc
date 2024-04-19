@@ -5,7 +5,7 @@
 #include <DataSet.h>
 
 
-namespace bbfit{
+namespace antinufit{
 
 AxisCollection
 DistBuilder::BuildAxes(const DistConfig& config_){

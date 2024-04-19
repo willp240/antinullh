@@ -1,5 +1,5 @@
-#ifndef __BBFIT__DistBuilder__
-#define __BBFIT__DistBuilder__
+#ifndef __ANTINUFIT__DistBuilder__
+#define __ANTINUFIT__DistBuilder__
 #include <string>
 
 class BinnedED;
@@ -8,7 +8,7 @@ class AxisCollection;
 class CutCollection;
 class CutLog;
 
-namespace bbfit{
+namespace antinufit{
 class DistConfig;
 class EventConfig;
 

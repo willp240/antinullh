@@ -1,10 +1,10 @@
-#ifndef __BBFIT__DistConfigLoader__
-#define __BBFIT__DistConfigLoader__
+#ifndef __ANTINUFIT__DistConfigLoader__
+#define __ANTINUFIT__DistConfigLoader__
 #include <string>
 #include <DistConfig.hh>
 #include <map>
 
-namespace bbfit{
+namespace antinufit{
 class DistConfig;
 class DistConfigLoader{
 public:

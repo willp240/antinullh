@@ -1,7 +1,7 @@
 #include <SystConfig.hh>
 #include <ContainerTools.hpp>
 
-namespace bbfit{
+namespace antinufit{
 
 ParameterDict
 SystConfig::GetNominal() const{

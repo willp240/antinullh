@@ -5,7 +5,7 @@
 #include <Gaussian.h>
 #include <Exceptions.h>
 
-namespace bbfit{
+namespace antinufit{
 Systematic*
 SystFactory::New(const std::string& name_, 
 		const std::string& type_,
