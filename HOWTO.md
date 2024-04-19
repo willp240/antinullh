@@ -1,4 +1,4 @@
-<h1>Double Beta Likelihood Analysis How To Guide</h1>
+<h1>Antinu Likelihood Analysis How To Guide</h1>
 
 This file is a guide on how to run the most commonly used apps in the double beta likelihood analysis.  
 
@@ -6,13 +6,13 @@ Most of the apps and source code live within the `fit` directory. Within `fit/sr
 
 The first thing you'll need to do is update the path where the raw ntuples you're going to use are saved. In the `rates` config file, change `orig_base_dir` to point to the top-level directory containing them. At this point, you may also want to update `pruned_ntup_dir` to point to where you want your pruned ntuples to be outputted, `split_ntuple_fake` to point to where to output trees of pruned events used to create fake datasets, and `split_ntuple_pdf` to point to where to output trees of pruned events used to create PDFs.  
 
-You'll also want to get the environment variables in `env.sh` pointing to your OXO install, your `bb-likelihood-analysis/fit` directory, and the top level where data will be written to. From now on, paths in this document are relative to `bb-likelihood-analysis/fit` (except for postfit outputted files).  
+You'll also want to get the environment variables in `env.sh` pointing to your OXO install, your `antinullh/fit` directory, and the top level where data will be written to. From now on, paths in this document are relative to `antinullh/fit` (except for postfit outputted files).  
 
 <h2>Pruning Trees</h2>
 
 Raw SNO+ ntuples, although much more lightweight than RATDS files, still contain much more information than we need at analysis level. So instead of carrying around that deadweight for the whole analysis, we first take the time to prune out the branches we don't need and save what we do need in new files to be used.  
 
-The `make_trees` app does this for us. Having set your filepaths in your `rates` config file, simply run (from within `bb-likelihood-analysis/fit`):  
+The `make_trees` app does this for us. Having set your filepaths in your `rates` config file, simply run (from within `antinullh/fit`):  
 
 >> ./bin/make_trees ../rates/config_file.cfg
 
@@ -102,7 +102,7 @@ You can submit 100 chains by doing something like:
 
 This will make a directory called `fit_name` within `dataset_directory`. The idea being any different fits you run over the same dataset are all under that directory. Within the `fit_name` directory, there will be subdirectories called `fit_name_i` where `i` runs from 0 to the number of parallel chains you've run (100 in the above example).  
 
-Note that the config filenames here are names and not paths. The python script knows to look in each subdirectory. The environment file you supply here should be whatever you use to set up ROOT, python, GSL, etc., not `bb-likelihood-analysis/env.sh` (which should be sourced before running the python submission.  
+Note that the config filenames here are names and not paths. The python script knows to look in each subdirectory. The environment file you supply here should be whatever you use to set up ROOT, python, GSL, etc., not `antinullh/env.sh` (which should be sourced before running the python submission.  
 
 
 <h2> Postfit Analysis </h2>
