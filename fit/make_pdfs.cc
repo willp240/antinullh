@@ -12,30 +12,23 @@
 #include <DistTools.h>
 #include <TH1D.h>
 #include <TH2D.h>
-#include <CutConfig.hh>
-#include <CutConfigLoader.hh>
-#include <CutCollection.h>
-#include <CutFactory.hh>
-#include <CutLog.h>
 #include <HistTools.h>
 #include <iostream>
-using namespace bbfit;
+using namespace antinufit;
 
 int main(int argc, char *argv[]){
   if (argc != 4){
-    std::cout << "\nUsage: make_trees <event_config_file> <pdf_config_file> <cut_config_file>" << std::endl;
+    std::cout << "\nUsage: make_trees <event_config_file> <pdf_config_file>" << std::endl;
     return 1;
   }
     
   std::string evConfigFile(argv[1]);
   std::string pdfConfigFile(argv[2]);
-  std::string cutConfigFile(argv[3]);
 
 
   std::cout << "\nReading from config files: "   << std::endl
 	    << "\t" << evConfigFile << ",\n "  
 	    << "\t" << pdfConfigFile << ",\n"
-	    << "\t" << cutConfigFile
 	    << std::endl;
 
     
@@ -50,7 +43,7 @@ int main(int argc, char *argv[]){
     mkdir(pdfDir.c_str(), 0700);
   }
 
-  std::cout << "\nSaving pdfs/cut logs to " << pdfDir << std::endl;
+  std::cout << "\nSaving pdf logs to " << pdfDir << std::endl;
 
   // and another one for the projections - there will be loads
   std::string projDir = pdfDir + "/projections";
@@ -64,34 +57,11 @@ int main(int argc, char *argv[]){
   typedef std::map<std::string, EventConfig> EvMap;
   EventConfigLoader loader(evConfigFile);
   EvMap toGet = loader.LoadActive();
-
-
-  // create the cuts
-  typedef std::vector<CutConfig> CutVec;
-  CutConfigLoader cutConfLoader(cutConfigFile);
-  CutVec cutConfs = cutConfLoader.LoadActive();
-
-
-  CutCollection cutCol;
-  for(CutVec::iterator it = cutConfs.begin(); it != cutConfs.end();
-      ++it){
-    std::string name = it->GetName();
-    std::string type = it->GetType();
-    std::string obs = it->GetObs();
-    double val = it->GetValue();
-    double val2 = it->GetValue2();
-    Cut *cut = CutFactory::New(name, type, obs, val, val2);
-    cutCol.AddCut(*cut);
-    delete cut; // cut col takes its own copy
-  }
  
   // now make and fill the pdfs
   for(EvMap::iterator it = toGet.begin(); it != toGet.end(); ++it){    
     std::cout << "Building distribution for " << it->first << std::endl;
     
-    // monitor the effect of the cuts
-    CutLog log(cutCol.GetCutNames());
-
     // find the dataset
     DataSet* dataSet;
     try{
@@ -103,7 +73,7 @@ int main(int argc, char *argv[]){
     }
 
     // create and fill
-    BinnedED dist = DistBuilder::Build(it->first, pConfig, dataSet, cutCol, log);
+    BinnedED dist = DistBuilder::Build(it->first, pConfig, dataSet, log);
 
     std::vector<double> gen;
     gen.push_back(dist.Integral());
