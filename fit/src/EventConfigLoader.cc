@@ -16,14 +16,9 @@ EventConfigLoader::LoadOne(const std::string& name_) const{
   ConfigLoader::Open(fPath);
   std::string baseDir;
   std::string prunedDir;
-  std::string splitDirFake;
-  std::string splitDirPdf;
 
   ConfigLoader::Load("summary", "orig_base_dir", baseDir);
   ConfigLoader::Load("summary", "pruned_ntup_dir", prunedDir);
-  ConfigLoader::Load("summary", "split_ntup_dir_fake", splitDirFake);
-  ConfigLoader::Load("summary", "split_ntup_dir_pdf", splitDirPdf);
-
 
   double rate;
   unsigned long  nGenerated;
@@ -36,7 +31,6 @@ EventConfigLoader::LoadOne(const std::string& name_) const{
   ConfigLoader::Load(name_, "rate", rate);
   ConfigLoader::Load(name_, "tex_label", texLabel);
   ConfigLoader::Load(name_, "ntup_files", ntupFiles);
-  ConfigLoader::Load(name_, "split_method", splitMethod);
 
   try{
       ConfigLoader::Load(name_, "n_generated", nGenerated);
@@ -47,14 +41,6 @@ EventConfigLoader::LoadOne(const std::string& name_) const{
       scalesWithLoading = "false";
   }
 
-
-  if(splitMethod == "random")
-    randomSplit = true;
-  else if(splitMethod == "sequential")
-    randomSplit = false;
-  else
-    throw ValueError("Don't know how to split data by " + splitMethod + " options are random and sequential");
-
   EventConfig retVal;
   retVal.SetRate(rate);
   retVal.SetNGenerated(nGenerated);
@@ -63,9 +49,6 @@ EventConfigLoader::LoadOne(const std::string& name_) const{
   retVal.SetName(name_);
   retVal.SetNtupBaseDir(baseDir);
   retVal.SetPrunedPath(prunedDir+ "/" + name_ + ".root");
-  retVal.SetSplitFakePath(splitDirFake + "/" + name_ + ".root");
-  retVal.SetSplitPdfPath(splitDirPdf + "/" + name_ + ".root");
-  retVal.SetRandomSplit(randomSplit);
   retVal.SetLoadingScaling(scalesWithLoading);
   return retVal;
 }
