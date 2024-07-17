@@ -29,6 +29,9 @@ FitConfigLoader::LoadActive() const{
   std::string outDir;
   std::string dataSet;
   bool beestonBarlowFlag;
+  bool asimovFlag;
+  double livetime;
+  std::string datafile;
 
   ConfigLoader::Load("summary", "iterations", it);
   ConfigLoader::Load("summary", "burn_in", burnIn);
@@ -39,6 +42,9 @@ FitConfigLoader::LoadActive() const{
   ConfigLoader::Load("summary", "epsilon", epsilon);
   ConfigLoader::Load("summary", "sigma_scale", sigmaScale);
   ConfigLoader::Load("summary", "beeston_barlow", beestonBarlowFlag);
+  ConfigLoader::Load("summary", "asimov", asimovFlag);
+  ConfigLoader::Load("summary", "datafile", datafile);
+  ConfigLoader::Load("summary", "livetime", livetime);
 
   ret.SetOutDir(outDir);
   ret.SetNSteps(nSteps);
@@ -49,6 +55,9 @@ FitConfigLoader::LoadActive() const{
   ret.SetHMCBurnIn(HMCburnIn);
   ret.SetSigmaScale(sigmaScale);
   ret.SetBeestonBarlow(beestonBarlowFlag);
+  ret.SetAsimov(asimovFlag);
+  ret.SetDatafile(datafile);
+  ret.SetLivetime(livetime);
 
   typedef std::set<std::string> StringSet;
   StringSet toLoad;

@@ -83,6 +83,36 @@ FitConfig::SetBeestonBarlow(bool b_){
   fBeestonBarlow = b_;
 }
 
+bool
+FitConfig::GetAsimov() const{
+  return fAsimov;
+}
+
+void
+FitConfig::SetAsimov(bool b_){
+  fAsimov = b_;
+}
+
+std::string
+FitConfig::GetDatafile() const{
+  return fDatafile;
+}
+
+void
+FitConfig::SetDatafile(std::string s_){
+  fDatafile = s_;
+}
+
+double
+FitConfig::GetLivetime() const{
+  return fLivetime;
+}
+
+void
+FitConfig::SetLivetime(double d_){
+  fLivetime = d_;
+}
+
 void
 FitConfig::AddParameter(const std::string& name_, double min_, double max_, double sigma_, int nbins_){
   fMinima[name_] = min_;

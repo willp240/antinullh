@@ -29,7 +29,7 @@ DistBuilder::BuildAxes(const DistConfig& config_){
 }
 
 BinnedED
-DistBuilder::Build(const std::string& name_, const DistConfig& pdfConfig_, DataSet* data_, const CutCollection& cuts_, CutLog& log_){
+DistBuilder::Build(const std::string& name_, const DistConfig& pdfConfig_, DataSet* data_){
   // Create the axes
   AxisCollection axes = BuildAxes(pdfConfig_);
   
@@ -38,7 +38,7 @@ DistBuilder::Build(const std::string& name_, const DistConfig& pdfConfig_, DataS
   dist.SetObservables(pdfConfig_.GetBranchNames());
 
   // fill it up
-  DistFiller::FillDist(dist, *data_, cuts_, log_);
+  DistFiller::FillDist(dist, *data_);
 
   return dist;
 }

@@ -10,17 +10,6 @@ EventConfig::SetRate(double r_){
   fRate = r_;
 }
 
-unsigned long
-EventConfig::GetNGenerated() const{
-  return fNgenerated;
-}
-
-void
-EventConfig::SetNGenerated(unsigned long n_){
-  fNgenerated = n_;
-
-}
-
 const std::vector<std::string>&
 EventConfig::GetNtupFiles() const{
   return fNtupFiles;
@@ -39,16 +28,6 @@ EventConfig::GetTexLabel() const{
 void
 EventConfig::SetTexLabel(const std::string& s_){
   fTexLabel = s_;
-}
-
-std::string
-EventConfig::GetLoadingScaling() const{
-  return fLoadingScaling;
-}
-
-void
-EventConfig::SetLoadingScaling(const std::string& s_){
-  fLoadingScaling = s_;
 }
 
 std::string
@@ -80,34 +59,15 @@ void
 EventConfig::SetPrunedPath(const std::string& s_){
   fPrunedPath = s_;
 }
-
-std::string
-EventConfig::GetSplitFakePath() const{
-  return fSplitFakePath;
-}
-
-void
-EventConfig::SetSplitFakePath(const std::string& s_){
-  fSplitFakePath = s_;
-}
 	
 std::string
-EventConfig::GetSplitPdfPath() const{
-  return fSplitPdfPath;
+EventConfig::GetPdfPath() const{
+  return fPdfPath;
 }
 
 void
-EventConfig::SetSplitPdfPath(const std::string& s_){
-  fSplitPdfPath = s_;
+EventConfig::SetPdfPath(const std::string& s_){
+  fPdfPath = s_;
 }
 
-bool
-EventConfig::GetRandomSplit() const{
-  return fRandomSplit;
-}
-
-void
-EventConfig::SetRandomSplit(bool b_){
-  fRandomSplit = b_;
-}
 }

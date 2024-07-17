@@ -13,43 +13,33 @@ EventConfigLoader::EventConfigLoader(const std::string& filePath_){
 
 EventConfig
 EventConfigLoader::LoadOne(const std::string& name_) const{
+
   ConfigLoader::Open(fPath);
   std::string baseDir;
   std::string prunedDir;
+  std::string pdfDir;
 
   ConfigLoader::Load("summary", "orig_base_dir", baseDir);
   ConfigLoader::Load("summary", "pruned_ntup_dir", prunedDir);
+  ConfigLoader::Load("summary", "pdf_dir", pdfDir);
 
   double rate;
-  unsigned long  nGenerated;
-  bool   randomSplit;
   std::string texLabel;
-  std::string splitMethod;
   std::vector<std::string> ntupFiles;
-  std::string scalesWithLoading;
 
   ConfigLoader::Load(name_, "rate", rate);
   ConfigLoader::Load(name_, "tex_label", texLabel);
   ConfigLoader::Load(name_, "ntup_files", ntupFiles);
 
-  try{
-      ConfigLoader::Load(name_, "n_generated", nGenerated);
-      ConfigLoader::Load(name_, "scales_with_loading", scalesWithLoading);
-  }
-  catch(const ConfigFieldMissing&){
-      nGenerated = 0;
-      scalesWithLoading = "false";
-  }
 
   EventConfig retVal;
   retVal.SetRate(rate);
-  retVal.SetNGenerated(nGenerated);
   retVal.SetNtupFiles(ntupFiles);
   retVal.SetTexLabel(texLabel);
   retVal.SetName(name_);
   retVal.SetNtupBaseDir(baseDir);
   retVal.SetPrunedPath(prunedDir+ "/" + name_ + ".root");
-  retVal.SetLoadingScaling(scalesWithLoading);
+  retVal.SetPdfPath(baseDir+ "/" + name_ + ".root");
   return retVal;
 }
 

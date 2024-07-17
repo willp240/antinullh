@@ -6,13 +6,10 @@
 namespace antinufit{
 class EventConfig{
 public:
-  EventConfig(): fRate(-1), fNgenerated(0) {}
+  EventConfig(): fRate(-1){}
 
   double GetRate() const;
   void   SetRate(double);
-
-  unsigned long GetNGenerated() const;
-  void SetNGenerated(unsigned long);
 
   std::string GetName() const;
   void SetName(const std::string&);
@@ -23,36 +20,23 @@ public:
   std::string GetTexLabel() const;
   void SetTexLabel(const std::string&);
 
-  std::string GetLoadingScaling() const;
-  void SetLoadingScaling(const std::string&);
-
   std::string GetNtupBaseDir() const;
   void SetNtupBaseDir(const std::string&);
 
   std::string GetPrunedPath() const;
   void SetPrunedPath(const std::string&);
 
-  std::string GetSplitFakePath() const;
-  void SetSplitFakePath(const std::string&);
-
-	std::string GetSplitPdfPath() const;
-  void SetSplitPdfPath(const std::string&);
-
-  bool GetRandomSplit() const;
-  void SetRandomSplit(bool);
+	std::string GetPdfPath() const;
+  void SetPdfPath(const std::string&);
 
 private:
   double fRate;
-  unsigned long  fNgenerated;
   std::vector<std::string> fNtupFiles;
   std::string fNtupBaseDir; // the originals
   std::string fPrunedPath;   // the pruned ouput
-  std::string fSplitFakePath;   // after the fake data split
-	std::string fSplitPdfPath;   // after the fake data split
+	std::string fPdfPath;
   std::string fTexLabel;
   std::string fName;
-  std::string fLoadingScaling;
-  bool fRandomSplit;
 };
 }
 

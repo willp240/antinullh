@@ -46,10 +46,19 @@ namespace antinufit{
     bool   GetBeestonBarlow() const;
     void   SetBeestonBarlow(bool);
 
+    bool   GetAsimov() const;
+    void   SetAsimov(bool);
+
+    std::string GetDatafile() const;
+    void   SetDatafile(std::string);
+
+    double GetLivetime() const;
+    void   SetLivetime(double);
+
   private:
     std::string   fOutDir;
     ParameterDict fConstrMeans;
-    ParameterDict fConstrSigmas;;
+    ParameterDict fConstrSigmas;
     ParameterDict fMinima;
     ParameterDict fMaxima;
     ParameterDict fSigmas;
@@ -62,7 +71,9 @@ namespace antinufit{
     bool      fBeestonBarlow;
     double    fEpsilon;
     double    fSigmaScale;
-    
+    bool      fAsimov;
+    double    fLivetime;
+    std::string fDatafile;
   };
 }
 #endif
