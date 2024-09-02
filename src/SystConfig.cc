@@ -53,13 +53,18 @@ SystConfig::GetType() const{
   return fType;
 }
 
+std::map<std::string, std::string>
+SystConfig::GetGroup() const{
+  return fGroup;
+}
+
 const std::string&
 SystConfig::GetName() const {
   return fName;
 }
 
 void
-SystConfig::AddParameter(const std::string& name_, double nom_, double min_, double max_, double mass_, double sigma_, int nbins_, const std::string& obs_, const std::string& type_){
+SystConfig::AddParameter(const std::string& name_, double nom_, double min_, double max_, double mass_, double sigma_, int nbins_, const std::string& obs_, const std::string& type_, const std::string& group_){
   fNominal[name_] = nom_;
   fMinima[name_] = min_;
   fMaxima[name_] = max_;
@@ -71,7 +76,7 @@ SystConfig::AddParameter(const std::string& name_, double nom_, double min_, dou
 }
 
 void
-SystConfig::AddParameter(const std::string& name_, double nom_, double min_, double max_, double mass_, double sigma_, int nbins_, double constr_mean_, double constr_sigma_, const std::string& obs_, const std::string& type_){
+SystConfig::AddParameter(const std::string& name_, double nom_, double min_, double max_, double mass_, double sigma_, int nbins_, double constr_mean_, double constr_sigma_, const std::string& obs_, const std::string& type_, const std::string& group_){
   fNominal[name_] = nom_;
   fMinima[name_] = min_;
   fMaxima[name_] = max_;
@@ -82,44 +87,6 @@ SystConfig::AddParameter(const std::string& name_, double nom_, double min_, dou
   fConstrSigma[name_] = constr_sigma_;
   fObs[name_] =obs_;
   fType[name_] = type_;
+  fGroup[name_] = group_;
 }
-
-void
-SystConfig::AddParameter(const std::string& name_, double nom_, double min_, double max_, double mass_, double sigma_, int nbins_, const std::string& obs_, const std::string& type_, double nom_stddev_, double min_stddev_, double max_stddev_, double mass_stddev_, double sigma_stddev_, int nbins_stddev_){
-  fNominal[name_] = nom_;
-  fMinima[name_] = min_;
-  fMaxima[name_] = max_;
-  fMass[name_] = mass_;
-  fSigma[name_] = sigma_;
-  fNBins[name_] = nbins_;
-  fObs[name_] = obs_;
-  fType[name_] = type_;
-  fNominal[name_+"_stddevs"] = nom_stddev_;
-  fMinima[name_+"_stddevs"] = min_stddev_;
-  fMaxima[name_+"_stddevs"] = max_stddev_;
-  fMass[name_+"_stddevs"] = mass_stddev_;
-  fSigma[name_+"_stddevs"] = sigma_stddev_;
-  fNBins[name_+"_stddevs"] = nbins_stddev_;
-}
-
-void
-SystConfig::AddParameter(const std::string& name_, double nom_, double min_, double max_, double mass_, double sigma_, int nbins_, double constr_mean_, double constr_sigma_, const std::string& obs_, const std::string& type_, double nom_stddev_, double min_stddev_, double max_stddev_, double mass_stddev_, double sigma_stddev_, int nbins_stddev_){
-  fNominal[name_] = nom_;
-  fMinima[name_] = min_;
-  fMaxima[name_] = max_;
-  fMass[name_] = mass_;
-  fSigma[name_] = sigma_;
-  fNBins[name_] = nbins_;
-  fConstrMean[name_] = constr_mean_;
-  fConstrSigma[name_] = constr_sigma_;
-  fObs[name_] =obs_;
-  fType[name_] = type_;
-  fNominal[name_+"_stddevs"] = nom_stddev_;
-  fMinima[name_+"_stddevs"] = min_stddev_;
-  fMaxima[name_+"_stddevs"] = max_stddev_;
-  fMass[name_+"_stddevs"] = mass_stddev_;
-  fSigma[name_+"_stddevs"] = sigma_stddev_;
-  fNBins[name_+"_stddevs"] = nbins_stddev_;
-}
-  
 }

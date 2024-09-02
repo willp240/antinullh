@@ -66,10 +66,11 @@ void llh_scan(const std::string &mcmcConfigFile_,
   ParameterDict syst_minima = systConfig.GetMinima();
   ParameterDict syst_mass = systConfig.GetMass();
   ParameterDict syst_nbins = systConfig.GetNBins();
+  std::map<std::string, std::string> syst_group = systConfig.GetGroup();
   std::map<std::string, std::string> syst_type = systConfig.GetType();
   std::map<std::string, std::string> syst_obs = systConfig.GetObs();
 
-  std::vector<Systematic *> syst_vec;
+  std::map<std::string, Systematic *> syst_map;
   // Loop over systematics and declare each type. Must be a better way to do this but it will do for now
   for (std::map<std::string, std::string>::iterator it = syst_type.begin(); it != syst_type.end(); ++it)
   {
@@ -77,17 +78,14 @@ void llh_scan(const std::string &mcmcConfigFile_,
     Obs.push_back(syst_obs[it->first]);
     ObsSet obsSet(Obs);
 
-    double stddev_nom = 0;
-    if (syst_type[it->first] == "conv")
-      stddev_nom = syst_nom[it->first + "_stddevs"];
-    Systematic *syst = SystFactory::New(it->first, syst_type[it->first], syst_nom[it->first], stddev_nom);
+    Systematic *syst = SystFactory::New(it->first, syst_type[it->first], syst_nom[it->first]);
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies too
     syst->SetTransformationObs(obsSet);
     // All the "dimensions" of the dataset
     syst->SetDistributionObs(dataObsSet);
     syst->Construct();
-    syst_vec.push_back(syst);
+    syst_map[it->first] = syst;
   }
 
   // Create the individual PDFs and Asimov components (could these be maps not vectors)
@@ -95,6 +93,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
   std::vector<BinnedED> indivAsmvDists;
   ParameterDict asimovRates;
   std::vector<int> genRates;
+  std::vector<std::vector<std::string>> pdf_groups;
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -105,6 +104,8 @@ void llh_scan(const std::string &mcmcConfigFile_,
   {
 
     std::cout << "Building distribution for " << it->first << std::endl;
+    pdf_groups.push_back(it->second.GetGroup());
+
     // Get MC events from file
     DataSet *dataSet;
     try
@@ -132,11 +133,14 @@ void llh_scan(const std::string &mcmcConfigFile_,
     pdfs.push_back(dist);
 
     // Apply nominal systematic variables
-    for (int i_syst = 0; i_syst < syst_vec.size(); i_syst++)
+    for (std::map<std::string, Systematic *>::iterator it = syst_map.begin(); it != syst_map.end(); ++it)
     {
-      double distInt = dist.Integral();
-      dist = syst_vec.at(i_syst)->operator()(dist);
-      dist.Scale(distInt);
+      if (syst_group[it->first] == "" || std::find(pdf_groups.back().begin(), pdf_groups.back().end(), syst_group[it->first]) != pdf_groups.back().end())
+      {
+        double distInt = dist.Integral();
+        dist = it->second->operator()(dist);
+        dist.Scale(distInt);
+      }
     }
 
     // Let's save the PDF as a histo
@@ -145,7 +149,6 @@ void llh_scan(const std::string &mcmcConfigFile_,
     // Now scale the Asimov component by expected rate
     double rate = it->second.GetRate();
     dist.Scale(livetime * rate);
-    std::cout << pdfs.back().GetBinContent(0) << std::endl;
     asimov.Add(dist);
     indivAsmvDists.push_back(dist);
     asimovRates[it->first] = dist.Integral();
@@ -183,11 +186,11 @@ void llh_scan(const std::string &mcmcConfigFile_,
   BinnedNLLH lh;
   lh.SetBufferAsOverflow(true);
   // lh.SetBuffer("energy", 1, 1);
-  lh.AddPdfs(pdfs, genRates);
+  lh.AddPdfs(pdfs, pdf_groups, genRates);
   lh.SetDataDist(dataDist);
   lh.SetBarlowBeeston(beestonBarlowFlag);
-  for (int i_syst = 0; i_syst < syst_vec.size(); i_syst++)
-    lh.AddSystematic(syst_vec.at(i_syst));
+  for (std::map<std::string, Systematic *>::iterator it = syst_map.begin(); it != syst_map.end(); ++it)
+    lh.AddSystematic(it->second, syst_group[it->first]);
 
   ParameterDict constrMeans = mcConfig.GetConstrMeans();
   ParameterDict constrSigmas = mcConfig.GetConstrSigmas();
