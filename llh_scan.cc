@@ -29,9 +29,8 @@ void llh_scan(const std::string &mcmcConfigFile_,
 {
   Rand::SetSeed(0);
 
-  // Load up the configuration data
+  // Load up the fit configuration information
   FitConfig mcConfig;
-
   FitConfigLoader mcLoader(mcmcConfigFile_);
   mcConfig = mcLoader.LoadActive();
   bool isAsimov = mcConfig.GetAsimov();
@@ -48,19 +47,17 @@ void llh_scan(const std::string &mcmcConfigFile_,
   EventConfigLoader loader(evConfigFile_);
   EvMap toGet = loader.LoadActive();
 
-  // Load up the PDFs
+  // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
   DistConfigLoader pdfLoader(pdfConfigFile_);
   DistConfig pdfConfig = pdfLoader.Load();
   std::string pdfDir = pdfConfig.GetPDFDir();
+  std::vector<std::string> dataObs = pdfConfig.GetBranchNames();
+  ObsSet dataObsSet(dataObs);
 
   // Load up the systematics
   SystConfigLoader systLoader(systConfigFile_);
   SystConfig systConfig = systLoader.LoadActive();
-
   AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig);
-  std::vector<std::string> dataObs = pdfConfig.GetBranchNames();
-  ObsSet dataObsSet(dataObs);
-
   ParameterDict systNom = systConfig.GetNominal();
   ParameterDict systMaxima = systConfig.GetMaxima();
   ParameterDict systMinima = systConfig.GetMinima();
@@ -70,7 +67,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
   std::map<std::string, std::string> systType = systConfig.GetType();
   std::map<std::string, std::string> systObs = systConfig.GetObs();
 
-  // Loop over systematics and declare each type. Must be a better way to do this but it will do for now
+  // Loop over systematics and declare each one
   std::map<std::string, Systematic *> systMap;
   for (std::map<std::string, std::string>::iterator it = systType.begin(); it != systType.end(); ++it)
   {
@@ -124,17 +121,18 @@ void llh_scan(const std::string &mcmcConfigFile_,
     BinnedED dist;
     dist = DistBuilder::Build(it->first, pdfConfig, dataSet);
 
+    // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
 
-    // Scale for PDF
+    // Scale for PDF and add to vector
     if (dist.Integral())
       dist.Normalise();
-
     pdfs.push_back(dist);
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
     {
+      // If group is "", we apply to all groups
       if (systGroup[it->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[it->first]) != pdfGroups.back().end())
       {
         double distInt = dist.Integral();
@@ -154,16 +152,17 @@ void llh_scan(const std::string &mcmcConfigFile_,
     asimovRates[it->first] = dist.Integral();
   }
 
+  // And save combined histogram (final asimov dataset)
   IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
 
-  // If its a root tree then load it up
+  // Now let's load up the data
   BinnedED dataDist;
-
   if (!isAsimov)
   {
 
     std::string dataPath = mcConfig.GetDatafile();
 
+    // Could be h5 or root file
     if (dataPath.substr(dataPath.find_last_of(".") + 1) == "h5")
     {
       Histogram loaded = IO::LoadHistogram(dataPath);
@@ -184,22 +183,25 @@ void llh_scan(const std::string &mcmcConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
+  // Set the buffer region
   lh.SetBufferAsOverflow(true);
   // lh.SetBuffer("energy", 1, 1);
+  // Add our PDFs and data
   lh.AddPdfs(pdfs, pdfGroups, genRates);
   lh.SetDataDist(dataDist);
+  // Set whether or not to use Beeston Barlow
   lh.SetBarlowBeeston(beestonBarlowFlag);
+  // Add the systematics and any prior constraints
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
     lh.AddSystematic(it->second, systGroup[it->first]);
-
   ParameterDict constrMeans = mcConfig.GetConstrMeans();
   ParameterDict constrSigmas = mcConfig.GetConstrSigmas();
-  ParameterDict mins = mcConfig.GetMinima();
-  ParameterDict maxs = mcConfig.GetMaxima();
-
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
 
+  // Now add max and min values for each parameter
+  ParameterDict mins = mcConfig.GetMinima();
+  ParameterDict maxs = mcConfig.GetMaxima();
   for (ParameterDict::iterator it = systMass.begin(); it != systMass.end(); ++it)
   {
     mins[it->first] = systMinima[it->first];
@@ -207,21 +209,23 @@ void llh_scan(const std::string &mcmcConfigFile_,
     asimovRates[it->first] = systNom[it->first];
   }
 
+  // And finally bring it all together
   lh.RegisterFitComponents();
 
-  // Number of points in scan
+  // Now onto the LLH Scan. First set the number of points in the scan
   int npoints = 150;
-  int countwidth = 10;
-  // double(npoints) / double(5);
+  int countwidth = double(npoints) / double(5);
 
   // Initialise to nominal values
   ParameterDict parameterValues;
   for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
     parameterValues[it->first] = asimovRates[it->first];
 
+  // If we have constraints, initialise to those
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     parameterValues[it->first] = constrMeans[it->first];
 
+  // Set to these initial values
   lh.SetParameters(parameterValues);
 
   // Setup outfile
@@ -234,13 +238,17 @@ void llh_scan(const std::string &mcmcConfigFile_,
     // Get param name
     std::string name = it->first;
     std::cout << "Scanning for " << name << std::endl;
+
+    // Set scan range from this parameter's max and min values
+    // We plot x axis as relative to the nominal value, so if this = 0 we set it to 1
     double nom = asimovRates[name];
     if (nom == 0)
       nom = 1;
     double min = mins[name];
     double max = maxs[name];
     std::cout << "Scanning for " << name << " from " << min << " to " << max << ". Nom " << nom << std::endl;
-    // Make histos
+    
+    // Make histogram for this parameter
     TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
     TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, min / nom, max / nom);
     hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
@@ -251,7 +259,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
     // TH1D *hScanPen = new TH1D((name+"_pen").c_str(), (name+"_pen").c_str(), npoints, min/nom, max/nom);
     // hScanPen->SetTitle(std::string(std::string("2LLH_pen, ") + name + ";" + name + "; -2(ln L_{penalty})").c_str());
 
-    // loop from min to max in steps of 150 (might want to do smaller range)
+    // Now loop from min to max in npoint steps
     for (int i = 0; i < npoints; i++)
     {
 
@@ -272,7 +280,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
       // hScanSam->SetBinContent(i+1, llh);
       // hScanPen->SetBinContent(i+1, llh);
 
-      // return to asimov value
+      // return to nominal value
       parameterValues[name] = tempval;
     }
     // Write Histos
