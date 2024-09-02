@@ -1,8 +1,8 @@
 <h1>Antinu Likelihood Analysis How To Guide</h1>
 
-This file is a guide on how to run the most commonly used apps in the double beta likelihood analysis.  
+This file is a guide on how to run the most commonly used apps in the antinu oxo likelihood analysis.  
 
-Most of the apps and source code live within the `fit` directory. Within `fit/src`, there is code for interfacing with config files. The config files themselves live in `cuts`, `pdfs`, `rates`, `results`, and `systs`.  
+Most of the apps and source code live within the top directory. Within `./src`, there is code for interfacing with config files. The config files themselves live in `./cfg`.  
 
 The first thing you'll need to do is update the path where the raw ntuples you're going to use are saved. In the `rates` config file, change `orig_base_dir` to point to the top-level directory containing them. At this point, you may also want to update `pruned_ntup_dir` to point to where you want your pruned ntuples to be outputted, `split_ntuple_fake` to point to where to output trees of pruned events used to create fake datasets, and `split_ntuple_pdf` to point to where to output trees of pruned events used to create PDFs.  
 
