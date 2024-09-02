@@ -2,7 +2,7 @@
 MakeTrees takes in ntuples and prunes out all the branches
 we're not interested in so we only have nice lightweight files
 to carry around in the fit.
-It reads in input files specified in the event config and 
+It reads in input files specified in the event config and
 literally just loops over events, filling new ntuples
 with the quantities we want. These get written to wherever
 was specified in the config file.
@@ -60,7 +60,7 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
       chain.GetEntry(i);
 
       outp.cd();
-      nt.Fill(e,c);
+      nt.Fill(e, c);
     }
   }
   outp.cd();

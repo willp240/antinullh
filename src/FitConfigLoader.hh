@@ -4,16 +4,18 @@
 #include <FitConfig.hh>
 #include <map>
 
-namespace antinufit{
-class FitConfig;
-class FitConfigLoader{
-public:
-  FitConfigLoader(const std::string& filePath_);
-  ~FitConfigLoader();
-  FitConfig LoadActive() const;
-  
-private:
-  std::string fPath;
-};
+namespace antinufit
+{
+  class FitConfig;
+  class FitConfigLoader
+  {
+  public:
+    FitConfigLoader(const std::string &filePath_);
+    ~FitConfigLoader();
+    FitConfig LoadActive() const;
+
+  private:
+    std::string fPath;
+  };
 }
 #endif

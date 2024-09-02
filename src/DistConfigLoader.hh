@@ -4,16 +4,18 @@
 #include <DistConfig.hh>
 #include <map>
 
-namespace antinufit{
-class DistConfig;
-class DistConfigLoader{
-public:
-  DistConfigLoader(const std::string& filePath_);
-  ~DistConfigLoader();
-  DistConfig Load() const;
+namespace antinufit
+{
+  class DistConfig;
+  class DistConfigLoader
+  {
+  public:
+    DistConfigLoader(const std::string &filePath_);
+    ~DistConfigLoader();
+    DistConfig Load() const;
 
-private:
-  std::string fPath;
-};
+  private:
+    std::string fPath;
+  };
 }
 #endif

@@ -48,7 +48,7 @@ namespace antinufit
     std::stringstream ss(group);
     std::string indiv_group;
     while (std::getline(ss, indiv_group, ','))
-        groups.push_back(indiv_group);
+      groups.push_back(indiv_group);
 
     EventConfig retVal;
     retVal.SetRate(rate);

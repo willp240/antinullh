@@ -4,16 +4,18 @@
 #include <SystConfig.hh>
 #include <vector>
 
-namespace antinufit{
-class SystConfig;
-class SystConfigLoader{
-public:
-  SystConfigLoader(const std::string& filePath_);
-  ~SystConfigLoader();
-  SystConfig LoadActive() const;
+namespace antinufit
+{
+  class SystConfig;
+  class SystConfigLoader
+  {
+  public:
+    SystConfigLoader(const std::string &filePath_);
+    ~SystConfigLoader();
+    SystConfig LoadActive() const;
 
-private:
-  std::string fPath;
-};
+  private:
+    std::string fPath;
+  };
 }
 #endif
