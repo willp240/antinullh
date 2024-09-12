@@ -18,7 +18,7 @@ PREFIX ?= /usr/local/bin
 
 INC_DIR=src
 LIB_DIR=lib
-LIB_NAME=bbfit
+LIB_NAME=antinullh
 
 LIB=$(LIB_DIR)/lib$(LIB_NAME).a
 
@@ -92,7 +92,7 @@ clean:
 	rm -f bin/llh_scan
 
 	rm -f build/*.o
-	rm -f lib/libbbfit.a
+	rm -f lib/libantinullh.a
 	rm -f $(PREFIX)/make_pdfs
 	rm -f $(PREFIX)/make_plots
 	rm -f $(PREFIX)/make_trees
