@@ -13,6 +13,7 @@ namespace antinufit
     ParameterDict GetMaxima() const;
     ParameterDict GetSigmas() const;
     ParameterDict GetNBins() const;
+    ParameterDict GetNominals() const;
 
     ParameterDict GetConstrMeans() const;
     ParameterDict GetConstrSigmas() const;
@@ -27,8 +28,8 @@ namespace antinufit
     int GetHMCBurnIn() const;
     void SetHMCBurnIn(int);
 
-    void AddParameter(const std::string &name_, double min_, double max_, double sigma_, int nbins_);
-    void AddParameter(const std::string &name_, double min_, double max_, double sigma_, int nbins_,
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_);
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_,
                       double constrMean_, double constrSigma_);
 
     std::set<std::string> GetParamNames() const;
@@ -61,6 +62,7 @@ namespace antinufit
     std::string fOutDir;
     ParameterDict fConstrMeans;
     ParameterDict fConstrSigmas;
+    ParameterDict fNominals;
     ParameterDict fMinima;
     ParameterDict fMaxima;
     ParameterDict fSigmas;

@@ -23,17 +23,11 @@ namespace antinufit
     ConfigLoader::Load("summary", "active", toLoad);
 
     std::string name;
-    double nom;
-    double min;
-    double max;
-    double mass;
-    double sigma;
-    double constrMean;
-    double constrSigma;
-    int nbins;
+    std::string paramNames;
     std::string obs;
     std::string type;
     std::string group;
+    std::string function;
 
     if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
     {
@@ -44,40 +38,40 @@ namespace antinufit
     for (StringSet::iterator it = toLoad.begin(); it != toLoad.end(); ++it)
     {
       name = *it;
-      ConfigLoader::Load(name, "nominal", nom);
-      ConfigLoader::Load(name, "minima", min);
-      ConfigLoader::Load(name, "maxima", max);
-      ConfigLoader::Load(name, "sigma", sigma);
-      ConfigLoader::Load(name, "nbins", nbins);
       ConfigLoader::Load(name, "obs", obs);
       ConfigLoader::Load(name, "type", type);
       try
       {
-        ConfigLoader::Load(name, "mass", mass);
-      }
-      catch (...)
-      {
-        mass = 1.0;
-      }
-      try
-      {
         ConfigLoader::Load(name, "group", group);
       }
-      catch (...)
+      catch (ConfigFieldMissing)
       {
         group = "";
       }
-
       try
       {
-        ConfigLoader::Load(name, "constraint_mean", constrMean);
-        ConfigLoader::Load(name, "constraint_sigma", constrSigma);
-        ret.AddParameter(name, nom, min, max, mass, sigma, nbins, constrMean, constrSigma, obs, type, group);
+        ConfigLoader::Load(name, "param_names", paramNames);
       }
-      catch (const ConfigFieldMissing &e_)
+      catch (ConfigFieldMissing)
       {
-        ret.AddParameter(name, nom, min, max, mass, sigma, nbins, obs, type, group);
+        paramNames = name;
       }
+      if(type == "scale_function" || type == "shape"){
+          try
+          {
+            ConfigLoader::Load(name, "function", function);
+          }
+          catch (ConfigFieldMissing) //FIXME change this oor
+          {
+            throw NotFoundError(Formatter() << "SystConfigLoader::No function set for " << type << " systematic: " << name);
+          }
+          if(functionMap.find(function) == functionMap.end())
+            throw NotFoundError(Formatter() << "SystConfigLoader::Invalid function ( " << function << ") set for systematic: " << name);
+      }
+      else
+        function == "";
+
+      ret.AddParameter(name, paramNames, obs, type, group, function);
     }
     return ret;
   }

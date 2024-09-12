@@ -17,6 +17,12 @@ namespace antinufit
   }
 
   ParameterDict
+  FitConfig::GetNominals() const
+  {
+    return fNominals;
+  }
+
+  ParameterDict
   FitConfig::GetSigmas() const
   {
     return fSigmas;
@@ -132,15 +138,6 @@ namespace antinufit
     fLivetime = d_;
   }
 
-  void
-  FitConfig::AddParameter(const std::string &name_, double min_, double max_, double sigma_, int nbins_)
-  {
-    fMinima[name_] = min_;
-    fMaxima[name_] = max_;
-    fSigmas[name_] = sigma_;
-    fNbins[name_] = nbins_;
-  }
-
   std::set<std::string>
   FitConfig::GetParamNames() const
   {
@@ -182,17 +179,6 @@ namespace antinufit
     fEpsilon = e_;
   }
 
-  void
-  FitConfig::AddParameter(const std::string &name_, double min_, double max_, double sigma_, int nbins_,
-                          double constrMean_, double constrSigma_)
-  {
-
-    fConstrMeans[name_] = constrMean_;
-    fConstrSigmas[name_] = constrSigma_;
-
-    AddParameter(name_, min_, max_, sigma_, nbins_);
-  }
-
   ParameterDict
   FitConfig::GetConstrMeans() const
   {
@@ -203,6 +189,27 @@ namespace antinufit
   FitConfig::GetConstrSigmas() const
   {
     return fConstrSigmas;
+  }
+
+  void
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_,
+                          double constrMean_, double constrSigma_)
+  {
+
+    fConstrMeans[name_] = constrMean_;
+    fConstrSigmas[name_] = constrSigma_;
+
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_);
+  }
+
+  void
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_)
+  {
+    fMinima[name_] = min_;
+    fMaxima[name_] = max_;
+    fNominals[name_] = nom_;
+    fSigmas[name_] = sigma_;
+    fNbins[name_] = nbins_;
   }
 
 }

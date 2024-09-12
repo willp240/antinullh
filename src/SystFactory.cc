@@ -1,42 +1,30 @@
 #include <SystFactory.hh>
-#include <Shift.h>
-#include <Scale.h>
-#include <SquareRootScale.h>
-#include <Convolution.h>
-#include <Gaussian.h>
-#include <VaryingCDF.h>
-#include <ScaleFunction.h>
-#include <Exceptions.h>
-
-double birks_law(const ParameterDict &params, const double &obs_val)
-{
-  const double birks_const = 0.074;
-  return ((1 + (birks_const * obs_val)) / (1 + (params.at("birks_constant") * obs_val))) * obs_val;
-}
 
 namespace antinufit
 {
 
   Systematic *
-  SystFactory::New(const std::string &name_,
+  SystFactory::New(const std::string &name,
                    const std::string &type_,
-                   double value)
+                   const std::vector<std::string> &paramnamevec_,
+                   ParameterDict &paramvals_,
+                   std::string function_)
   {
     Systematic *syst;
 
     if (type_ == "scale")
     {
       Scale *scale = new Scale("scale");
-      scale->RenameParameter("scaleFactor", name_);
-      scale->SetScaleFactor(value);
+      scale->RenameParameter("scaleFactor", paramnamevec_.at(0));
+      scale->SetScaleFactor(paramvals_[paramnamevec_.at(0)]);
       syst = scale;
     }
 
     else if (type_ == "shift")
     {
       Shift *shift = new Shift("shift");
-      shift->RenameParameter("shift", name_);
-      shift->SetShift(value);
+      shift->RenameParameter("shift", paramnamevec_.at(0));
+      shift->SetShift(paramvals_[paramnamevec_.at(0)]);
       syst = shift;
     }
 
@@ -44,12 +32,12 @@ namespace antinufit
     {
       VaryingCDF *smearer = new VaryingCDF("smear");
       // The 0 and 1.0 are arbitrary here. The parameter of the SquareRootScale is what will be a fit component
-      Gaussian *gaus = new Gaussian(0, 1.0, name_);
+      Gaussian *gaus = new Gaussian(0, 1.0, paramnamevec_.at(0));
       smearer->SetKernel(gaus);
 
       SquareRootScale *sqrtscale = new SquareRootScale("e_smear_sigma_func");
-      sqrtscale->RenameParameter("grad", name_ + "_mean");
-      sqrtscale->SetGradient(value);
+      sqrtscale->RenameParameter("grad", paramnamevec_.at(0) );
+      sqrtscale->SetGradient(paramvals_[paramnamevec_.at(0)]);
       smearer->SetDependance("stddevs_0", sqrtscale);
 
       Convolution *conv = new Convolution("conv");
@@ -60,12 +48,24 @@ namespace antinufit
     else if (type_ == "scale_function")
     {
       ScaleFunction *scale_func = new ScaleFunction("scale_function");
-      const std::vector<std::string> scale_param_names{name_};
-      scale_func->SetScaleFunction(birks_law, scale_param_names);
-      scale_func->RenameParameter(name_, "birks_constant");
-      ParameterDict params({{"birks_constant", value}});
+      auto func = std::get_if<std::function<double(const ParameterDict&, const double&)>>(&(functionMap[function_]));
+      scale_func->SetScaleFunction(*func, paramnamevec_);
+      scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant");
+      ParameterDict params({{"birks_constant", paramvals_[paramnamevec_.at(0)]}});
       scale_func->SetParameters(params);
       syst = scale_func;
+    }
+
+    else if (type_ == "shape")
+    {
+      Shape *shape = new Shape("shape");
+      auto func = std::get_if<std::function<double(const ParameterDict&, const std::vector<double>&)>>(&(functionMap[function_]));
+      shape->SetShapeFunction(*func, paramnamevec_);
+      shape->RenameParameter(paramnamevec_.at(0), "deltam21");
+      shape->RenameParameter(paramnamevec_.at(1), "theta12");
+      ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+      shape->SetParameters(params);
+      syst = shape;
     }
 
     else
@@ -75,5 +75,4 @@ namespace antinufit
 
     return syst;
   }
-
 }

@@ -18,7 +18,6 @@
 #include <AxisCollection.h>
 #include <IO.h>
 #include <TH1D.h>
-#include <Scale.h>
 
 using namespace antinufit;
 
@@ -37,6 +36,11 @@ void llh_scan(const std::string &mcmcConfigFile_,
   double livetime = mcConfig.GetLivetime();
   bool beestonBarlowFlag = mcConfig.GetBeestonBarlow();
   std::string outDir = mcConfig.GetOutDir();
+  ParameterDict constrMeans = mcConfig.GetConstrMeans();
+  ParameterDict constrSigmas = mcConfig.GetConstrSigmas();
+  ParameterDict mins = mcConfig.GetMinima();
+  ParameterDict maxs = mcConfig.GetMaxima();
+  ParameterDict noms = mcConfig.GetNominals();
 
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
@@ -58,14 +62,12 @@ void llh_scan(const std::string &mcmcConfigFile_,
   SystConfigLoader systLoader(systConfigFile_);
   SystConfig systConfig = systLoader.LoadActive();
   AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig);
-  ParameterDict systNom = systConfig.GetNominal();
-  ParameterDict systMaxima = systConfig.GetMaxima();
-  ParameterDict systMinima = systConfig.GetMinima();
-  ParameterDict systMass = systConfig.GetMass();
-  ParameterDict systNbins = systConfig.GetNBins();
+  std::map<std::string, std::string> systParamNames = systConfig.GetParamNames();
   std::map<std::string, std::string> systGroup = systConfig.GetGroup();
   std::map<std::string, std::string> systType = systConfig.GetType();
   std::map<std::string, std::string> systObs = systConfig.GetObs();
+  std::map<std::string, std::string> systFunctionNames = systConfig.GetFunctionNames();
+  std::vector<std::string> fullParamNameVec;
 
   // Loop over systematics and declare each one
   std::map<std::string, Systematic *> systMap;
@@ -75,7 +77,20 @@ void llh_scan(const std::string &mcmcConfigFile_,
     obs.push_back(systObs[it->first]);
     ObsSet obsSet(obs);
 
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], systNom[it->first]);
+    std::vector<std::string> paramNameVec;
+    std::stringstream ss(systParamNames[it->first]);
+    std::string paramName;
+    while (std::getline(ss, paramName, ',')){
+      paramNameVec.push_back(paramName);
+      if (noms.find(paramName) == noms.end())
+      {
+        std::cout << "ERROR: Syst config defines systematic with parameter " << paramName << ", but this parameter is not defined in the fit config" << std::endl;
+        throw;
+      }
+    }
+    fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
+    
+    Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, systFunctionNames[it->first]);
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies too
     syst->SetTransformationObs(obsSet);
@@ -85,10 +100,25 @@ void llh_scan(const std::string &mcmcConfigFile_,
     systMap[it->first] = syst;
   }
 
+  // A parameter could have been defined in the fit config but isn't associated with a pdf or systematic
+  // If so ignore that parameter
+  for (ParameterDict::iterator it = noms.begin(); it != noms.end(); ++it)
+  {
+    if (toGet.find(it->first) == toGet.end() && std::find(fullParamNameVec.begin(), fullParamNameVec.end(), it->first) == fullParamNameVec.end())
+    {
+      std::cout << it->first << " parameter defined in fit config but not in syst or event rates config. It will be ignored." << std::endl;
+      constrSigmas.erase(it->first);
+      constrMeans.erase(it->first);
+      mins.erase(it->first);
+      maxs.erase(it->first);
+      it = noms.erase(it);
+      it--;
+    }
+  }
+
   // Create the individual PDFs and Asimov components (could these be maps not vectors?)
   std::vector<BinnedED> pdfs;
   std::vector<BinnedED> indivAsmvDists;
-  ParameterDict asimovRates;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
 
@@ -149,7 +179,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
     dist.Scale(livetime * rate);
     asimov.Add(dist);
     indivAsmvDists.push_back(dist);
-    asimovRates[it->first] = dist.Integral();
+    noms[it->first] = dist.Integral();
   }
 
   // And save combined histogram (final asimov dataset)
@@ -181,11 +211,13 @@ void llh_scan(const std::string &mcmcConfigFile_,
   else
     dataDist = asimov;
 
+  return;
+
   // Now build the likelihood
   BinnedNLLH lh;
   // Set the buffer region
   lh.SetBufferAsOverflow(true);
-  // lh.SetBuffer("energy", 1, 1);
+  lh.SetBuffer("energy", 50, 50);
   // Add our PDFs and data
   lh.AddPdfs(pdfs, pdfGroups, genRates);
   lh.SetDataDist(dataDist);
@@ -193,21 +225,15 @@ void llh_scan(const std::string &mcmcConfigFile_,
   lh.SetBarlowBeeston(beestonBarlowFlag);
   // Add the systematics and any prior constraints
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-    lh.AddSystematic(it->second, systGroup[it->first]);
-  ParameterDict constrMeans = mcConfig.GetConstrMeans();
-  ParameterDict constrSigmas = mcConfig.GetConstrSigmas();
+  {
+    if (systGroup[it->first] != "")
+      lh.AddSystematic(it->second, systGroup[it->first]);
+    else
+      lh.AddSystematic(it->second);
+  }
+
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-
-  // Now add max and min values for each parameter
-  ParameterDict mins = mcConfig.GetMinima();
-  ParameterDict maxs = mcConfig.GetMaxima();
-  for (ParameterDict::iterator it = systMass.begin(); it != systMass.end(); ++it)
-  {
-    mins[it->first] = systMinima[it->first];
-    maxs[it->first] = systMaxima[it->first];
-    asimovRates[it->first] = systNom[it->first];
-  }
 
   // And finally bring it all together
   lh.RegisterFitComponents();
@@ -219,7 +245,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
   // Initialise to nominal values
   ParameterDict parameterValues;
   for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
-    parameterValues[it->first] = asimovRates[it->first];
+    parameterValues[it->first] = noms[it->first];
 
   // If we have constraints, initialise to those
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
@@ -241,13 +267,11 @@ void llh_scan(const std::string &mcmcConfigFile_,
 
     // Set scan range from this parameter's max and min values
     // We plot x axis as relative to the nominal value, so if this = 0 we set it to 1
-    double nom = asimovRates[name];
+    double nom = noms[name];
     if (nom == 0)
       nom = 1;
     double min = mins[name];
     double max = maxs[name];
-    std::cout << "Scanning for " << name << " from " << min << " to " << max << ". Nom " << nom << std::endl;
-    
     // Make histogram for this parameter
     TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
     TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, min / nom, max / nom);

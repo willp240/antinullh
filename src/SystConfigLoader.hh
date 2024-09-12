@@ -3,6 +3,7 @@
 #include <string>
 #include <SystConfig.hh>
 #include <vector>
+#include <Functions.hh>
 
 namespace antinufit
 {

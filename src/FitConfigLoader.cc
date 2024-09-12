@@ -68,6 +68,7 @@ namespace antinufit
     ConfigLoader::Load("summary", "fit_dists", toLoad);
 
     std::string name;
+    double nom;
     double min;
     double max;
     double sig;
@@ -91,13 +92,22 @@ namespace antinufit
 
       try
       {
+        ConfigLoader::Load(name, "nom", nom);
+      }
+      catch (const std::exception &e)
+      {
+        nom = max + ((max - min) / 2);
+      }
+
+      try
+      {
         ConfigLoader::Load(name, "constraint_mean", constrMean);
         ConfigLoader::Load(name, "constraint_sigma", constrSigma);
-        ret.AddParameter(name, min, max, sig, nbins, constrMean, constrSigma);
+        ret.AddParameter(name, nom, min, max, sig, nbins, constrMean, constrSigma);
       }
       catch (const ConfigFieldMissing &e_)
       {
-        ret.AddParameter(name, min, max, sig, nbins);
+        ret.AddParameter(name, nom, min, max, sig, nbins);
       }
     }
 
