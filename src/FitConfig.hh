@@ -1,8 +1,9 @@
 #ifndef __ANTINUFIT__FitConfig__
 #define __ANTINUFIT__FitConfig__
+
+// OXO headers
 #include <ParameterDict.h>
-#include <string>
-#include <set>
+#include <ContainerTools.hpp>
 
 namespace antinufit
 {

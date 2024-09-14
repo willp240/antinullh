@@ -1,8 +1,14 @@
 #ifndef __ANTINUFIT__FitConfigLoader__
 #define __ANTINUFIT__FitConfigLoader__
-#include <string>
+
+// Antinu headers
 #include <FitConfig.hh>
-#include <map>
+
+// OXO headers
+#include <ConfigLoader.hh>
+
+// c++ headers
+#include <algorithm>
 
 namespace antinufit
 {

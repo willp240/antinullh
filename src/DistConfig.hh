@@ -1,6 +1,10 @@
 #ifndef __ANTINUFIT__DistConfig__
 #define __ANTINUFIT__DistConfig__
-#include <string>
+
+// OXO headers
+#include <Exceptions.h>
+
+// c++ headers
 #include <vector>
 
 namespace antinufit

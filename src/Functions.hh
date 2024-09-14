@@ -1,10 +1,13 @@
 #ifndef __ANTINUFIT__Functions__
 #define __ANTINUFIT__Functions__
 
-#include <variant>
+// OXO headers
 #include <ParameterDict.h>
+
+// c++ headers
 #include <vector>
 #include <functional>
+#include <variant>
 
 namespace antinufit
 {

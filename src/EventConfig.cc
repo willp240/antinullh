@@ -1,4 +1,5 @@
 #include <EventConfig.hh>
+
 namespace antinufit
 {
   double

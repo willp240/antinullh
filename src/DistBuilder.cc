@@ -1,8 +1,4 @@
 #include <DistBuilder.hh>
-#include <DistConfig.hh>
-#include <BinnedED.h>
-#include <DistFiller.h>
-#include <DataSet.h>
 
 namespace antinufit
 {

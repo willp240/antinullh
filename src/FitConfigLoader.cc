@@ -1,9 +1,4 @@
 #include <FitConfigLoader.hh>
-#include <ConfigLoader.hh>
-#include <set>
-#include <cmath>
-#include <algorithm>
-#include <Exceptions.h>
 
 namespace antinufit
 {

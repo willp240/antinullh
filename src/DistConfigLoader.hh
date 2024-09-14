@@ -1,8 +1,14 @@
 #ifndef __ANTINUFIT__DistConfigLoader__
 #define __ANTINUFIT__DistConfigLoader__
-#include <string>
+
+// Antinu headers
 #include <DistConfig.hh>
-#include <map>
+
+// OXO headers
+#include <ConfigLoader.hh>
+
+// c++ headers
+#include <algorithm>
 
 namespace antinufit
 {

@@ -1,9 +1,4 @@
 #include <EventConfigLoader.hh>
-#include <EventConfig.hh>
-#include <ConfigLoader.hh>
-#include <map>
-#include <algorithm>
-#include <Exceptions.h>
 
 namespace antinufit
 {

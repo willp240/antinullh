@@ -1,8 +1,4 @@
 #include <SystConfigLoader.hh>
-#include <SystConfig.hh>
-#include <ConfigLoader.hh>
-#include <map>
-#include <algorithm>
 
 namespace antinufit
 {

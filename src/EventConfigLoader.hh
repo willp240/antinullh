@@ -1,9 +1,14 @@
 #ifndef __ANTINUFIT__EventConfigLoader__
 #define __ANTINUFIT__EventConfigLoader__
+
+// Antinu headers
 #include <EventConfig.hh>
-#include <map>
-#include <string>
-#include <set>
+
+// OXO headers
+#include <ConfigLoader.hh>
+
+// c++ headers
+#include <algorithm>
 
 namespace antinufit
 {

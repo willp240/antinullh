@@ -1,9 +1,12 @@
 #ifndef __ANTINUFIT__SystConfigLoader__
 #define __ANTINUFIT__SystConfigLoader__
-#include <string>
+
+// Antinu headers
 #include <SystConfig.hh>
-#include <vector>
 #include <Functions.hh>
+
+// OXO headers
+#include <ConfigLoader.hh>
 
 namespace antinufit
 {

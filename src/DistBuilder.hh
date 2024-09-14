@@ -1,6 +1,12 @@
 #ifndef __ANTINUFIT__DistBuilder__
 #define __ANTINUFIT__DistBuilder__
-#include <string>
+
+// Antinu headers
+#include <DistConfig.hh>
+#include <DistFiller.h>
+
+// OXO headers
+#include <BinnedED.h>
 
 class BinnedED;
 class DataSet;

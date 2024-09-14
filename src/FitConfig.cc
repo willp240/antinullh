@@ -1,5 +1,4 @@
 #include "FitConfig.hh"
-#include <ContainerTools.hpp>
 
 namespace antinufit
 {

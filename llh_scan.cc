@@ -1,23 +1,22 @@
-#include <string>
-#include <FitConfigLoader.hh>
+// Antinu headers
 #include <DistConfigLoader.hh>
-#include <DistConfig.hh>
 #include <DistBuilder.hh>
 #include <FitConfigLoader.hh>
-#include <FitConfig.hh>
 #include <EventConfigLoader.hh>
-#include <EventConfig.hh>
 #include <SystConfigLoader.hh>
-#include <SystConfig.hh>
 #include <SystFactory.hh>
-#include <fstream>
+
+// OXO headers
 #include <ROOTNtuple.h>
 #include <BinnedNLLH.h>
-#include <sys/stat.h>
-#include <Rand.h>
-#include <AxisCollection.h>
 #include <IO.h>
+#include <Rand.h>
+
+// ROOT headers
 #include <TH1D.h>
+
+// c++ headers
+#include <sys/stat.h>
 
 using namespace antinufit;
 

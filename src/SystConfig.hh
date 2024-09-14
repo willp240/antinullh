@@ -1,8 +1,8 @@
 #ifndef __ANTINUFIT__SystConfig__
 #define __ANTINUFIT__SystConfig__
+
+// OXO headers
 #include <ParameterDict.h>
-#include <string>
-#include <vector>
 
 namespace antinufit
 {

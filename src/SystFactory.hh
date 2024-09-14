@@ -1,10 +1,10 @@
 #ifndef __ANTINUFIT__SystFactory__
 #define __ANTINUFIT__SystFactory__
 
-#include <string>
-#include <map>
-#include <variant>
+// Antinu headers
+#include <Functions.hh>
 
+// OXO headers
 #include <Shift.h>
 #include <Scale.h>
 #include <Shape.h>
@@ -15,7 +15,10 @@
 #include <ScaleFunction.h>
 #include <Exceptions.h>
 
-#include <Functions.hh>
+// c++ headers
+#include <string>
+#include <map>
+#include <variant>
 
 class Systematic;
 namespace antinufit
