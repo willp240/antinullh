@@ -98,4 +98,17 @@ namespace antinufit
     fGroup = s_;
   }
 
+  int
+  EventConfig::GetNumDimensions() const
+  {
+    return fNumDimensions;
+  }
+
+  void
+  EventConfig::SetNumDimensions(const int &i_)
+  {
+    fNumDimensions = i_;
+  }
+
+
 }

@@ -27,7 +27,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     ### set a condor path to be called later
     
     condor_path = "{0}/".format(out_dir)
-    exec_path = run_dir + "fit/bin/" + exec_name
+    exec_path = run_dir + "/bin/" + exec_name
 
     configs_path = os.path.abspath('{0}/cfg'.format(condor_path))
     check_dir(configs_path)
@@ -127,9 +127,9 @@ if __name__ == "__main__":
     syst_config = args.syst_cfg
     walltime = args.wall_time
     if fit_config != "":
-        fit_config = run_dir + "fit/" + args.fit_cfg
+        fit_config = run_dir + "/" + args.fit_cfg
     if rates_config != "":
-        rates_config = run_dir + "rates/" + args.rates_cfg
+        rates_config = run_dir + "/" + args.rates_cfg
     if pdf_config != "":
         pdf_config = run_dir + "pdfs/" + args.pdf_cfg
     if syst_config != "":

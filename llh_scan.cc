@@ -54,17 +54,18 @@ void llh_scan(const std::string &mcmcConfigFile_,
   DistConfigLoader pdfLoader(pdfConfigFile_);
   DistConfig pdfConfig = pdfLoader.Load();
   std::string pdfDir = pdfConfig.GetPDFDir();
-  std::vector<std::string> dataObs = pdfConfig.GetBranchNames();
+  std::vector<std::string> dataObs = pdfConfig.GetDataBranchNames();
   ObsSet dataObsSet(dataObs);
+  AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, dataObs.size());
 
   // Load up the systematics
   SystConfigLoader systLoader(systConfigFile_);
   SystConfig systConfig = systLoader.LoadActive();
-  AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig);
   std::map<std::string, std::string> systParamNames = systConfig.GetParamNames();
   std::map<std::string, std::string> systGroup = systConfig.GetGroup();
   std::map<std::string, std::string> systType = systConfig.GetType();
-  std::map<std::string, std::string> systObs = systConfig.GetObs();
+  std::map<std::string, std::vector<std::string>> systDistObs = systConfig.GetDistObs();
+  std::map<std::string, std::vector<std::string>> systTransObs = systConfig.GetTransObs();
   std::map<std::string, std::string> systFunctionNames = systConfig.GetFunctionNames();
   std::vector<std::string> fullParamNameVec;
 
@@ -72,14 +73,11 @@ void llh_scan(const std::string &mcmcConfigFile_,
   std::map<std::string, Systematic *> systMap;
   for (std::map<std::string, std::string>::iterator it = systType.begin(); it != systType.end(); ++it)
   {
-    std::vector<std::string> obs;
-    obs.push_back(systObs[it->first]);
-    ObsSet obsSet(obs);
-
     std::vector<std::string> paramNameVec;
     std::stringstream ss(systParamNames[it->first]);
     std::string paramName;
-    while (std::getline(ss, paramName, ',')){
+    while (std::getline(ss, paramName, ','))
+    {
       paramNameVec.push_back(paramName);
       if (noms.find(paramName) == noms.end())
       {
@@ -88,13 +86,13 @@ void llh_scan(const std::string &mcmcConfigFile_,
       }
     }
     fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
-    
     Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, systFunctionNames[it->first]);
+    AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);
-    // The "dimensions" the systematic applies too
-    syst->SetTransformationObs(obsSet);
+    // The "dimensions" the systematic applies to
+    syst->SetTransformationObs(systTransObs[it->first]);
     // All the "dimensions" of the dataset
-    syst->SetDistributionObs(dataObsSet);
+    syst->SetDistributionObs(systDistObs[it->first]);
     syst->Construct();
     systMap[it->first] = syst;
   }
@@ -148,7 +146,8 @@ void llh_scan(const std::string &mcmcConfigFile_,
 
     // Build distribution of those events
     BinnedED dist;
-    dist = DistBuilder::Build(it->first, pdfConfig, dataSet);
+    int num_dimensions = it->second.GetNumDimensions();
+    dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
@@ -170,14 +169,22 @@ void llh_scan(const std::string &mcmcConfigFile_,
       }
     }
 
-    // Let's save the PDF as a histo
-    IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
-
-    // Now scale the Asimov component by expected rate
+    // Now scale the Asimov component by expected rate, and also save pdf as a histo
     double rate = it->second.GetRate();
     dist.Scale(livetime * rate);
-    asimov.Add(dist);
-    indivAsmvDists.push_back(dist);
+    if (dist.GetNDims() != asimov.GetNDims())
+    {
+      BinnedED marginalised = dist.Marginalise(dataObs);
+      asimov.Add(marginalised);
+      indivAsmvDists.push_back(marginalised);
+      IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+    }
+    else
+    {
+      asimov.Add(dist);
+      indivAsmvDists.push_back(dist);
+      IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+    }
     noms[it->first] = dist.Integral();
   }
 

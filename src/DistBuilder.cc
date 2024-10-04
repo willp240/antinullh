@@ -1,4 +1,5 @@
 #include <DistBuilder.hh>
+#include <iostream>
 
 namespace antinufit
 {
@@ -6,6 +7,20 @@ namespace antinufit
   AxisCollection
   DistBuilder::BuildAxes(const DistConfig &config_)
   {
+
+    int numAxes = config_.GetAxisCount();
+    return BuildAxes(config_, numAxes);
+  }
+
+  AxisCollection
+  DistBuilder::BuildAxes(const DistConfig &config_, const int numDimensions)
+  {
+
+    if (numDimensions > config_.GetAxisCount())
+    {
+      throw ValueError("Number of axes required is fewer than number declared in config");
+    }
+
     // Build the axes
     AxisCollection axes;
 
@@ -17,7 +32,7 @@ namespace antinufit
     std::string branchName;
 
     // save this last one for later
-    for (int i = 0; i < config_.GetAxisCount(); i++)
+    for (int i = 0; i < numDimensions; i++)
     {
       config_.GetAxis(i, name, branchName, texName, nBins, min, max);
       axes.AddAxis(BinAxis(name, min, max, nBins, texName));
@@ -27,18 +42,24 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::Build(const std::string &name_, const DistConfig &pdfConfig_, DataSet *data_)
+  DistBuilder::Build(const std::string &name_, const DistConfig pdfConfig_, DataSet *data_)
+  {
+
+    int numAxes = pdfConfig_.GetAxisCount();
+    return Build(name_, numAxes, pdfConfig_, data_);
+  }
+
+  BinnedED
+  DistBuilder::Build(const std::string &name_, const int numDimensions_, const DistConfig pdfConfig_, DataSet *data_)
   {
     // Create the axes
-    AxisCollection axes = BuildAxes(pdfConfig_);
-
+    AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
     // put it all together and return
     BinnedED dist(name_, axes);
-    dist.SetObservables(pdfConfig_.GetBranchNames());
-
+    const std::vector<std::string> p = pdfConfig_.GetBranchNames(numDimensions_);
+    dist.SetObservables(p);
     // fill it up
     DistFiller::FillDist(dist, *data_);
-
     return dist;
   }
 

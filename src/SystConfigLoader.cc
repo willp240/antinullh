@@ -20,7 +20,8 @@ namespace antinufit
 
     std::string name;
     std::string paramNames;
-    std::string obs;
+    std::vector<std::string> distObs;
+    std::vector<std::string> transObs;
     std::string type;
     std::string group;
     std::string function;
@@ -34,7 +35,8 @@ namespace antinufit
     for (StringSet::iterator it = toLoad.begin(); it != toLoad.end(); ++it)
     {
       name = *it;
-      ConfigLoader::Load(name, "obs", obs);
+      ConfigLoader::Load(name, "dist_obs", distObs);
+      ConfigLoader::Load(name, "trans_obs", transObs);
       ConfigLoader::Load(name, "type", type);
       try
       {
@@ -67,7 +69,9 @@ namespace antinufit
       else
         function == "";
 
-      ret.AddParameter(name, paramNames, obs, type, group, function);
+      ret.AddParameter(name, paramNames, distObs, transObs, type, group, function);
+      distObs.clear();
+      transObs.clear();
     }
     return ret;
   }

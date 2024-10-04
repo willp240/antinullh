@@ -8,20 +8,83 @@ with the quantities we want. These get written to wherever
 was specified in the config file.
 */
 
+// Antinu headers
+#include <EventConfigLoader.hh>
+
+// ROOT headers
 #include <TChain.h>
 #include <TFile.h>
 #include <TNtuple.h>
-#include <string>
-#include <vector>
-#include <iostream>
-#include <cmath>
-#include <sstream>
-#include <map>
-#include <EventConfigLoader.hh>
-#include <ConfigLoader.hh>
+
+// c++ headers
 #include <sys/stat.h>
+#include <string.h>
+
+// RAT headers
+#include <RAT/DB.hh>
 
 typedef std::map<std::string, std::string> StringMap;
+
+TVector3 LLAtoECEF(double longitude, double latitude, double altitude)
+{
+  // reference http://www.mathworks.co.uk/help/aeroblks/llatoecefposition.html
+  static double toRad = TMath::Pi() / 180.;
+  static double Earthradius = 6378137.0; // Radius of the Earth (in meters)
+  static double f = 1. / 298.257223563;  // Flattening factor WGS84 Model
+  static double L, rs, x, y, z;
+  L = atan(pow((1. - f), 2) * tan(latitude * toRad)) * 180. / TMath::Pi();
+  rs = sqrt(pow(Earthradius, 2) / (1. + (1. / pow((1. - f), 2) - 1.) * pow(sin(L * toRad), 2)));
+  x = (rs * cos(L * toRad) * cos(longitude * toRad) + altitude * cos(latitude * toRad) * cos(longitude * toRad)) / 1000; // in km
+  y = (rs * cos(L * toRad) * sin(longitude * toRad) + altitude * cos(latitude * toRad) * sin(longitude * toRad)) / 1000; // in km
+  z = (rs * sin(L * toRad) + altitude * sin(latitude * toRad)) / 1000;                                                   // in km
+
+  TVector3 ECEF = TVector3(x, y, z);
+
+  return ECEF;
+}
+
+double GetReactorDistanceLLA(const double &longitude, const double &latitude, const double &altitude)
+{
+  const TVector3 SNO_ECEF_coord_ = TVector3(672.87, -4347.18, 4600.51);
+  double dist = (LLAtoECEF(longitude, latitude, altitude) - SNO_ECEF_coord_).Mag();
+  return dist;
+}
+
+std::vector<std::string> SplitString(std::string str)
+{
+  std::istringstream buf(str);
+  std::istream_iterator<std::string> beg(buf), end;
+  std::vector<std::string> tokens(beg, end); // each word of string now in vector
+  std::vector<std::string> info;
+  std::string dummy = "";
+
+  for (int i = 0; i < tokens.size(); i++)
+  { // combine back to reactor name, core number
+    if (i == 0)
+    {
+      dummy = tokens.at(i);
+      if (i != tokens.size() - 2)
+      {
+        dummy += " ";
+      }
+    }
+    else if (i != tokens.size() - 1)
+    {
+      dummy += tokens.at(i);
+      if (i != tokens.size() - 2)
+      {
+        dummy += " ";
+      }
+    }
+    else
+    {
+      info.push_back(dummy);
+      info.push_back(tokens.at(i));
+    }
+  }
+
+  return info;
+}
 
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
@@ -29,9 +92,15 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &outFilename_)
 {
 
+  RAT::DBLinkPtr linkdb;
+  RAT::DB *db = RAT::DB::Get();
+  RAT::DS::Run run;
+  db->SetAirplaneModeStatus(true);
+  db->LoadDefaults();
+
   // output ntuple
   TFile outp(outFilename_.c_str(), "RECREATE");
-  TNtuple nt("pruned", "", "energy:alphaNReactorIBD");
+  TNtuple nt("pruned", "", "energy:nu_energy:distance");
 
   // read the original data
   for (size_t iFile = 0; iFile < filenames_.size(); iFile++)
@@ -45,12 +114,16 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
 
     Double_t e;
     Double_t c;
+    TString *r = NULL;
+    Double_t l;
+    Double_t k;
 
     chain.SetBranchAddress("energy", &e);
-    chain.SetBranchAddress("alphaNReactorIBD", &c);
+    //chain.SetBranchAddress("alphaNReactorIBD", &c);
+    chain.SetBranchAddress("parentKE1", &k);
+    chain.SetBranchAddress("parentMeta1", &r);
 
     // read and write
-
     for (int i = 0; i < chain.GetEntries(); i++)
     {
       if (!(i % tenPercent))
@@ -58,9 +131,18 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
         std::cout << i << " / " << chain.GetEntries() << "\t ( " << 10 * i / tenPercent << " %)" << std::endl;
       }
       chain.GetEntry(i);
-
+      std::string originReactorString(r->Data());
+      if (originReactorString != "")
+      {
+        std::vector<std::string> originReactorVect = SplitString(originReactorString);
+        linkdb = db->GetLink("REACTOR", originReactorVect[0]);
+        std::vector<Double_t> fLatitude = linkdb->GetDArray("latitude");
+        std::vector<Double_t> fLongitute = linkdb->GetDArray("longitude");
+        std::vector<Double_t> fAltitude = linkdb->GetDArray("altitude");
+        l = GetReactorDistanceLLA(fLongitute[std::stoi(originReactorVect[1])], fLatitude[std::stoi(originReactorVect[1])], fAltitude[std::stoi(originReactorVect[1])]);
+      }
       outp.cd();
-      nt.Fill(e, c);
+      nt.Fill(e, k, l);
     }
   }
   outp.cd();

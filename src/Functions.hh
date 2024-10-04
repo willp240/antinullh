@@ -9,6 +9,9 @@
 #include <functional>
 #include <variant>
 
+// RAT headers
+#include <RAT/DB.hh>
+
 namespace antinufit
 {
   double BirksLaw(const ParameterDict&, const double&);

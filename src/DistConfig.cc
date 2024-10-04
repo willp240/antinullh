@@ -53,10 +53,30 @@ namespace antinufit
     fPDFDir = s_;
   }
 
-  const std::vector<std::string> &
+  std::vector<std::string>
   DistConfig::GetBranchNames() const
   {
-    return fBranchNames;
+    int numBranches = fBranchNames.size();
+    return GetBranchNames(numBranches);
+  }
+
+  std::vector<std::string>
+  DistConfig::GetBranchNames( const int numBranches_) const
+  {
+    std::vector<std::string> bnames(fBranchNames.begin(), fBranchNames.begin() + numBranches_);
+    return bnames;
+  }
+
+  void
+  DistConfig::SetDataBranchNames(const std::vector<std::string> &s_)
+  {
+    fDataAxesNames = s_;
+  }
+
+  const std::vector<std::string> &
+  DistConfig::GetDataBranchNames() const
+  {
+    return fDataAxesNames;
   }
 
 }

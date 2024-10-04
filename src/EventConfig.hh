@@ -36,6 +36,9 @@ namespace antinufit
     std::vector<std::string> GetGroup() const;
     void SetGroup(const std::vector<std::string> &);
 
+    int GetNumDimensions() const;
+    void SetNumDimensions(const int &);
+
   private:
     double fRate;
     std::vector<std::string> fNtupFiles;
@@ -45,6 +48,7 @@ namespace antinufit
     std::string fTexLabel;
     std::string fName;
     std::vector<std::string> fGroup;
+    int fNumDimensions;
   };
 }
 

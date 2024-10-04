@@ -24,15 +24,17 @@ namespace antinufit
     double rate;
     std::string texLabel;
     std::vector<std::string> ntupFiles;
+    int numDimensions;
     std::string group;
 
     ConfigLoader::Load(name_, "rate", rate);
     ConfigLoader::Load(name_, "tex_label", texLabel);
     ConfigLoader::Load(name_, "ntup_files", ntupFiles);
+    ConfigLoader::Load(name_, "dimensions", numDimensions);
 
     try
     {
-      ConfigLoader::Load(name_, "group", group);
+      ConfigLoader::Load(name_, "groups", group);
     }
     catch (...)
     {
@@ -54,6 +56,7 @@ namespace antinufit
     retVal.SetPrunedPath(prunedDir + "/" + name_ + ".root");
     retVal.SetPdfPath(baseDir + "/" + name_ + ".root");
     retVal.SetGroup(groups);
+    retVal.SetNumDimensions(numDimensions);
     return retVal;
   }
 

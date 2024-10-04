@@ -20,7 +20,9 @@ namespace antinufit
   class DistBuilder
   {
   public:
-    static BinnedED Build(const std::string &name, const DistConfig &, DataSet *data_);
+    static BinnedED Build(const std::string &name, const int, const DistConfig , DataSet *data_);
+    static BinnedED Build(const std::string &name, const DistConfig , DataSet *data_);
+    static AxisCollection BuildAxes(const DistConfig &, const int);
     static AxisCollection BuildAxes(const DistConfig &);
   };
 }
