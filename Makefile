@@ -4,6 +4,12 @@ G4_FLAGS=`geant4-config --libs`
 
 GSL_FLAGS=-lgsl
 
+RAT_ROOT = $(RATROOT)
+RAT_INC=$(RAT_ROOT)/include
+RAT_EXTRN_INC=$(RAT_INC)/external
+RAT_LIB_DIR=$(RAT_ROOT)/lib
+RAT_LIB_NAME=RATEvent_Linux
+
 OXSX_ROOT = $(OXO_DIR)
 OXSX_INC=$(OXSX_ROOT)/include
 OXSX_LIB_DIR=$(OXSX_ROOT)/build 
@@ -26,35 +32,34 @@ all: bin/make_trees bin/llh_scan #bin/make_plots bin/make_pdfs bin/fit_dataset b
 
 bin/fit_dataset: fit_dataset.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  fit_dataset.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -larmadillo -lMinuit2 -o $@
+	$(CXX)  fit_dataset.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -lMinuit2 -o $@
 
 bin/make_plots: make_plots.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  make_plots.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -larmadillo -o $@
+	$(CXX)  make_plots.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 bin/up_count_lim: up_count_lim.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  up_count_lim.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) $(GSL_FLAGS) -larmadillo -o $@
+	$(CXX)  up_count_lim.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) $(GSL_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 bin/make_pdfs: make_pdfs.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  make_pdfs.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -larmadillo -o $@
-
+	$(CXX)  make_pdfs.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 bin/make_trees: make_trees.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  make_trees.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) -larmadillo -o $@
+	$(CXX)  make_trees.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 bin/build_asimov: build_asimov.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  build_asimov.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX)  build_asimov.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 bin/auto_corrs: auto_corrs.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  auto_corrs.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX)  auto_corrs.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 bin/llh_scan: llh_scan.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  llh_scan.cc -I$(INC_DIR) -I$(OXSX_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME)  $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX)  llh_scan.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)
@@ -62,7 +67,7 @@ $(LIB) : $(OBJ_FILES)
 
 build/%.o : src/%.cc
 	mkdir -p build
-	$(CXX) -c -w $< -I$(OXSX_INC) -Isrc/ -w $(ROOT_FLAGS) $(G4_FLAGS) -o $@
+	$(CXX) -c -w $< -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -Isrc/ -w $(ROOT_FLAGS) $(G4_FLAGS) -o $@
 
 install:
 	ln -sf `readlink -f bin/make_pdfs` $(PREFIX)
