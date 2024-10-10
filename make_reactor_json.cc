@@ -1,11 +1,5 @@
 /*
-MakeTrees takes in ntuples and prunes out all the branches
-we're not interested in so we only have nice lightweight files
-to carry around in the fit.
-It reads in input files specified in the event config and
-literally just loops over events, filling new ntuples
-with the quantities we want. These get written to wherever
-was specified in the config file.
+
 */
 
 // c++ headers
@@ -88,40 +82,36 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::map<int, std::tuple<std::string, double>> reactor_data;
+  std::map<int, std::tuple<std::string, double>> reactorIndex;
 
   RAT::DBLinkPtr linkdb;
   RAT::DB *db = RAT::DB::Get();
   db->LoadDefaults();
 
   RAT::DBLinkGroup grp = db->GetLinkGroup("REACTOR");
-  std::cout << "got group " << grp.size() << std::endl;
   RAT::DBLinkGroup::iterator it;
   int index = 0;
   for (it = grp.begin(); it != grp.end(); ++it)
   {
-    std::cout << "doing " << it->first << std::endl;
     linkdb = RAT::DB::Get()->GetLink("REACTOR", it->first);
     Double_t numCores = linkdb->GetD("no_cores");
     std::vector<Double_t> latitude  = linkdb->GetDArray("latitude");
     std::vector<Double_t> longitute = linkdb->GetDArray("longitude");
     std::vector<Double_t> altitude = linkdb->GetDArray("altitude");
     for (int iCore = 0; iCore < numCores; iCore++){
-      std::string reactCoreName = it->first + std::to_string(iCore);
+      std::string reactCoreName = it->first + " " + std::to_string(iCore);
       std::cout << reactCoreName << std::endl;
 
       const double baseline = GetReactorDistanceLLA(longitute[iCore], latitude[iCore], altitude[iCore]);
-      reactor_data[index] = std::make_tuple(reactCoreName, baseline);
+      reactorIndex[index] = std::make_tuple(reactCoreName, baseline);
       index++;
 
-      if(it->first == "BRUCE")
-        std::cout << latitude[iCore] << " " << longitute[iCore] << " " << altitude[iCore] << " " << baseline << std::endl;
     }
   }
 
   nlohmann::json j;
 
-  for (const auto& [key, value] : reactor_data) {
+  for (const auto& [key, value] : reactorIndex) {
       j[std::to_string(key)] = { std::get<0>(value), std::get<1>(value) };
   }
 

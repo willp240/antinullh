@@ -8,7 +8,8 @@ namespace antinufit
                    const std::string &type_,
                    const std::vector<std::string> &paramnamevec_,
                    ParameterDict &paramvals_,
-                   std::string function_)
+                   std::string function_,
+                   std::vector<OscGrid*> &oscgridvec_)
   {
     Systematic *syst;
 
@@ -58,6 +59,9 @@ namespace antinufit
 
     else if (type_ == "shape")
     {
+
+      // Load up oscillations
+
       Shape *shape = new Shape("shape");
       auto func = std::get_if<std::function<double(const ParameterDict&, const std::vector<double>&)>>(&(functionMap[function_]));
       shape->SetShapeFunction(*func, paramnamevec_);

@@ -15,13 +15,17 @@ was specified in the config file.
 #include <TChain.h>
 #include <TFile.h>
 #include <TNtuple.h>
+#include <TVector3.h>
 
 // c++ headers
 #include <sys/stat.h>
 #include <string.h>
+#include <iostream>
+#include <fstream>
+#include <unordered_map>
+#include <string>
+#include <nlohmann/json.hpp>
 
-// RAT headers
-#include <RAT/DB.hh>
 
 typedef std::map<std::string, std::string> StringMap;
 
@@ -89,18 +93,13 @@ std::vector<std::string> SplitString(std::string str)
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
                  const std::string &treeName_,
-                 const std::string &outFilename_)
+                 const std::string &outFilename_,
+                 std::unordered_map<std::string, int> &reactornameIndex)
 {
-
-  RAT::DBLinkPtr linkdb;
-  RAT::DB *db = RAT::DB::Get();
-  RAT::DS::Run run;
-  db->SetAirplaneModeStatus(true);
-  db->LoadDefaults();
 
   // output ntuple
   TFile outp(outFilename_.c_str(), "RECREATE");
-  TNtuple nt("pruned", "", "energy:nu_energy:distance");
+  TNtuple nt("pruned", "", "energy:nu_energy:reactorIndex:alphaNClassifier");
 
   // read the original data
   for (size_t iFile = 0; iFile < filenames_.size(); iFile++)
@@ -112,16 +111,17 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
 
     int tenPercent = chain.GetEntries() / 10;
 
-    Double_t e;
-    Double_t c;
-    TString *r = NULL;
-    Double_t l;
-    Double_t k;
+    Double_t energy;
+    Double_t alphaNClassifier;
+    TString *reactorName = NULL;
+    Int_t reactorIndex;
+    Double_t distance;
+    Double_t neutrinoEnergy;
 
-    chain.SetBranchAddress("energy", &e);
-    //chain.SetBranchAddress("alphaNReactorIBD", &c);
-    chain.SetBranchAddress("parentKE1", &k);
-    chain.SetBranchAddress("parentMeta1", &r);
+    chain.SetBranchAddress("energy", &energy);
+    chain.SetBranchAddress("alphaNReactorIBD", &alphaNClassifier);
+    chain.SetBranchAddress("parentKE1", &neutrinoEnergy);
+    chain.SetBranchAddress("parentMeta1", &reactorName);
 
     // read and write
     for (int i = 0; i < chain.GetEntries(); i++)
@@ -131,18 +131,15 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
         std::cout << i << " / " << chain.GetEntries() << "\t ( " << 10 * i / tenPercent << " %)" << std::endl;
       }
       chain.GetEntry(i);
-      std::string originReactorString(r->Data());
+      std::string originReactorString(reactorName->Data());
       if (originReactorString != "")
       {
-        std::vector<std::string> originReactorVect = SplitString(originReactorString);
-        linkdb = db->GetLink("REACTOR", originReactorVect[0]);
-        std::vector<Double_t> fLatitude = linkdb->GetDArray("latitude");
-        std::vector<Double_t> fLongitute = linkdb->GetDArray("longitude");
-        std::vector<Double_t> fAltitude = linkdb->GetDArray("altitude");
-        l = GetReactorDistanceLLA(fLongitute[std::stoi(originReactorVect[1])], fLatitude[std::stoi(originReactorVect[1])], fAltitude[std::stoi(originReactorVect[1])]);
+        reactorIndex = reactornameIndex[originReactorString];
       }
+      else
+        reactorIndex = 999;
       outp.cd();
-      nt.Fill(e, k, l);
+      nt.Fill(energy, neutrinoEnergy, reactorIndex, alphaNClassifier);
     }
   }
   outp.cd();
@@ -160,6 +157,31 @@ int main(int argc, char *argv[])
 
   std::string configFile(argv[1]);
   std::cout << "Reading from config file " << configFile << std::endl;
+
+  // First read the reactor distance info
+  std::unordered_map<std::string, int> reactornameIndex;
+
+  // Read the JSON file
+  std::ifstream file("reactors.json");
+  if (!file.is_open())
+  {
+    std::cerr << "Could not open reactors.json file!" << std::endl;
+    throw;
+  }
+
+  // Parse the JSON file into a json object
+  nlohmann::json reactorData;
+  file >> reactorData;
+
+  // Loop through the JSON object and fill the maps
+  for (const auto &[key, value] : reactorData.items())
+  {
+    int intKey = std::stoi(key);     // Convert the reactor key to int
+    std::string reactorName = value[0]; // First element is the string
+
+    // Fill the map
+    reactornameIndex[reactorName] = intKey;
+  }
 
   // create the results directory if it doesn't already exist
   std::string outDir;
@@ -194,7 +216,7 @@ int main(int argc, char *argv[])
       std::cout << "\t" << files.at(i) << std::endl;
     std::cout << "to " << outName << std::endl;
 
-    MakeDataSet(files, baseDir, "output", outName);
+    MakeDataSet(files, baseDir, "output", outName, reactornameIndex);
   }
 
   return 0;

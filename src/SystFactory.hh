@@ -3,6 +3,7 @@
 
 // Antinu headers
 #include <Functions.hh>
+#include <OscGrid.hh>
 
 // OXO headers
 #include <Shift.h>
@@ -30,7 +31,8 @@ namespace antinufit
                            const std::string &type_,
                            const std::vector<std::string> &paramnamevec_,
                            ParameterDict &paramvals_,
-                           std::string function_ = "");
+                           std::string function_ = "",,
+                           std::vector<OscGrid*> &oscgridvec_=NULL); // WP in here add OscGrid as argument
  };
 }
 #endif
