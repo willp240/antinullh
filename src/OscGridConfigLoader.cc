@@ -20,6 +20,7 @@ namespace antinufit
     OscGridConfig ret;
     ConfigLoader::Open(fPath);
     std::string filename;
+    std::string reactorsjson;
     double distance;
     double minE;
     double maxE;
@@ -32,6 +33,7 @@ namespace antinufit
     int numValsSsqth12;
 
     ConfigLoader::Load("summary", "filename", filename);
+    ConfigLoader::Load("summary", "reactorsjson", reactorsjson);
     try
     {
       ConfigLoader::Load("summary", "distance", distance);
@@ -52,6 +54,7 @@ namespace antinufit
     ConfigLoader::Load("summary", "numvalsssqth12", numValsSsqth12);
 
     ret.SetFilename(filename);
+    ret.SetReactorsJsonFile(reactorsjson);
     ret.SetDistance(distance);
     ret.SetMinE(minE);
     ret.SetMaxE(maxE);

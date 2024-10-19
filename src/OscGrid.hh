@@ -48,10 +48,10 @@ namespace antinufit
     double fMaxSsqth12;
     int fNumValsSsqth12;
 
-    std::vector<double> fEnergyVals;
-    std::vector<double> fDm21sqVals;
-    std::vector<double> fSsqth12Vals;
-    std::vector<double> fProbVals;
+    std::vector<double> *fEnergyVals;
+    std::vector<double> *fDm21sqVals;
+    std::vector<double> *fSsqth12Vals;
+    std::vector<double> *fProbVals;
 
     TH3D *hist;
   };

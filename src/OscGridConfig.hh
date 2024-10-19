@@ -11,6 +11,8 @@ namespace antinufit
   public:
     void SetFilename(std::string);
     std::string GetFilename() const;
+    void SetReactorsJsonFile(std::string);
+    std::string GetReactorsJsonFile() const;
     void SetDistance(double);
     double GetDistance() const;
     void SetMinE(double);
@@ -34,6 +36,7 @@ namespace antinufit
 
   private:
     std::string fFilename;
+    std::string fReactorsJsonFilename;
     double fDistance;
     double fMinE;
     double fMaxE;

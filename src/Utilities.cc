@@ -3,13 +3,13 @@
 namespace antinufit
 {
 
-    std::vector<double> linspace(double start, double end, size_t num_vals)
+    std::vector<double>* linspace(double start, double end, size_t num_vals)
     {
         /*
          * Generates N linearly-spaced values between start and end.
          * From: https://stackoverflow.com/a/27030598
          */
-        std::vector<double> linspaced;
+        std::vector<double>* linspaced;
         const auto num = static_cast<double>(num_vals);
 
         if (num == 0)
@@ -18,7 +18,7 @@ namespace antinufit
         }
         if (num == 1)
         {
-            linspaced.push_back(start);
+            linspaced->push_back(start);
             return linspaced;
         }
 
@@ -26,9 +26,9 @@ namespace antinufit
 
         for (size_t i = 0; i < num_vals - 1; ++i)
         {
-            linspaced.push_back(start + delta * static_cast<double>(i));
+            linspaced->push_back(start + delta * static_cast<double>(i));
         }
-        linspaced.push_back(end); // I want to ensure that start and end
+        linspaced->push_back(end); // I want to ensure that start and end
         // are exactly the same as the input
         return linspaced;
     }
@@ -62,16 +62,16 @@ namespace antinufit
         return indexDistance;
     }
 
-    std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double> &vec, double val)
+    std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double>* vec, double val)
     {
         /*
          * Given an ordered vector of doubles, and a number lying between their min and max values,
          * return via a binary search the lower and upper indices of the vector that bound val.
          * E.g. if vec = {2, 3, 3.5, 4, 5}, val = 3.2, --> {1, 2}
          */
-        const auto vec_high_it = std::lower_bound(vec.begin(), vec.end(), val);
-        const size_t ind_high = std::distance(vec.begin(), vec_high_it);
-        if (vec_high_it == vec.begin())
+        const auto vec_high_it = std::lower_bound(vec->begin(), vec->end(), val);
+        const size_t ind_high = std::distance(vec->begin(), vec_high_it);
+        if (vec_high_it == vec->begin())
         {
             return {ind_high, ind_high + 1};
         }

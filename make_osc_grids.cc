@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
   OscGridConfig oscGridConfig = oscGridLoader.Load();
 
   std::string outfilename = oscGridConfig.GetFilename();
+  std::string reactorsjsonfile = oscGridConfig.GetReactorsJsonFile();
   double distance = oscGridConfig.GetDistance();
   double minE = oscGridConfig.GetMinE();
   double maxE = oscGridConfig.GetMaxE();
@@ -51,22 +52,16 @@ int main(int argc, char *argv[])
   int numValsSsqth12 = oscGridConfig.GetNumValsSsqth12();
 
   // First read the reactor distance info
-  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors_bruce1.json");
+  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorsjsonfile);
 
   for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
   {
-    std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".csv";
+    std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".root";
     std::cout << "Making grid " << oscGridFileName << std::endl;
     OscGrid *oscGrid = new OscGrid(oscGridFileName, it->second, minE, maxE, numValsE, minDm21sq, maxDm21sq, numValsDm21sq, minSsqth12, maxSsqth12, numValsSsqth12);
     oscGrid->CalcGrid();
     oscGrid->Write();
-    std::cout << oscGrid->Evaluate(5, 7.5E-5, 0.5) << std::endl;
 
-    TH3D *h3 = oscGrid->MakeHist();
-    TFile *file = new TFile("hist140x50x50.root", "RECREATE");
-
-    h3->Write();
-    file->Close();
     delete oscGrid;
   }
 }
