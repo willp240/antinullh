@@ -16,7 +16,7 @@ def check_dir(dname):
     return dname
 
 
-def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, rates_config, pdf_config, syst_config, walltime, sleep_time = 1, priority = 5):
+def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, rates_config, pdf_config, syst_config, osc_config, walltime, sleep_time = 1, priority = 5):
     '''
     submit a job to condor, write a sh file to source environment and execute command
     then write a submit file to be run by condor_submit
@@ -44,6 +44,9 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     if syst_config != "":
         os.system("cp " + str(syst_config) + " " + str(configs_path) + "/" + os.path.basename(syst_config) )
         syst_config = configs_path + "/" + syst_config.split("/")[-1]
+    if osc_config != "":
+        os.system("cp " + str(osc_config) + " " + str(configs_path) + "/" + os.path.basename(osc_config) )
+        osc_config = configs_path + "/" + osc_config.split("/")[-1]
 
     other_commands = 'sleep $[($RANDOM%' + str(sleep_time+1) + ')+1]s'
 
@@ -53,7 +56,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                      "echo $HOME \n" + \
                      "cd " + str(run_dir) + "\n" + \
                      str(other_commands) + "\n" + \
-                     str(exec_path) + " " + str(fit_config) + " " + str(rates_config) + " " + str(pdf_config) + " " + str(syst_config)
+                     str(exec_path) + " " + str(fit_config) + " " + str(rates_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config)
 
     sh_filepath = "{0}/sh/".format(condor_path) + str(job_name).replace("/", "") + '.sh'
     if not os.path.exists(os.path.dirname(sh_filepath)):
@@ -111,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', "--rates_cfg", type=str, default="", help='event rates config path')
     parser.add_argument('-p', "--pdf_cfg", type=str, default="", help='pdf config path')
     parser.add_argument('-s', "--syst_cfg", type=str, default="", help='syst config path')
+    parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
     parser.add_argument("-n", "--num_jobs", type=int, default=1, help="how many identical jobs would you like to run?")
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="what's the maximum runtime (in seconds, default 1 day)?")
     args = parser.parse_args()
@@ -125,15 +129,18 @@ if __name__ == "__main__":
     rates_config = args.rates_cfg
     pdf_config = args.pdf_cfg
     syst_config = args.syst_cfg
+    osc_config = args.osc_cfg
     walltime = args.wall_time
     if fit_config != "":
         fit_config = run_dir + "/" + args.fit_cfg
     if rates_config != "":
         rates_config = run_dir + "/" + args.rates_cfg
     if pdf_config != "":
-        pdf_config = run_dir + "pdfs/" + args.pdf_cfg
+        pdf_config = run_dir + "/" + args.pdf_cfg
     if syst_config != "":
-        syst_config = run_dir + "systs/" + args.syst_cfg
+        syst_config = run_dir + "/" + args.syst_cfg
+    if osc_config != "":
+        osc_config = run_dir + "/" + args.osc_cfg
 
     for i in range(args.num_jobs):
 
@@ -144,5 +151,5 @@ if __name__ == "__main__":
         sh_dir = check_dir("{0}/sh/".format(out_dir))
         submit_dir = check_dir("{0}/submit/".format(out_dir))
         output_dir = check_dir("{0}/output/".format(out_dir))
-
-        pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, rates_config, pdf_config, syst_config, walltime, sleep_time = 1, priority = 5)
+        
+        pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, rates_config, pdf_config, syst_config, osc_config, walltime, sleep_time = 1, priority = 5)

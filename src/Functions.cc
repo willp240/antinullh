@@ -106,7 +106,6 @@ namespace antinufit
 
     // Compute probability
     fOscProb = 4.0 * (X[1] * X[0] * s_10 * s_10 + X[2] * X[0] * s_20 * s_20 + X[2] * X[1] * s_21 * s_21);
-    // Calc osc prob as a function of params["theta12"], params["delatm21"], obs_val (energy)
 
     return fOscProb;
   }
@@ -114,9 +113,9 @@ namespace antinufit
   std::map<std::string, FunctionVariant> functionMap = {
       {"BirksLaw", BirksLaw},
       {"OscProb", OscProb}
-  };
+      };
 
-  double OscProb(double baseline, double nuEnergy, double fDmSqr21, double fSSqrTheta12)
+  double OscProb2(double baseline, double nuEnergy, double fDmSqr21, double fSSqrTheta12)
   {
 
     Double_t nuE_parent = nuEnergy;
@@ -186,6 +185,5 @@ namespace antinufit
 
     return fOscProb;
   }
-
 
 }

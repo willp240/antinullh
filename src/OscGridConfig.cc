@@ -3,13 +3,13 @@
 namespace antinufit
 {
 
-  double OscGridConfig::GetFilename() const
+  std::string OscGridConfig::GetFilename() const
   {
     return fFilename;
   }
 
   void
-  FitConfig::SetFilename(double filename_)
+  OscGridConfig::SetFilename(std::string filename_)
   {
     fFilename = filename_;
   }
@@ -20,7 +20,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetDistance(double distance_)
+  OscGridConfig::SetDistance(double distance_)
   {
     fDistance = distance_;
   }
@@ -31,7 +31,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetMinE(double mine_)
+  OscGridConfig::SetMinE(double mine_)
   {
     fMinE = mine_;
   }
@@ -42,7 +42,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetMaxE(double maxe_)
+  OscGridConfig::SetMaxE(double maxe_)
   {
     fMaxE = maxe_;
   }
@@ -53,7 +53,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetNumValsE(int numvalse_)
+  OscGridConfig::SetNumValsE(int numvalse_)
   {
     fNumValsE = numvalse_;
   }
@@ -64,7 +64,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetMinDm21sq(double minDm21sq_)
+  OscGridConfig::SetMinDm21sq(double minDm21sq_)
   {
     fMinDm21sq = minDm21sq_;
   }
@@ -75,7 +75,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetMaxDm21sq(double maxdm21sq_)
+  OscGridConfig::SetMaxDm21sq(double maxdm21sq_)
   {
     fMaxDm21sq = maxdm21sq_;
   }
@@ -86,7 +86,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetNumValsDm21sq(int numvalsdm21sq_)
+  OscGridConfig::SetNumValsDm21sq(int numvalsdm21sq_)
   {
     fNumValsDm21sq = numvalsdm21sq_;
   }
@@ -97,7 +97,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetMinSsqth12(double minSsqth12_)
+  OscGridConfig::SetMinSsqth12(double minSsqth12_)
   {
     fMinSsqth12 = minSsqth12_;
   }
@@ -108,7 +108,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetMaxSsqth12(double maxSsqth12_)
+  OscGridConfig::SetMaxSsqth12(double maxSsqth12_)
   {
     fMaxSsqth12 = maxSsqth12_;
   }
@@ -119,7 +119,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::SetNumValsSsqth12(int numvalsSsqth12_)
+  OscGridConfig::SetNumValsSsqth12(int numvalsSsqth12_)
   {
     fNumValsSsqth12 = numvalsSsqth12_;
   }

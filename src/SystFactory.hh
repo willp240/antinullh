@@ -30,9 +30,14 @@ namespace antinufit
     static Systematic *New(const std::string &name,
                            const std::string &type_,
                            const std::vector<std::string> &paramnamevec_,
+                           ParameterDict &paramvals_);
+    static Systematic *New(const std::string &name,
+                           const std::string &type_,
+                           const std::vector<std::string> &paramnamevec_,
                            ParameterDict &paramvals_,
-                           std::string function_ = "",,
-                           std::vector<OscGrid*> &oscgridvec_=NULL); // WP in here add OscGrid as argument
- };
+                           std::string function_,
+                           std::vector<OscGrid *> &oscgridvec_ );
+  };
+
 }
 #endif

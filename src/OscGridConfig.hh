@@ -15,23 +15,22 @@ namespace antinufit
     double GetDistance() const;
     void SetMinE(double);
     double GetMinE() const;
-    void SetMinE(double);
-    double GetMaxE() const;
     void SetMaxE(double);
-    int GetNumValsE() const;
+    double GetMaxE() const;
     void SetNumValsE(int);
-    double GetMinDm21sq() const;
+    int GetNumValsE() const;
     void SetMinDm21sq(double);
-    double GetMaxDm21sq() const;
+    double GetMinDm21sq() const;
     void SetMaxDm21sq(double);
-    int GetNumValsDm21sq() const;
+    double GetMaxDm21sq() const;
     void SetNumValsDm21sq(int);
-    double GetMinSsqth12() const;
+    int GetNumValsDm21sq() const;
     void SetMinSsqth12(double);
-    double GetMaxSsqth12() const;
+    double GetMinSsqth12() const;
     void SetMaxSsqth12(double);
-    int GetNumValsSsqth12() const;
+    double GetMaxSsqth12() const;
     void SetNumValsSsqth12(int);
+    int GetNumValsSsqth12() const;
 
   private:
     std::string fFilename;

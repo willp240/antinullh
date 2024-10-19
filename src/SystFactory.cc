@@ -7,9 +7,19 @@ namespace antinufit
   SystFactory::New(const std::string &name,
                    const std::string &type_,
                    const std::vector<std::string> &paramnamevec_,
+                   ParameterDict &paramvals_)
+  {
+    std::vector<OscGrid *> defaultGridVec(1, nullptr);
+    std::string defaultFunction = "";
+    return New(name, type_, paramnamevec_, paramvals_, defaultFunction, defaultGridVec);
+  }
+  Systematic *
+  SystFactory::New(const std::string &name,
+                   const std::string &type_,
+                   const std::vector<std::string> &paramnamevec_,
                    ParameterDict &paramvals_,
                    std::string function_,
-                   std::vector<OscGrid*> &oscgridvec_)
+                   std::vector<OscGrid *> &oscgridvec_)
   {
     Systematic *syst;
 
@@ -37,7 +47,7 @@ namespace antinufit
       smearer->SetKernel(gaus);
 
       SquareRootScale *sqrtscale = new SquareRootScale("e_smear_sigma_func");
-      sqrtscale->RenameParameter("grad", paramnamevec_.at(0) );
+      sqrtscale->RenameParameter("grad", paramnamevec_.at(0));
       sqrtscale->SetGradient(paramvals_[paramnamevec_.at(0)]);
       smearer->SetDependance("stddevs_0", sqrtscale);
 
@@ -49,7 +59,7 @@ namespace antinufit
     else if (type_ == "scale_function")
     {
       ScaleFunction *scale_func = new ScaleFunction("scale_function");
-      auto func = std::get_if<std::function<double(const ParameterDict&, const double&)>>(&(functionMap[function_]));
+      auto func = std::get_if<std::function<double(const ParameterDict &, const double &)>>(&(functionMap[function_]));
       scale_func->SetScaleFunction(*func, paramnamevec_);
       scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant");
       ParameterDict params({{"birks_constant", paramvals_[paramnamevec_.at(0)]}});
@@ -63,7 +73,7 @@ namespace antinufit
       // Load up oscillations
 
       Shape *shape = new Shape("shape");
-      auto func = std::get_if<std::function<double(const ParameterDict&, const std::vector<double>&)>>(&(functionMap[function_]));
+      auto func = std::get_if<std::function<double(const ParameterDict &, const std::vector<double> &)>>(&(functionMap[function_]));
       shape->SetShapeFunction(*func, paramnamevec_);
       shape->RenameParameter(paramnamevec_.at(0), "deltam21");
       shape->RenameParameter(paramnamevec_.at(1), "theta12");

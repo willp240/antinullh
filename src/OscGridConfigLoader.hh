@@ -12,12 +12,13 @@
 
 namespace antinufit
 {
-  class OscConfig;
-  class OscConfigLoader
+  class OscGridConfig;
+  class OscGridConfigLoader
   {
   public:
-    OscConfigLoader(const std::string &filePath_);
-    ~FitConfigLoader();
+    OscGridConfigLoader(const std::string &filePath_);
+    ~OscGridConfigLoader();
+    OscGridConfig Load() const;
 
   private:
     std::string fPath;

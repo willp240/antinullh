@@ -71,19 +71,18 @@ void llh_scan(const std::string &mcmcConfigFile_,
   std::map<std::string, std::string> systFunctionNames = systConfig.GetFunctionNames();
   std::vector<std::string> fullParamNameVec;
 
-  // WP Load up OscGrid (get oscgrid filenames from config)
-  // Also load up json file of reactors first, then loop over reactors, form oscgrid filename and make oscgrid
-  OscGridConfigLoader oscgridLoader(oscGridConfigFile_);
+  // Load up the oscillation probability grids
+  OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
   OscGridConfig oscGridConfig = oscGridLoader.Load();
   std::string outfilename = oscGridConfig.GetFilename();
   std::vector<OscGrid *> oscGridVec;
 
   // First read the reactor distance info
   std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors.json");
-  for (std::map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
+  for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
   {
     std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".csv";
-    OscGrid* oscGrid = new OscGrid(oscGridFileName);
+    OscGrid* oscGrid = new OscGrid(oscGridFileName, it->second);
     oscGridVec.push_back(oscGrid);
   }
 
@@ -105,7 +104,6 @@ void llh_scan(const std::string &mcmcConfigFile_,
       }
     }
     fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
-    //WP give vector of OscGrids here as argument
     Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, systFunctionNames[it->first],oscGridVec);
     AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);

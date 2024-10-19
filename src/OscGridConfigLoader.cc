@@ -14,8 +14,9 @@ namespace antinufit
   }
 
   OscGridConfig
-
+  OscGridConfigLoader::Load() const
   {
+
     OscGridConfig ret;
     ConfigLoader::Open(fPath);
     std::string filename;
@@ -31,10 +32,18 @@ namespace antinufit
     int numValsSsqth12;
 
     ConfigLoader::Load("summary", "filename", filename);
-    ConfigLoader::Load("summary", "distance", distance);
+    try
+    {
+      ConfigLoader::Load("summary", "distance", distance);
+    }
+    catch (ConfigFieldMissing)
+    {
+      distance = 0;
+    }
+
     ConfigLoader::Load("summary", "mine", minE);
     ConfigLoader::Load("summary", "maxe", maxE);
-    ConfigLoader::Load("summary", "numValse", numValsE);
+    ConfigLoader::Load("summary", "numvalse", numValsE);
     ConfigLoader::Load("summary", "mindm21sq", minDm21sq);
     ConfigLoader::Load("summary", "maxdm21sq", maxDm21sq);
     ConfigLoader::Load("summary", "numvalsdm21sq", numValsDm21sq);
@@ -44,15 +53,15 @@ namespace antinufit
 
     ret.SetFilename(filename);
     ret.SetDistance(distance);
-    ret.SetMineE(minE);
+    ret.SetMinE(minE);
     ret.SetMaxE(maxE);
     ret.SetNumValsE(numValsE);
-    ret.SetMinD21sq(minDm21sq);
+    ret.SetMinDm21sq(minDm21sq);
     ret.SetMaxDm21sq(maxDm21sq);
     ret.SetNumValsDm21sq(numValsDm21sq);
     ret.SetMinSsqth12(minSsqth12);
     ret.SetMaxSsqth12(maxSsqth12);
-    ret.SeNumValsSsq12(numValsSsqth12);
+    ret.SetNumValsSsqth12(numValsSsqth12);
 
     return ret;
   }
