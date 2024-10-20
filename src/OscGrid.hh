@@ -25,7 +25,7 @@ namespace antinufit
           fMinDm21sq(mindm21sq_), fMaxDm21sq(maxdm21sq_), fNumValsDm21sq(numvalsdm21sq_),
           fMinSsqth12(minssqth12_), fMaxSsqth12(maxssqth12_), fNumValsSsqth12(numvalsssqth12_) {};
 
-    OscGrid(const std::string &filename_, const double &distance_);
+    OscGrid(const std::string &filename_);
     OscGrid() {};
 
     void Load();
@@ -33,6 +33,11 @@ namespace antinufit
     void Write();
     double Evaluate(double, double, double);
     TH3D *MakeHist();
+
+    std::vector<double> GetEVector() { return fEnergyVals; }
+    std::vector<double> GetDm21sqVector() { return fDm21sqVals; }
+    std::vector<double> GetSsqth12Vector() { return fSsqth12Vals; }
+    std::vector<double> GetProbVector() { return fProbVals; }
 
   private:
     std::string fFilename;
@@ -48,10 +53,10 @@ namespace antinufit
     double fMaxSsqth12;
     int fNumValsSsqth12;
 
-    std::vector<double> *fEnergyVals;
-    std::vector<double> *fDm21sqVals;
-    std::vector<double> *fSsqth12Vals;
-    std::vector<double> *fProbVals;
+    std::vector<double> fEnergyVals;
+    std::vector<double> fDm21sqVals;
+    std::vector<double> fSsqth12Vals;
+    std::vector<double> fProbVals;
 
     TH3D *hist;
   };
