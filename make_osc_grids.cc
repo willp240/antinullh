@@ -26,7 +26,6 @@ using namespace antinufit;
 
 int main(int argc, char *argv[])
 {
-  std::cout << "pre args" << std::endl;
 
   if (argc != 2)
   {

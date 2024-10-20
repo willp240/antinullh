@@ -82,7 +82,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
   for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
   {
     std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".csv";
-    OscGrid* oscGrid = new OscGrid(oscGridFileName, it->second);
+    OscGrid* oscGrid = new OscGrid(oscGridFileName);
     oscGridVec.push_back(oscGrid);
   }
 
