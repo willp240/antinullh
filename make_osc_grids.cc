@@ -9,37 +9,36 @@
 // c++ headers
 #include <sys/stat.h>
 #include <string.h>
-#include <iostream>
 #include <map>
 #include <tuple>
 #include <string>
 #include <fstream>
 #include <nlohmann/json.hpp>
+
+#include "TROOT.h"
+
+#include <iostream>
 #include <unistd.h>
-
-#include <TFile.h>
-#include <TH3D.h>
-
-// typedef std::map<std::string, std::string> StringMap;
 
 using namespace antinufit;
 
 int main(int argc, char *argv[])
 {
 
-  if (argc != 2)
+  if (argc != 3)
   {
-    std::cout << "Usage: make_osc_grids oscgrid_config" << std::endl;
+    std::cout << "Usage: make_osc_grids oscgrid_config index_to_write" << std::endl;
     return 1;
   }
 
   std::string oscgridConfigFile(argv[1]);
+  int index = std::stoi(argv[2]);
   OscGridConfigLoader oscGridLoader(oscgridConfigFile);
   OscGridConfig oscGridConfig = oscGridLoader.Load();
 
   std::string outfilename = oscGridConfig.GetFilename();
   std::string reactorsjsonfile = oscGridConfig.GetReactorsJsonFile();
-  double distance = oscGridConfig.GetDistance();
+
   double minE = oscGridConfig.GetMinE();
   double maxE = oscGridConfig.GetMaxE();
   int numValsE = oscGridConfig.GetNumValsE();
@@ -53,14 +52,12 @@ int main(int argc, char *argv[])
   // First read the reactor distance info
   std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorsjsonfile);
 
-  for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
-  {
-    std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".root";
-    std::cout << "Making grid " << oscGridFileName << std::endl;
-    OscGrid *oscGrid = new OscGrid(oscGridFileName, it->second, minE, maxE, numValsE, minDm21sq, maxDm21sq, numValsDm21sq, minSsqth12, maxSsqth12, numValsSsqth12);
-    oscGrid->CalcGrid();
-    oscGrid->Write();
+  std::string oscGridFileName = outfilename + "_" + std::to_string(index) + ".root";
+  std::cout << "Making grid " << oscGridFileName << std::endl;
+  double distance = indexDistance[index];
+  std::unique_ptr<OscGrid> oscGrid = std::make_unique<OscGrid>(oscGridFileName, distance, minE, maxE, numValsE, minDm21sq, maxDm21sq, numValsDm21sq, minSsqth12, maxSsqth12, numValsSsqth12);
+  oscGrid->CalcGrid();
+  oscGrid->Write();
 
-    delete oscGrid;
-  }
+return 0;
 }

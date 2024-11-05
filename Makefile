@@ -28,7 +28,7 @@ LIB_NAME=antinullh
 
 LIB=$(LIB_DIR)/lib$(LIB_NAME).a
 
-all: bin/make_trees bin/llh_scan bin/make_reactor_json #bin/make_plots bin/make_pdfs bin/fit_dataset bin/build_asimov bin/make_plots bin/llh_scan bin/auto_corrs
+all: bin/make_trees bin/llh_scan bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids #bin/make_plots bin/make_pdfs bin/fit_dataset bin/build_asimov bin/make_plots bin/llh_scan bin/auto_corrs
 
 bin/fit_dataset: fit_dataset.cc $(LIB)
 	mkdir -p bin
@@ -41,6 +41,14 @@ bin/up_count_lim: up_count_lim.cc $(LIB)
 bin/make_reactor_json: make_reactor_json.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  make_reactor_json.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
+
+bin/make_osc_grids: make_osc_grids.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  make_osc_grids.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -o $@
+
+bin/compare_osc_grids: compare_osc_grids.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  compare_osc_grids.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 
 bin/make_pdfs: make_pdfs.cc $(LIB)
@@ -80,6 +88,7 @@ install:
 	ln -sf `readlink -f bin/build_asimov` $(PREFIX)
 	ln -sf `readlink -f bin/auto_corrs` $(PREFIX)
 	ln -sf `readlink -f bin/llh_scan` $(PREFIX)
+		ln -sf `readlink -f bin/CompareOscGrids` $(PREFIX)
 	chmod +x bin/make_pdfs
 	chmod +x bin/make_plots
 	chmod +x bin/make_trees
@@ -88,7 +97,8 @@ install:
 	chmod +x bin/fit_dataset_batch
 	chmod +x bin/build_asimov
 	chmod +x bin/auto_corrs
-	chmod +x bin/llh_scann
+	chmod +x bin/llh_scan
+	chmod +x bin/CompareOscGrids
 
 clean:
 	rm -f bin/make_pdfs
@@ -99,6 +109,7 @@ clean:
 	rm -f bin/build_asimov
 	rm -f bin/auto_corrs
 	rm -f bin/llh_scan
+	rm -f bin/CompareOscGrids
 
 	rm -f build/*.o
 	rm -f lib/libantinullh.a
@@ -110,3 +121,4 @@ clean:
 	rm -f $(PREFIX)/build_asimov
 	rm -f $(PREFIX)/auto_corrs
 	rm -f $(PREFIX)/llh_scan
+	rm -f $(PREFIX)/CompareOscGrids

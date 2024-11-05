@@ -17,7 +17,6 @@ namespace antinufit
     std::cout << "Loading probability information from " << fFilename << std::endl;
 
     TFile *file = new TFile(fFilename.c_str(), "READ");
-
     fEnergyVals.clear();
     fSsqth12Vals.clear();
     fDm21sqVals.clear();
@@ -25,19 +24,18 @@ namespace antinufit
     std::vector<Double_t> *tmpEnergyVals;
     std::vector<Double_t> *tmpSsqth12Vals;
     std::vector<Double_t> *tmpDm21sqVals;
-    std::vector<Double_t> *tmpProbVals;
     std::vector<Double_t> *tmpDistance;
 
     file->GetObject("fEnergyVals", tmpEnergyVals);
     file->GetObject("fSsqth12Vals", tmpSsqth12Vals);
     file->GetObject("fDm21sqVals", tmpDm21sqVals);
-    file->GetObject("fProbVals", tmpProbVals);
+    //file->GetObject("fProbTree", fProbTree);
+    file->GetObject("probTree", fProbTree);
     file->GetObject("fDistance", tmpDistance);
 
     fEnergyVals = *tmpEnergyVals;
     fSsqth12Vals = *tmpSsqth12Vals;
     fDm21sqVals = *tmpDm21sqVals;
-    fProbVals = *tmpProbVals;
     fDistance = tmpDistance->at(0);
 
     fMinE = fEnergyVals.at(0);
@@ -50,6 +48,11 @@ namespace antinufit
     fMaxSsqth12 = fSsqth12Vals.back();
     fNumValsSsqth12 = fSsqth12Vals.size();
 
+    delete tmpEnergyVals;
+    delete tmpSsqth12Vals;
+    delete tmpDm21sqVals;
+    delete tmpDistance;
+
     std::cout << "Loading of OscGrid complete!" << std::endl
               << std::endl;
   }
@@ -57,13 +60,20 @@ namespace antinufit
   void OscGrid::CalcGrid()
   {
 
+    fProbTree = new TTree("probTree", "Probability Tree");
+
     fEnergyVals = linspace(fMinE, fMaxE, fNumValsE);
     fDm21sqVals = linspace(fMinDm21sq, fMaxDm21sq, fNumValsDm21sq);
     fSsqth12Vals = linspace(fMinSsqth12, fMaxSsqth12, fNumValsSsqth12);
 
     const size_t numVals = fNumValsE * fNumValsDm21sq * fNumValsSsqth12;
-    fProbVals.reserve(numVals);
     size_t i = 0;
+
+    double prob, energy, dmsq21, ssqth12;
+    fProbTree->Branch("prob", &prob);
+    fProbTree->Branch("energy", &energy);
+    fProbTree->Branch("dmsq21", &dmsq21);
+    fProbTree->Branch("ssqth12", &ssqth12);
 
     for (int idmsq21 = 0; idmsq21 < fDm21sqVals.size(); idmsq21++)
     {
@@ -72,16 +82,20 @@ namespace antinufit
         for (int ienergy = 0; ienergy < fEnergyVals.size(); ienergy++)
         {
 
+          energy = fEnergyVals.at(ienergy);
+          dmsq21 = fDm21sqVals.at(idmsq21);
+          ssqth12 = fSsqth12Vals.at(issqth12);
+
           if (i % (numVals / 10) == 0)
           {
             std::cout << (i * 100) / numVals << "% events complete (" << i << "/" << numVals << ")" << std::endl;
           }
-          double prob = OscProb2(fDistance, fEnergyVals.at(ienergy), fDm21sqVals.at(idmsq21), fSsqth12Vals.at(issqth12));
+          double prob = OscProb2(fDistance, energy, dmsq21, ssqth12);
           if (prob > 1.0 || prob < 0.0)
           {
             std::cout << "hang on prob(" << i << ") = " << prob << std::endl;
           }
-          fProbVals.push_back(prob);
+          fProbTree->Fill();
           i++;
         }
       }
@@ -100,11 +114,13 @@ namespace antinufit
     file->WriteObject(&fEnergyVals, "fEnergyVals");
     file->WriteObject(&fDm21sqVals, "fDm21sqVals");
     file->WriteObject(&fSsqth12Vals, "fSsqth12Vals");
-    file->WriteObject(&fProbVals, "fProbVals");
-
+    fProbTree->Write("fProbTree");
     std::vector<double> distvec;
     distvec.push_back(fDistance);
     file->WriteObject(&distvec, "fDistance");
+    file->Close();
+
+    delete file;
 
     std::cout << "Writing complete!" << std::endl
               << std::endl;
@@ -134,6 +150,9 @@ namespace antinufit
       throw;
     }
 
+    double prob;
+    fProbTree->SetBranchAddress("prob", &prob);
+
     // Now, run binary searches to find the relevant 8 vertices within which the position lies
     const auto energyBounds = GetLowerUpperIndices(fEnergyVals, nuEnergy);
     const auto dmsqBounds = GetLowerUpperIndices(fDm21sqVals, dmsq21);
@@ -155,13 +174,14 @@ namespace antinufit
           const size_t eIndex = (k == 0) ? energyBounds.first : energyBounds.second;
           const double e = fEnergyVals.at(eIndex);
 
-          FL::point<3, double> vertex{{e, dmsq, theta},
-                                      fProbVals.at(eIndex + thetaIndex * fEnergyVals.size() +
-                                                   dmsqIndex * fEnergyVals.size() * fSsqth12Vals.size())};
+          int entryNum = eIndex + thetaIndex * fEnergyVals.size() + dmsqIndex * fEnergyVals.size() * fSsqth12Vals.size();
+          fProbTree->GetEntry(entryNum);
+
+          FL::point<3, double> vertex{{e, dmsq, theta}, prob};
           vertices.push_back(vertex);
         }
       }
-    }
+    } 
     // Finally, perform the trilinear interpolation!
     FL::point<3, double> p = {{nuEnergy, dmsq21, ssqth12}, 0};
     return FL::LinearInterpolator<double>::Trilinear(p, vertices.data()).val;
@@ -170,21 +190,23 @@ namespace antinufit
   TH3D *OscGrid::MakeHist()
   {
 
-    hist = new TH3D("probhist", "probhist:dm21sq,sinssqth21,energy", fDm21sqVals.size(), fDm21sqVals.front(), fDm21sqVals.back(), fSsqth12Vals.size(), fSsqth12Vals.front(), fSsqth12Vals.back(), fEnergyVals.size(), fEnergyVals.front(), fEnergyVals.back());
+    fHist = new TH3D("probhist", "probhist:dm21sq,sinssqth21,energy", fDm21sqVals.size(), fDm21sqVals.front(), fDm21sqVals.back(), fSsqth12Vals.size(), fSsqth12Vals.front(), fSsqth12Vals.back(), fEnergyVals.size(), fEnergyVals.front(), fEnergyVals.back());
 
-    for (int iDmsq21 = 0; iDmsq21 < fDm21sqVals.size(); iDmsq21++)
+    double prob, energy, dmsq21, ssqth21;
+
+    fProbTree->SetBranchAddress("prob", &prob);
+    fProbTree->SetBranchAddress("energy", &energy);
+    fProbTree->SetBranchAddress("dmsq21", &dmsq21);
+    fProbTree->SetBranchAddress("ssqth21", &ssqth21);
+
+    for (int iEntry = 0; iEntry < fProbTree->GetEntries(); iEntry++)
     {
-      for (int iSsqth21 = 0; iSsqth21 < fSsqth12Vals.size(); iSsqth21++)
-      {
-        for (int iEnergy = 0; iEnergy < fEnergyVals.size(); iEnergy++)
-        {
 
-          int probIndex = iDmsq21 * (fSsqth12Vals.size() * fEnergyVals.size()) + iSsqth21 * fEnergyVals.size() + iEnergy;
-          hist->Fill(fDm21sqVals.at(iDmsq21), fSsqth12Vals.at(iSsqth21), fEnergyVals.at(iEnergy), fProbVals.at(probIndex));
-        }
-      }
+      fProbTree->GetEntry(iEntry);
+      fHist->Fill(dmsq21, ssqth21, energy, prob);
     }
 
-    return hist;
+    return fHist;
   }
+
 }
