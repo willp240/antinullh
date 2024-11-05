@@ -35,11 +35,11 @@ namespace antinufit
     double Evaluate(double, double, double);
     TH3D *MakeHist();
 
-    TTree *GetProbTree() { return fProbTree; }
     TH3D *GetHist() { return fHist; }
     std::vector<double> GetEVector() { return fEnergyVals; }
     std::vector<double> GetDm21sqVector() { return fDm21sqVals; }
     std::vector<double> GetSsqth12Vector() { return fSsqth12Vals; }
+    std::vector<double> GetProbVector() { return fProbVals; }
 
   private:
     std::string fFilename;
@@ -58,7 +58,7 @@ namespace antinufit
     std::vector<double> fEnergyVals;
     std::vector<double> fDm21sqVals;
     std::vector<double> fSsqth12Vals;
-    TTree* fProbTree;
+    std::vector<double> fProbVals;
 
     TH3D *fHist;
   };
