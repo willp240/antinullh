@@ -2,7 +2,6 @@
 #define __ANTINUFIT__SystFactory__
 
 // Antinu headers
-#include <Functions.hh>
 #include <OscGrid.hh>
 
 // OXO headers
@@ -36,7 +35,8 @@ namespace antinufit
                            const std::vector<std::string> &paramnamevec_,
                            ParameterDict &paramvals_,
                            std::string function_,
-                           std::vector<OscGrid *> &oscgridvec_ );
+                           std::map<int, OscGrid *> &oscgridmap_,
+                           std::unordered_map<int, double> &indexdistancemap_ );
   };
 
 }

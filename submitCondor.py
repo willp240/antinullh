@@ -1,7 +1,7 @@
-import sys
 import os
-import string
 import argparse
+import configparser
+import json
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
@@ -23,6 +23,11 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     '''
 
     print (job_name)
+    if exec_name == "make_osc_grids":
+        batch_name, index = job_name.split('_index_')
+    else:
+        index = ""
+        batch_name = job_name
 
     ### set a condor path to be called later
     
@@ -56,7 +61,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                      "echo $HOME \n" + \
                      "cd " + str(run_dir) + "\n" + \
                      str(other_commands) + "\n" + \
-                     str(exec_path) + " " + str(fit_config) + " " + str(rates_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config)
+                     str(exec_path) + " " + str(fit_config) + " " + str(rates_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + " " + index
 
     sh_filepath = "{0}/sh/".format(condor_path) + str(job_name).replace("/", "") + '.sh'
     if not os.path.exists(os.path.dirname(sh_filepath)):
@@ -98,7 +103,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     out_submit_file.close()
 
 
-    command = 'condor_submit -batch-name \"' + job_name+'\" ' + submit_filepath
+    command = 'condor_submit -batch-name \"' + batch_name +'\" ' + submit_filepath
     print ("executing job: " + command)
     os.system(command)
 
@@ -142,14 +147,44 @@ if __name__ == "__main__":
     if osc_config != "":
         osc_config = run_dir + "/" + args.osc_cfg
 
-    for i in range(args.num_jobs):
+    if exec_name == "make_osc_grids":
+        # Get reactors json from oscgrid
+        config = configparser.ConfigParser()
+        config.read(osc_config)
 
-        job_name = base_name + "_{0}".format(i)
+        # Access the reactors json filepath under the 'summary' section
+        reactorsjson_path = config.get('summary', 'reactorsjson')
 
-        log_dir = check_dir("{0}/log/".format(out_dir))
-        error_dir = check_dir("{0}/error/".format(out_dir))
-        sh_dir = check_dir("{0}/sh/".format(out_dir))
-        submit_dir = check_dir("{0}/submit/".format(out_dir))
-        output_dir = check_dir("{0}/output/".format(out_dir))
-        
-        pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, rates_config, pdf_config, syst_config, osc_config, walltime, sleep_time = 1, priority = 5)
+        # Load the JSON file
+        with open(reactorsjson_path) as f:
+            data = json.load(f)
+
+        # Loop over each key-value pair
+        for index, values in data.items():
+            # Convert the key to an integer
+            int_index = int(index)
+            # Get the string and double values from the list
+            reac_name, distance_val = values
+
+            job_name = base_name + "_index_{0}".format(int_index)
+
+            log_dir = check_dir("{0}/log/".format(out_dir))
+            error_dir = check_dir("{0}/error/".format(out_dir))
+            sh_dir = check_dir("{0}/sh/".format(out_dir))
+            submit_dir = check_dir("{0}/submit/".format(out_dir))
+            output_dir = check_dir("{0}/output/".format(out_dir))
+
+            pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, rates_config, pdf_config, syst_config, osc_config, walltime, sleep_time = 1, priority = 5)
+
+    else:
+        for i in range(args.num_jobs):
+
+            job_name = base_name + "_{0}".format(i)
+
+            log_dir = check_dir("{0}/log/".format(out_dir))
+            error_dir = check_dir("{0}/error/".format(out_dir))
+            sh_dir = check_dir("{0}/sh/".format(out_dir))
+            submit_dir = check_dir("{0}/submit/".format(out_dir))
+            output_dir = check_dir("{0}/output/".format(out_dir))
+
+            pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, rates_config, pdf_config, syst_config, osc_config, walltime, sleep_time = 1, priority = 5)

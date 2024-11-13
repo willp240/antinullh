@@ -123,6 +123,8 @@ namespace antinufit
      */
     // First confirm input values are in the interpolation range
 
+    ssqth12 = sin(ssqth12) * sin(ssqth12);
+
     if (nuEnergy < fMinE || nuEnergy > fMaxE)
     {
       std::cerr << "ERROR: Neutrino Energy, " << nuEnergy << " MeV, outside bounds: " << fMinE << "-" << fMaxE << " MeV" << std::endl;
@@ -130,7 +132,7 @@ namespace antinufit
     }
     if (dmsq21 < fMinDm21sq || dmsq21 > fMaxDm21sq)
     {
-      std::cerr << "ERROR: #Delta m^2_{21}, " << dmsq21 << " x 10^-5 MeV^2, outside bounds: " << fMinDm21sq << "-" << fMaxDm21sq << " x 10^-5 MeV^2" << std::endl;
+      std::cerr << "ERROR: #Delta m^2_{21}, " << dmsq21 << " MeV^2, outside bounds: " << fMinDm21sq << "-" << fMaxDm21sq << " MeV^2" << std::endl;
       throw;
     }
     if (ssqth12 < fMinSsqth12 || ssqth12 > fMaxSsqth12)

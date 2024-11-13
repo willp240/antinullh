@@ -75,15 +75,15 @@ void llh_scan(const std::string &mcmcConfigFile_,
   OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
   OscGridConfig oscGridConfig = oscGridLoader.Load();
   std::string outfilename = oscGridConfig.GetFilename();
-  std::vector<OscGrid *> oscGridVec;
+  std::map<int, OscGrid *> oscGridMap;
 
   // First read the reactor distance info
-  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors.json");
+  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors_bruce1.json");
   for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
   {
-    std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".csv";
-    OscGrid* oscGrid = new OscGrid(oscGridFileName);
-    oscGridVec.push_back(oscGrid);
+    std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".root";
+    OscGrid *oscGrid = new OscGrid(oscGridFileName);
+    oscGridMap[it->first] = oscGrid;
   }
 
   // Loop over systematics and declare each one
@@ -104,7 +104,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
       }
     }
     fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, systFunctionNames[it->first],oscGridVec);
+    Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, systFunctionNames[it->first], oscGridMap, indexDistance);
     AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to
@@ -117,8 +117,11 @@ void llh_scan(const std::string &mcmcConfigFile_,
 
   // A parameter could have been defined in the fit config but isn't associated with a pdf or systematic
   // If so ignore that parameter
-  for (ParameterDict::iterator it = noms.begin(); it != noms.end(); ++it)
+  ParameterDict::iterator it = noms.begin();
+  size_t numParams = noms.size();
+  for (int iParam = 0; iParam < numParams; iParam++)
   {
+    bool iterate = true;
     if (toGet.find(it->first) == toGet.end() && std::find(fullParamNameVec.begin(), fullParamNameVec.end(), it->first) == fullParamNameVec.end())
     {
       std::cout << it->first << " parameter defined in fit config but not in syst or event rates config. It will be ignored." << std::endl;
@@ -127,8 +130,13 @@ void llh_scan(const std::string &mcmcConfigFile_,
       mins.erase(it->first);
       maxs.erase(it->first);
       it = noms.erase(it);
-      it--;
+      if (it != noms.begin())
+        it--;
+      else
+        iterate = false;
     }
+    if (iterate)
+      it++;
   }
 
   // Create the individual PDFs and Asimov components (could these be maps not vectors?)
@@ -166,6 +174,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
     BinnedED dist;
     int num_dimensions = it->second.GetNumDimensions();
     dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
+    dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
@@ -235,13 +244,11 @@ void llh_scan(const std::string &mcmcConfigFile_,
   else
     dataDist = asimov;
 
-  return;
-
   // Now build the likelihood
   BinnedNLLH lh;
   // Set the buffer region
-  lh.SetBufferAsOverflow(true);
-  lh.SetBuffer("energy", 50, 50);
+  // lh.SetBufferAsOverflow(true);
+  //lh.SetBuffer("energy", 10, 10);
   // Add our PDFs and data
   lh.AddPdfs(pdfs, pdfGroups, genRates);
   lh.SetDataDist(dataDist);
@@ -345,9 +352,9 @@ void llh_scan(const std::string &mcmcConfigFile_,
 
 int main(int argc, char *argv[])
 {
-  if (argc != 5)
+  if (argc != 6)
   {
-    std::cout << "\nUsage: llh_scan <mcmc_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
+    std::cout << "\nUsage: llh_scan <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
     return 1;
   }
 

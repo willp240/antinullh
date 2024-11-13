@@ -12,32 +12,17 @@ namespace antinufit
   // WP ultimately delete this
   double OscProb(const ParameterDict &params, const std::vector<double> &obs_vals)
   {
-    /*
+
+    // use index to determine distance
     // First read the reactor distance info
-    std::unordered_map<int, double> indexDistance;
+    //std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors.json");
+    // use distance to determine oscgrid name
+    // load up osc grid
+    // calc prob
+    // retuurn prob
 
-    // Read the JSON file
-    std::ifstream file("reactors.json");
-    if (!file.is_open())
-    {
-      std::cerr << "Could not open reactors.json file!" << std::endl;
-      throw;
-    }
+    //antinufit::OscGrid osc1(oscgridFile1);
 
-    // Parse the JSON file into a json object
-    nlohmann::json reactorData;
-    file >> reactorData;
-
-    // Loop through the JSON object and fill the maps
-    for (const auto &[key, value] : reactorData.items())
-    {
-      int intKey = std::stoi(key);     // Convert the reactor key to int
-      double distance = value[1];   // Second element is the distance
-
-      // Fill the maps
-      indexDistance[intKey] = distance;
-    }
-    */
     Double_t nuE_parent = obs_vals.at(1);
 
     Double_t fDmSqr21 = params.at("deltam21");
@@ -112,8 +97,7 @@ namespace antinufit
 
   std::map<std::string, FunctionVariant> functionMap = {
       {"BirksLaw", BirksLaw},
-      {"OscProb", OscProb}
-      };
+      {"OscProb", OscProb}};
 
   double OscProb2(double baseline, double nuEnergy, double fDmSqr21, double fSSqrTheta12)
   {
