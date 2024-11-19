@@ -28,7 +28,7 @@ LIB_NAME=antinullh
 
 LIB=$(LIB_DIR)/lib$(LIB_NAME).a
 
-all: bin/make_trees bin/llh_scan bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids #bin/make_plots bin/make_pdfs bin/fit_dataset bin/build_asimov bin/make_plots bin/llh_scan bin/auto_corrs
+all: bin/prune_trees bin/llh_scan bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids #bin/make_plots bin/make_pdfs bin/fit_dataset bin/build_asimov bin/make_plots bin/llh_scan bin/auto_corrs
 
 bin/fit_dataset: fit_dataset.cc $(LIB)
 	mkdir -p bin
@@ -54,9 +54,9 @@ bin/compare_osc_grids: compare_osc_grids.cc $(LIB)
 bin/make_pdfs: make_pdfs.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  make_pdfs.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
-bin/make_trees: make_trees.cc $(LIB)
+bin/prune_trees: prune_trees.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  make_trees.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
+	$(CXX)  prune_trees.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 bin/build_asimov: build_asimov.cc $(LIB)
 	mkdir -p bin
@@ -80,22 +80,21 @@ build/%.o : src/%.cc
 
 install:
 	ln -sf `readlink -f bin/make_pdfs` $(PREFIX)
-	ln -sf `readlink -f bin/make_trees` $(PREFIX)
+	ln -sf `readlink -f bin/prune_trees` $(PREFIX)
 	ln -sf `readlink -f bin/make_reactor_json` $(PREFIX)
 	ln -sf `readlink -f bin/make_plots` $(PREFIX)
 	ln -sf `readlink -f bin/fit_dataset` $(PREFIX)
 	ln -sf `readlink -f bin/fit_dataset_batch` $(PREFIX)
-	ln -sf `readlink -f bin/build_asimov` $(PREFIX)
 	ln -sf `readlink -f bin/auto_corrs` $(PREFIX)
 	ln -sf `readlink -f bin/llh_scan` $(PREFIX)
-		ln -sf `readlink -f bin/CompareOscGrids` $(PREFIX)
+	ln -sf `readlink -f bin/CompareOscGrids` $(PREFIX)
+
 	chmod +x bin/make_pdfs
 	chmod +x bin/make_plots
-	chmod +x bin/make_trees
+	chmod +x bin/prune_trees
 	chmod +x bin/make_reactor_json
 	chmod +x bin/fit_dataset
 	chmod +x bin/fit_dataset_batch
-	chmod +x bin/build_asimov
 	chmod +x bin/auto_corrs
 	chmod +x bin/llh_scan
 	chmod +x bin/CompareOscGrids
@@ -103,10 +102,9 @@ install:
 clean:
 	rm -f bin/make_pdfs
 	rm -f bin/make_plots
-	rm -f bin/make_trees
+	rm -f bin/prune_trees
 	rm -f bin/make_reactor_json
 	rm -f bin/fit_dataset
-	rm -f bin/build_asimov
 	rm -f bin/auto_corrs
 	rm -f bin/llh_scan
 	rm -f bin/CompareOscGrids
@@ -115,10 +113,9 @@ clean:
 	rm -f lib/libantinullh.a
 	rm -f $(PREFIX)/make_pdfs
 	rm -f $(PREFIX)/make_plots
-	rm -f $(PREFIX)/make_trees
+	rm -f $(PREFIX)/prune_trees
 	rm -f $(PREFIX)/make_reactor_json
 	rm -f $(PREFIX)/fit_dataset
-	rm -f $(PREFIX)/build_asimov
 	rm -f $(PREFIX)/auto_corrs
 	rm -f $(PREFIX)/llh_scan
 	rm -f $(PREFIX)/CompareOscGrids

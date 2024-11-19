@@ -176,9 +176,9 @@ In the submitting batch jobs section we will discuss running over all reactor co
 
 Raw SNO+ ntuples, although much more lightweight than RATDS files, still contain much more information than we need at analysis level. So instead of carrying around that deadweight for the whole analysis, we first take the time to prune out the branches we don't need and save what we do need in new files to be used.  
 
-The `make_trees` app does this for us. Having set your filepaths in your `events` config file, simply run:  
+The `prune_trees` app does this for us. Having set your filepaths in your `events` config file, simply run:  
 
-> ./bin/make_trees cfg/event_config.ini
+> ./bin/prune_trees cfg/event_config.ini
 
 This looks for ntuple files for each of the event types specified in the `event` config (you can select/deselect event types with the active/inactive fields) and produces a new set of files containing only the relevant trees for the analysis (energy, position, fit validity, pulse shape discrimination values, and true neutrino energy and reactor name for reactor neutrinos). Be warned, if using all event types, this will take some time! (of order several hours).
 

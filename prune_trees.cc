@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 {
   if (argc != 3)
   {
-    std::cout << "Usage: make_trees <event_config_file> <osc_grid_config_file>" << std::endl;
+    std::cout << "Usage: prune_trees <event_config_file> <osc_grid_config_file>" << std::endl;
     return 1;
   }
 
