@@ -30,45 +30,41 @@ LIB=$(LIB_DIR)/lib$(LIB_NAME).a
 
 all: bin/prune_trees bin/llh_scan bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids #bin/make_plots bin/make_pdfs bin/fit_dataset bin/build_asimov bin/make_plots bin/llh_scan bin/auto_corrs
 
-bin/fit_dataset: fit_dataset.cc $(LIB)
+bin/fit_dataset: exec/fit_dataset.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  fit_dataset.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -lMinuit2 -o $@
+	$(CXX)  exec/fit_dataset.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -lMinuit2 -o $@
 
-bin/up_count_lim: up_count_lim.cc $(LIB)
+bin/up_count_lim: exec/up_count_lim.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  up_count_lim.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) $(GSL_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
+	$(CXX)  exec/up_count_lim.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) $(GSL_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
-bin/make_reactor_json: make_reactor_json.cc $(LIB)
+bin/make_reactor_json: exec/make_reactor_json.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  make_reactor_json.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
+	$(CXX)  exec/make_reactor_json.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
-bin/make_osc_grids: make_osc_grids.cc $(LIB)
+bin/make_osc_grids: exec/make_osc_grids.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  make_osc_grids.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -o $@
+	$(CXX)  exec/make_osc_grids.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -o $@
 
-bin/compare_osc_grids: compare_osc_grids.cc $(LIB)
+bin/compare_osc_grids: exec/compare_osc_grids.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  compare_osc_grids.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
+	$(CXX)  exec/compare_osc_grids.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
+bin/make_pdfs: exec/make_pdfs.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  exec/make_pdfs.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
-bin/make_pdfs: make_pdfs.cc $(LIB)
+bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  make_pdfs.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) -l$(RAT_LIB_NAME) -larmadillo -o $@
-bin/prune_trees: prune_trees.cc $(LIB)
-	mkdir -p bin
-	$(CXX)  prune_trees.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
+	$(CXX)  exec/prune_trees.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) -l$(RAT_LIB_NAME) -larmadillo -o $@
 
-bin/build_asimov: build_asimov.cc $(LIB)
+bin/auto_corrs: exec/auto_corrs.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  build_asimov.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
+	$(CXX)  exec/auto_corrs.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
 
-bin/auto_corrs: auto_corrs.cc $(LIB)
+bin/llh_scan: exec/llh_scan.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  auto_corrs.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
-
-bin/llh_scan: llh_scan.cc $(LIB)
-	mkdir -p bin
-	$(CXX)  llh_scan.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
+	$(CXX)  exec/llh_scan.cc -I$(INC_DIR) -I$(OXSX_INC) -I$(RAT_EXTRN_INC) -I$(RAT_INC) -w -L$(LIB_DIR) -L$(OXSX_LIB_DIR) -L$(RAT_LIB_DIR) -l$(LIB_NAME) -l$(OXSX_LIB_NAME) $(ROOT_FLAGS) $(G4_FLAGS) $(H5_LIBS) ${GSL_FLAGS} -l$(RAT_LIB_NAME) -larmadillo -o $@
 
 $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)

@@ -1,7 +1,7 @@
 #include <string>
 #include <FitConfigLoader.hh>
-#include <DistConfigLoader.hh>
-#include <DistConfig.hh>
+#include <PDFConfigLoader.hh>
+#include <PDFConfig.hh>
 #include <DistBuilder.hh>
 #include <CutConfigLoader.hh>
 #include <FitConfigLoader.hh>
@@ -26,7 +26,7 @@
 using namespace bbfit;
 
 void Fit(const std::string &mcmcConfigFile_,
-         const std::string &distConfigFile_,
+         const std::string &PDFConfigFile_,
          const std::string &cutConfigFile_,
          const std::string &systConfigFile_,
          const std::string &dataPath_,
@@ -97,8 +97,8 @@ void Fit(const std::string &mcmcConfigFile_,
   SystConfig systConfig = systLoader.LoadActive();
 
   // Load up the dists
-  DistConfigLoader dLoader(distConfigFile_);
-  DistConfig pConfig = dLoader.Load();
+  PDFConfigLoader dLoader(PDFConfigFile_);
+  PDFConfig pConfig = dLoader.Load();
   std::string distDir = pConfig.GetPDFDir();
 
   std::vector<BinnedED> dists;

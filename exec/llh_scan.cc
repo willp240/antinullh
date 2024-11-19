@@ -1,5 +1,5 @@
 // Antinu headers
-#include <DistConfigLoader.hh>
+#include <PDFConfigLoader.hh>
 #include <DistBuilder.hh>
 #include <FitConfigLoader.hh>
 #include <EventConfigLoader.hh>
@@ -53,8 +53,8 @@ void llh_scan(const std::string &mcmcConfigFile_,
   EvMap toGet = loader.LoadActive();
 
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
-  DistConfigLoader pdfLoader(pdfConfigFile_);
-  DistConfig pdfConfig = pdfLoader.Load();
+  PDFConfigLoader pdfLoader(pdfConfigFile_);
+  PDFConfig pdfConfig = pdfLoader.Load();
   std::string pdfDir = pdfConfig.GetPDFDir();
   std::vector<std::string> dataObs = pdfConfig.GetDataBranchNames();
   ObsSet dataObsSet(dataObs);

@@ -4,7 +4,7 @@ This file is a guide on how to run the most commonly used apps in the antinu oxo
 
 The first thing you'll want to do is get the environment variables in `env.sh` pointing to your OXO install, this `antinullh` directory, and the top level where data will be written to. From now on, paths in this document are relative to `antinullh` (except for postfit outputted files).
 
-Most of the apps and source code live within the top directory. Within `./src`, there is code for interfacing with config files and some other useful classes. The config files themselves live in `./cfg`.
+Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. The config files themselves live in `./cfg`.
 
 <h2>Config Loaders</h2>
 
