@@ -38,7 +38,7 @@ The `OscGrid` class has attributes for the min and max values and number of grid
 
 <h2>Utilities</h2>
 
-This file contains utility functions, mostly related to the Oscillation Grids. There is a function to turn the `OscGrids` max, min, and number of point values for a given dimension into a vector, along with a function to find the grid points that surround a given point in the `OscGrid`. These are both stolen from https://github.com/dcookman/solar_analysis. There is also a function here to load the reactor core indices and distances from SNO+ into a map from a JSON file.
+This file contains utility functions, mostly related to the Oscillation Grids. There is a function to turn the `OscGrids` max, min, and number of point values for a given dimension into a vector, along with a function to find the grid points that surround a given point in the `OscGrid`. These are both stolen from https://github.com/dcookman/solar_analysis. There is also a function here to load the reactor core indices and distances from SNO+ into a map from a JSON file, and functions taken from the rat-tools antinu tools to calculate the distance from reactors to SNO+.
 
 <h2>Configs</h2>
 

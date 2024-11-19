@@ -1,18 +1,23 @@
 #ifndef __ANTINUFIT__Utilities__
 #define __ANTINUFIT__Utilities__
 
-// c++ headers
+// C++ headers
 #include <vector>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <iostream>
 
+// ROOT headers
+#include <TVector3.h>
+
 namespace antinufit
 {
 
-  std::vector<double> linspace(double, double, size_t);
+  TVector3 LLAtoECEF(double, double, double);
+  double GetReactorDistanceLLA(const double &, const double &, const double &);
   std::unordered_map<int, double> LoadIndexDistanceMap(std::string);
   std::unordered_map<std::string, int> LoadNameIndexMap(std::string);
-  std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double> vec, double val);
+  std::vector<double> linspace(double, double, size_t);
+  std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double>, double);
 }
 #endif

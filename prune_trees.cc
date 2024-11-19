@@ -32,33 +32,6 @@ using namespace antinufit;
 
 typedef std::map<std::string, std::string> StringMap;
 
-// Taken from antinu rat-tools
-TVector3 LLAtoECEF(double longitude, double latitude, double altitude)
-{
-  // reference http://www.mathworks.co.uk/help/aeroblks/llatoecefposition.html
-  static double toRad = TMath::Pi() / 180.;
-  static double Earthradius = 6378137.0; // Radius of the Earth (in meters)
-  static double f = 1. / 298.257223563;  // Flattening factor WGS84 Model
-  static double L, rs, x, y, z;
-  L = atan(pow((1. - f), 2) * tan(latitude * toRad)) * 180. / TMath::Pi();
-  rs = sqrt(pow(Earthradius, 2) / (1. + (1. / pow((1. - f), 2) - 1.) * pow(sin(L * toRad), 2)));
-  x = (rs * cos(L * toRad) * cos(longitude * toRad) + altitude * cos(latitude * toRad) * cos(longitude * toRad)) / 1000; // in km
-  y = (rs * cos(L * toRad) * sin(longitude * toRad) + altitude * cos(latitude * toRad) * sin(longitude * toRad)) / 1000; // in km
-  z = (rs * sin(L * toRad) + altitude * sin(latitude * toRad)) / 1000;                                                   // in km
-
-  TVector3 ECEF = TVector3(x, y, z);
-
-  return ECEF;
-}
-
-// Taken from antinu rat-tools
-double GetReactorDistanceLLA(const double &longitude, const double &latitude, const double &altitude)
-{
-  const TVector3 SNO_ECEF_coord_ = TVector3(672.87, -4347.18, 4600.51);
-  double dist = (LLAtoECEF(longitude, latitude, altitude) - SNO_ECEF_coord_).Mag();
-  return dist;
-}
-
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
                  const std::string &outFilename_,

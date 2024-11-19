@@ -3,35 +3,31 @@
 namespace antinufit
 {
 
-    std::vector<double> linspace(double start, double end, size_t num_vals)
+    // Taken from antinu rat-tools
+    TVector3 LLAtoECEF(double longitude, double latitude, double altitude)
     {
-        /*
-         * Generates N linearly-spaced values between start and end.
-         * From: https://stackoverflow.com/a/27030598
-         */
-        std::vector<double> linspaced;
-        // = new std::vector<double>();
+        // reference http://www.mathworks.co.uk/help/aeroblks/llatoecefposition.html
+        static double toRad = TMath::Pi() / 180.;
+        static double Earthradius = 6378137.0; // Radius of the Earth (in meters)
+        static double f = 1. / 298.257223563;  // Flattening factor WGS84 Model
+        static double L, rs, x, y, z;
+        L = atan(pow((1. - f), 2) * tan(latitude * toRad)) * 180. / TMath::Pi();
+        rs = sqrt(pow(Earthradius, 2) / (1. + (1. / pow((1. - f), 2) - 1.) * pow(sin(L * toRad), 2)));
+        x = (rs * cos(L * toRad) * cos(longitude * toRad) + altitude * cos(latitude * toRad) * cos(longitude * toRad)) / 1000; // in km
+        y = (rs * cos(L * toRad) * sin(longitude * toRad) + altitude * cos(latitude * toRad) * sin(longitude * toRad)) / 1000; // in km
+        z = (rs * sin(L * toRad) + altitude * sin(latitude * toRad)) / 1000;                                                   // in km
 
-        const auto num = static_cast<double>(num_vals);
+        TVector3 ECEF = TVector3(x, y, z);
 
-        if (num == 0)
-        {
-            return linspaced;
-        }
-        if (num == 1)
-        {
-            linspaced.push_back(start);
-            return linspaced;
-        }
-        double delta = (end - start) / (num - 1.);
+        return ECEF;
+    }
 
-        for (size_t i = 0; i < num_vals - 1; ++i)
-        {
-            linspaced.push_back(start + delta * static_cast<double>(i));
-        }
-        linspaced.push_back(end); // I want to ensure that start and end
-        // are exactly the same as the input
-        return linspaced;
+    // Taken from antinu rat-tools
+    double GetReactorDistanceLLA(const double &longitude, const double &latitude, const double &altitude)
+    {
+        const TVector3 SNO_ECEF_coord_ = TVector3(672.87, -4347.18, 4600.51);
+        double dist = (LLAtoECEF(longitude, latitude, altitude) - SNO_ECEF_coord_).Mag();
+        return dist;
     }
 
     std::unordered_map<int, double> LoadIndexDistanceMap(std::string filename)
@@ -91,6 +87,37 @@ namespace antinufit
         }
 
         return reactorNameIndex;
+    }
+
+    std::vector<double> linspace(double start, double end, size_t num_vals)
+    {
+        /*
+         * Generates N linearly-spaced values between start and end.
+         * From: https://stackoverflow.com/a/27030598
+         */
+        std::vector<double> linspaced;
+        // = new std::vector<double>();
+
+        const auto num = static_cast<double>(num_vals);
+
+        if (num == 0)
+        {
+            return linspaced;
+        }
+        if (num == 1)
+        {
+            linspaced.push_back(start);
+            return linspaced;
+        }
+        double delta = (end - start) / (num - 1.);
+
+        for (size_t i = 0; i < num_vals - 1; ++i)
+        {
+            linspaced.push_back(start + delta * static_cast<double>(i));
+        }
+        linspaced.push_back(end); // I want to ensure that start and end
+        // are exactly the same as the input
+        return linspaced;
     }
 
     std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double> vec, double val)
