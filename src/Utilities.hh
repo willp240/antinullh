@@ -17,7 +17,7 @@ namespace antinufit
   double GetReactorDistanceLLA(const double &, const double &, const double &);
   std::unordered_map<int, double> LoadIndexDistanceMap(std::string);
   std::unordered_map<std::string, int> LoadNameIndexMap(std::string);
-  std::vector<double> linspace(double, double, size_t);
+  std::vector<double> LinSpace(double, double, size_t);
   std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double>, double);
 }
 #endif

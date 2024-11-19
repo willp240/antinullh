@@ -89,7 +89,7 @@ namespace antinufit
         return reactorNameIndex;
     }
 
-    std::vector<double> linspace(double start, double end, size_t num_vals)
+    std::vector<double> LinSpace(double start, double end, size_t num_vals)
     {
         /*
          * Generates N linearly-spaced values between start and end.

@@ -61,9 +61,9 @@ namespace antinufit
   void OscGrid::CalcGrid()
   {
 
-    fEnergyVals = linspace(fMinE, fMaxE, fNumValsE);
-    fDm21sqVals = linspace(fMinDm21sq, fMaxDm21sq, fNumValsDm21sq);
-    fSsqth12Vals = linspace(fMinSsqth12, fMaxSsqth12, fNumValsSsqth12);
+    fEnergyVals = LinSpace(fMinE, fMaxE, fNumValsE);
+    fDm21sqVals = LinSpace(fMinDm21sq, fMaxDm21sq, fNumValsDm21sq);
+    fSsqth12Vals = LinSpace(fMinSsqth12, fMaxSsqth12, fNumValsSsqth12);
 
     const size_t numVals = fNumValsE * fNumValsDm21sq * fNumValsSsqth12;
     size_t i = 0;
