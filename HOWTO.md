@@ -54,7 +54,6 @@ This file should contain information on the types of events you want to include 
 - `inactive`: Event types defined in the config that aren't being used in the analysis at this time
 - `orig_base_dir`: The directory where the original (unpruned) MC files have been downloaded to
 - `pruned_ntup_dir`: The directory where the pruned MC files should be written to, and later read from
-- `pdf_dir`: Where files containing histograms for each PDF should be written to
 
 <h4>Event Type Tables</h4>
 

@@ -15,11 +15,9 @@ namespace antinufit
     ConfigLoader::Open(fPath);
     std::string baseDir;
     std::string prunedDir;
-    std::string pdfDir;
 
     ConfigLoader::Load("summary", "orig_base_dir", baseDir);
     ConfigLoader::Load("summary", "pruned_ntup_dir", prunedDir);
-    ConfigLoader::Load("summary", "pdf_dir", pdfDir);
 
     double rate;
     std::string texLabel;
@@ -54,7 +52,6 @@ namespace antinufit
     retVal.SetName(name_);
     retVal.SetNtupBaseDir(baseDir);
     retVal.SetPrunedPath(prunedDir + "/" + name_ + ".root");
-    retVal.SetPdfPath(baseDir + "/" + name_ + ".root");
     retVal.SetGroup(groups);
     retVal.SetNumDimensions(numDimensions);
     return retVal;

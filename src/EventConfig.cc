@@ -74,18 +74,6 @@ namespace antinufit
     fPrunedPath = s_;
   }
 
-  std::string
-  EventConfig::GetPdfPath() const
-  {
-    return fPdfPath;
-  }
-
-  void
-  EventConfig::SetPdfPath(const std::string &s_)
-  {
-    fPdfPath = s_;
-  }
-
   std::vector<std::string>
   EventConfig::GetGroup() const
   {
@@ -109,6 +97,5 @@ namespace antinufit
   {
     fNumDimensions = i_;
   }
-
 
 }

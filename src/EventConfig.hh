@@ -30,9 +30,6 @@ namespace antinufit
     std::string GetPrunedPath() const;
     void SetPrunedPath(const std::string &);
 
-    std::string GetPdfPath() const;
-    void SetPdfPath(const std::string &);
-
     std::vector<std::string> GetGroup() const;
     void SetGroup(const std::vector<std::string> &);
 
@@ -44,7 +41,6 @@ namespace antinufit
     std::vector<std::string> fNtupFiles;
     std::string fNtupBaseDir; // the originals
     std::string fPrunedPath;  // the pruned ouput
-    std::string fPdfPath;
     std::string fTexLabel;
     std::string fName;
     std::vector<std::string> fGroup;
