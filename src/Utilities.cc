@@ -10,7 +10,7 @@ namespace antinufit
          * From: https://stackoverflow.com/a/27030598
          */
         std::vector<double> linspaced;
-       // = new std::vector<double>();
+        // = new std::vector<double>();
 
         const auto num = static_cast<double>(num_vals);
 
@@ -61,6 +61,36 @@ namespace antinufit
             indexDistance[intKey] = distance;
         }
         return indexDistance;
+    }
+
+    std::unordered_map<std::string, int> LoadNameIndexMap(std::string filename)
+    {
+        // First read the reactor distance info
+        std::unordered_map<std::string, int> reactorNameIndex;
+
+        // Read the JSON file
+        std::ifstream file(filename);
+        if (!file.is_open())
+        {
+            std::cerr << "Could not open reactors JSON file!" << std::endl;
+            throw;
+        }
+
+        // Parse the JSON file into a json object
+        nlohmann::json reactorData;
+        file >> reactorData;
+
+        // Loop through the JSON object and fill the maps
+        for (const auto &[key, value] : reactorData.items())
+        {
+            int intKey = std::stoi(key);        // Convert the reactor key to int
+            std::string reactorName = value[0]; // First element is the string
+
+            // Fill the map
+            reactorNameIndex[reactorName] = intKey;
+        }
+
+        return reactorNameIndex;
     }
 
     std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double> vec, double val)
