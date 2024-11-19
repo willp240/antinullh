@@ -1,5 +1,5 @@
 /*
-MakeTrees takes in ntuples and prunes out all the branches
+PruneTrees takes in ntuples and prunes out all the branches
 we're not interested in so we only have nice lightweight files
 to carry around in the fit.
 It reads in input files specified in the event config and
@@ -29,8 +29,6 @@ was specified in the config file.
 #include <nlohmann/json.hpp>
 
 using namespace antinufit;
-
-typedef std::map<std::string, std::string> StringMap;
 
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
