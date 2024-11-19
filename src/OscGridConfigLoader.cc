@@ -21,7 +21,6 @@ namespace antinufit
     ConfigLoader::Open(fPath);
     std::string filename;
     std::string reactorsjson;
-    double distance;
     double minE;
     double maxE;
     int numValsE;
@@ -34,15 +33,6 @@ namespace antinufit
 
     ConfigLoader::Load("summary", "filename", filename);
     ConfigLoader::Load("summary", "reactorsjson", reactorsjson);
-    try
-    {
-      ConfigLoader::Load("summary", "distance", distance);
-    }
-    catch (ConfigFieldMissing)
-    {
-      distance = 0;
-    }
-
     ConfigLoader::Load("summary", "mine", minE);
     ConfigLoader::Load("summary", "maxe", maxE);
     ConfigLoader::Load("summary", "numvalse", numValsE);
@@ -55,7 +45,6 @@ namespace antinufit
 
     ret.SetFilename(filename);
     ret.SetReactorsJsonFile(reactorsjson);
-    ret.SetDistance(distance);
     ret.SetMinE(minE);
     ret.SetMaxE(maxE);
     ret.SetNumValsE(numValsE);

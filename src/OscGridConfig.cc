@@ -25,17 +25,6 @@ namespace antinufit
     fReactorsJsonFilename = reactorsjsonfilename_;
   }
 
-  double OscGridConfig::GetDistance() const
-  {
-    return fDistance;
-  }
-
-  void
-  OscGridConfig::SetDistance(double distance_)
-  {
-    fDistance = distance_;
-  }
-
   double OscGridConfig::GetMinE() const
   {
     return fMinE;
