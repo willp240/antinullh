@@ -10,6 +10,8 @@ was specified in the config file.
 
 // Antinu headers
 #include <EventConfigLoader.hh>
+#include <OscGridConfigLoader.hh>
+#include <Utilities.hh>
 
 // ROOT headers
 #include <TChain.h>
@@ -26,9 +28,11 @@ was specified in the config file.
 #include <string>
 #include <nlohmann/json.hpp>
 
+using namespace antinufit;
 
 typedef std::map<std::string, std::string> StringMap;
 
+// Taken from antinu rat-tools
 TVector3 LLAtoECEF(double longitude, double latitude, double altitude)
 {
   // reference http://www.mathworks.co.uk/help/aeroblks/llatoecefposition.html
@@ -47,6 +51,7 @@ TVector3 LLAtoECEF(double longitude, double latitude, double altitude)
   return ECEF;
 }
 
+// Taken from antinu rat-tools
 double GetReactorDistanceLLA(const double &longitude, const double &latitude, const double &altitude)
 {
   const TVector3 SNO_ECEF_coord_ = TVector3(672.87, -4347.18, 4600.51);
@@ -54,58 +59,22 @@ double GetReactorDistanceLLA(const double &longitude, const double &latitude, co
   return dist;
 }
 
-std::vector<std::string> SplitString(std::string str)
-{
-  std::istringstream buf(str);
-  std::istream_iterator<std::string> beg(buf), end;
-  std::vector<std::string> tokens(beg, end); // each word of string now in vector
-  std::vector<std::string> info;
-  std::string dummy = "";
-
-  for (int i = 0; i < tokens.size(); i++)
-  { // combine back to reactor name, core number
-    if (i == 0)
-    {
-      dummy = tokens.at(i);
-      if (i != tokens.size() - 2)
-      {
-        dummy += " ";
-      }
-    }
-    else if (i != tokens.size() - 1)
-    {
-      dummy += tokens.at(i);
-      if (i != tokens.size() - 2)
-      {
-        dummy += " ";
-      }
-    }
-    else
-    {
-      info.push_back(dummy);
-      info.push_back(tokens.at(i));
-    }
-  }
-
-  return info;
-}
-
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
-                 const std::string &treeName_,
                  const std::string &outFilename_,
-                 std::unordered_map<std::string, int> &reactornameIndex)
+                 std::unordered_map<std::string, int> &reactorNameIndex)
 {
 
-  // output ntuple
+  // Output ntuple
   TFile outp(outFilename_.c_str(), "RECREATE");
   TNtuple nt("pruned", "", "energy:nu_energy:reactorIndex:alphaNClassifier");
 
-  // read the original data
+  // Read the original data
+  const std::string treeName = "output";
   for (size_t iFile = 0; iFile < filenames_.size(); iFile++)
   {
     std::string fileName = baseDir_ + "/" + filenames_.at(iFile);
-    TChain chain(treeName_.c_str());
+    TChain chain(treeName.c_str());
     chain.Add(fileName.c_str());
     std::cout << fileName << "\t" << chain.GetEntries() << "  entries" << std::endl;
 
@@ -123,7 +92,7 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
     chain.SetBranchAddress("parentKE1", &neutrinoEnergy);
     chain.SetBranchAddress("parentMeta1", &reactorName);
 
-    // read and write
+    // Read and write
     for (int i = 0; i < chain.GetEntries(); i++)
     {
       if (!(i % tenPercent))
@@ -134,7 +103,7 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
       std::string originReactorString(reactorName->Data());
       if (originReactorString != "")
       {
-        reactorIndex = reactornameIndex[originReactorString];
+        reactorIndex = reactorNameIndex[originReactorString];
       }
       else
         reactorIndex = 999;
@@ -149,64 +118,42 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
 
 int main(int argc, char *argv[])
 {
-  if (argc != 2)
+  if (argc != 3)
   {
-    std::cout << "Usage: make_trees <event_config_file>" << std::endl;
+    std::cout << "Usage: make_trees <event_config_file> <osc_grid_config_file>" << std::endl;
     return 1;
   }
 
-  std::string configFile(argv[1]);
-  std::cout << "Reading from config file " << configFile << std::endl;
+  // Load up the reactors json file
+  std::string oscConfigFile(argv[2]);
+  OscGridConfigLoader oscGridLoader(oscConfigFile);
+  OscGridConfig oscGridConfig = oscGridLoader.Load();
+  std::string reactorsJSONFile = oscGridConfig.GetReactorsJsonFile();
+  std::unordered_map<std::string, int> reactorNameIndex = LoadNameIndexMap(reactorsJSONFile);
 
-  // First read the reactor distance info
-  std::unordered_map<std::string, int> reactornameIndex;
-
-  // Read the JSON file
-  std::ifstream file("reactors.json");
-  if (!file.is_open())
-  {
-    std::cerr << "Could not open reactors.json file!" << std::endl;
-    throw;
-  }
-
-  // Parse the JSON file into a json object
-  nlohmann::json reactorData;
-  file >> reactorData;
-
-  // Loop through the JSON object and fill the maps
-  for (const auto &[key, value] : reactorData.items())
-  {
-    int intKey = std::stoi(key);     // Convert the reactor key to int
-    std::string reactorName = value[0]; // First element is the string
-
-    // Fill the map
-    reactornameIndex[reactorName] = intKey;
-  }
-
-  // create the results directory if it doesn't already exist
+  // Create the results directory if it doesn't already exist
   std::string outDir;
-  ConfigLoader::Open(configFile);
+  std::string eveConfigFile(argv[1]);
+  ConfigLoader::Open(eveConfigFile);
   ConfigLoader::Load("summary", "pruned_ntup_dir", outDir);
   ConfigLoader::Close();
+  EventConfigLoader eveLoader(eveConfigFile);
+  typedef std::map<std::string, antinufit::EventConfig> EvMap;
+  typedef std::vector<std::string> StringVec;
+  EvMap toGet = eveLoader.LoadActive();
 
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
   {
     mkdir(outDir.c_str(), 0700);
   }
+  std::cout << "Made " << outDir << std::endl;
 
-  std::cout << "made " << outDir << std::endl;
-
-  antinufit::EventConfigLoader loader(configFile);
-  typedef std::map<std::string, antinufit::EventConfig> EvMap;
-  typedef std::vector<std::string> StringVec;
-  EvMap toGet = loader.LoadActive();
-
-  // if there is a common path preprend it
+  // If there is a common path preprend it
   for (EvMap::iterator it = toGet.begin(); it != toGet.end(); ++it)
   {
     const std::string &name = it->first;
-    std::cout << "doing " << name << std::endl;
+    std::cout << "Doing " << name << std::endl;
     const std::string &baseDir = it->second.GetNtupBaseDir();
     const StringVec &files = it->second.GetNtupFiles();
     const std::string &outName = it->second.GetPrunedPath();
@@ -216,7 +163,7 @@ int main(int argc, char *argv[])
       std::cout << "\t" << files.at(i) << std::endl;
     std::cout << "to " << outName << std::endl;
 
-    MakeDataSet(files, baseDir, "output", outName, reactornameIndex);
+    MakeDataSet(files, baseDir, outName, reactorNameIndex);
   }
 
   return 0;
