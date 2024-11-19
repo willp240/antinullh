@@ -1,5 +1,5 @@
-#ifndef __ANTINUFIT__DistConfig__
-#define __ANTINUFIT__DistConfig__
+#ifndef __ANTINUFIT__PDFConfig__
+#define __ANTINUFIT__PDFConfig__
 
 // OXO headers
 #include <Exceptions.h>
@@ -9,7 +9,7 @@
 
 namespace antinufit
 {
-  class DistConfig
+  class PDFConfig
   {
   public:
     int GetAxisCount() const;

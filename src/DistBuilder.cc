@@ -5,7 +5,7 @@ namespace antinufit
 {
 
   AxisCollection
-  DistBuilder::BuildAxes(const DistConfig &config_)
+  DistBuilder::BuildAxes(const PDFConfig &config_)
   {
 
     int numAxes = config_.GetAxisCount();
@@ -13,7 +13,7 @@ namespace antinufit
   }
 
   AxisCollection
-  DistBuilder::BuildAxes(const DistConfig &config_, const int numDimensions)
+  DistBuilder::BuildAxes(const PDFConfig &config_, const int numDimensions)
   {
 
     if (numDimensions > config_.GetAxisCount())
@@ -42,7 +42,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::Build(const std::string &name_, const DistConfig pdfConfig_, DataSet *data_)
+  DistBuilder::Build(const std::string &name_, const PDFConfig pdfConfig_, DataSet *data_)
   {
 
     int numAxes = pdfConfig_.GetAxisCount();
@@ -50,7 +50,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::Build(const std::string &name_, const int numDimensions_, const DistConfig pdfConfig_, DataSet *data_)
+  DistBuilder::Build(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_)
   {
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);

@@ -1,15 +1,15 @@
-#include <DistConfigLoader.hh>
+#include <PDFConfigLoader.hh>
 
 namespace antinufit
 {
 
-  DistConfigLoader::DistConfigLoader(const std::string &filePath_)
+  PDFConfigLoader::PDFConfigLoader(const std::string &filePath_)
   {
     fPath = filePath_;
   }
 
-  DistConfig
-  DistConfigLoader::Load() const
+  PDFConfig
+  PDFConfigLoader::Load() const
   {
     ConfigLoader::Open(fPath);
 
@@ -25,7 +25,7 @@ namespace antinufit
     std::string pdfDir;
     ConfigLoader::Load("summary", "pdf_dir", pdfDir);
 
-    DistConfig retVal;
+    PDFConfig retVal;
 
     double min;
     double max;
@@ -36,7 +36,7 @@ namespace antinufit
     for (size_t i = 0; i < order.size(); i++)
     {
       if (std::find(toLoad.begin(), toLoad.end(), order.at(i)) == toLoad.end())
-        throw NotFoundError(Formatter() << "DistConfigLoader:: " << order.at(i)
+        throw NotFoundError(Formatter() << "PDFConfigLoader:: " << order.at(i)
                                         << " is in the build order but has no section!");
 
       name = order.at(i);
@@ -52,7 +52,7 @@ namespace antinufit
     return retVal;
   }
 
-  DistConfigLoader::~DistConfigLoader()
+  PDFConfigLoader::~PDFConfigLoader()
   {
     ConfigLoader::Close();
   }

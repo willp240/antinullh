@@ -1,14 +1,14 @@
-#include <DistConfig.hh>
+#include <PDFConfig.hh>
 
 namespace antinufit
 {
-  int DistConfig::GetAxisCount() const
+  int PDFConfig::GetAxisCount() const
   {
     return fAxisNames.size();
   }
 
   void
-  DistConfig::GetAxis(int index_, std::string &name_,
+  PDFConfig::GetAxis(int index_, std::string &name_,
                       std::string &branchName_,
                       std::string &texName_,
                       int &binCount_, double &min_, double &max_) const
@@ -24,12 +24,12 @@ namespace antinufit
     }
     catch (const std::out_of_range &e_)
     {
-      throw NotFoundError(Formatter() << "DistConfig::No data for axis " << index_);
+      throw NotFoundError(Formatter() << "PDFConfig::No data for axis " << index_);
     }
   }
 
   void
-  DistConfig::AddAxis(const std::string &name_, const std::string &branchName_,
+  PDFConfig::AddAxis(const std::string &name_, const std::string &branchName_,
                       const std::string &texName_,
                       int binCount_, double min_, double max_)
   {
@@ -42,39 +42,39 @@ namespace antinufit
   }
 
   const std::string &
-  DistConfig::GetPDFDir() const
+  PDFConfig::GetPDFDir() const
   {
     return fPDFDir;
   }
 
   void
-  DistConfig::SetPDFDir(const std::string &s_)
+  PDFConfig::SetPDFDir(const std::string &s_)
   {
     fPDFDir = s_;
   }
 
   std::vector<std::string>
-  DistConfig::GetBranchNames() const
+  PDFConfig::GetBranchNames() const
   {
     int numBranches = fBranchNames.size();
     return GetBranchNames(numBranches);
   }
 
   std::vector<std::string>
-  DistConfig::GetBranchNames( const int numBranches_) const
+  PDFConfig::GetBranchNames( const int numBranches_) const
   {
     std::vector<std::string> bnames(fBranchNames.begin(), fBranchNames.begin() + numBranches_);
     return bnames;
   }
 
   void
-  DistConfig::SetDataBranchNames(const std::vector<std::string> &s_)
+  PDFConfig::SetDataBranchNames(const std::vector<std::string> &s_)
   {
     fDataAxesNames = s_;
   }
 
   const std::vector<std::string> &
-  DistConfig::GetDataBranchNames() const
+  PDFConfig::GetDataBranchNames() const
   {
     return fDataAxesNames;
   }
