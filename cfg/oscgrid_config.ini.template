@@ -1,6 +1,6 @@
 [summary]
-filename = /data/snoplus3/parkerw/antinu/Nov6_oscgridsvec_500x500x140/oscgrid
-reactorsjson = /home/parkerw/Software/antinu_llh/reactors_bruce1.json
+filename =
+reactorsjson =
 mine = 1
 maxe = 8
 numvalse = 140

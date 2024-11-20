@@ -2,10 +2,9 @@
 
 This file is a guide on how to run the most commonly used apps in the antinu oxo likelihood analysis.  
 
-The first thing you'll want to do is get the environment variables in `env.sh` pointing to your OXO install, this `antinullh` directory, and the top level where data will be written to. From now on, paths in this document are relative to `antinullh` (except for postfit outputted files).
+The first thing you'll want to do is get the environment variable in `env.sh` pointing to your OXO install. It's recommended you make a copy of this env.sh to avoid merge conflicts down the line.
 
-Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. The config files themselves live in `./cfg`.
-
+Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. Templates of the config files themselves live in `./cfg`.
 
 <h2>Config Loaders (src/config)</h2>
 
@@ -47,7 +46,7 @@ The DistBuilder class can build a <code>BinnedED</code> from a combination of a 
 
 <h2>Configs</h2>
 
-There are several config files you'll need for running different apps:
+There are several config files you'll need for running different apps. It's intended that you make a copy of the template config files and fill in the filepaths yourself. Just be aware of any subsequent changes to the format or content of the templates, as you'll probably want to propagate these to your own local config files.
 
 <h3>Event</h3>
 

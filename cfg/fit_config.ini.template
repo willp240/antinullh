@@ -5,7 +5,7 @@ livetime = 1
 iterations = 50000
 burn_in = 1000
 fit_dists = all
-output_directory = /data/snoplus3/parkerw/antinu/Oct7_osctest
+output_directory =
 
 n_steps = 35
 epsilon = 0.025

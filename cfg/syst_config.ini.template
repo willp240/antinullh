@@ -1,6 +1,5 @@
 [summary]
-active=energy_scale,energy_scale_3d,energy_conv,energy_conv_3d,p_recoil_energy_scale,energy_nonlin,energy_nonlin_3d
-#,osc_prob
+active=energy_scale,energy_scale_3d,energy_conv,energy_conv_3d,p_recoil_energy_scale,energy_nonlin,energy_nonlin_3d,osc_prob
 
 [energy_scale]
 dist_obs=energy
