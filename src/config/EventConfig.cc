@@ -2,17 +2,6 @@
 
 namespace antinufit
 {
-  double
-  EventConfig::GetRate() const
-  {
-    return fRate;
-  }
-
-  void
-  EventConfig::SetRate(double r_)
-  {
-    fRate = r_;
-  }
 
   const std::vector<std::string> &
   EventConfig::GetNtupFiles() const

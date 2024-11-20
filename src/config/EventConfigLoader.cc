@@ -19,13 +19,11 @@ namespace antinufit
     ConfigLoader::Load("summary", "orig_base_dir", baseDir);
     ConfigLoader::Load("summary", "pruned_ntup_dir", prunedDir);
 
-    double rate;
     std::string texLabel;
     std::vector<std::string> ntupFiles;
     int numDimensions;
     std::string group;
 
-    ConfigLoader::Load(name_, "rate", rate);
     ConfigLoader::Load(name_, "tex_label", texLabel);
     ConfigLoader::Load(name_, "ntup_files", ntupFiles);
     ConfigLoader::Load(name_, "dimensions", numDimensions);
@@ -46,7 +44,6 @@ namespace antinufit
       groups.push_back(indiv_group);
 
     EventConfig retVal;
-    retVal.SetRate(rate);
     retVal.SetNtupFiles(ntupFiles);
     retVal.SetTexLabel(texLabel);
     retVal.SetName(name_);

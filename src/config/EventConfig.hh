@@ -10,10 +10,7 @@ namespace antinufit
   class EventConfig
   {
   public:
-    EventConfig() : fRate(-1) {}
-
-    double GetRate() const;
-    void SetRate(double);
+    EventConfig() {}
 
     std::string GetName() const;
     void SetName(const std::string &);
@@ -37,10 +34,9 @@ namespace antinufit
     void SetNumDimensions(const int &);
 
   private:
-    double fRate;
     std::vector<std::string> fNtupFiles;
-    std::string fNtupBaseDir; // the originals
-    std::string fPrunedPath;  // the pruned ouput
+    std::string fNtupBaseDir; // The originals
+    std::string fPrunedPath;  // The pruned ouput
     std::string fTexLabel;
     std::string fName;
     std::vector<std::string> fGroup;

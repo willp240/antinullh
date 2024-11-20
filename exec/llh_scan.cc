@@ -124,7 +124,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
     bool iterate = true;
     if (toGet.find(it->first) == toGet.end() && std::find(fullParamNameVec.begin(), fullParamNameVec.end(), it->first) == fullParamNameVec.end())
     {
-      std::cout << it->first << " parameter defined in fit config but not in syst or event rates config. It will be ignored." << std::endl;
+      std::cout << it->first << " parameter defined in fit config but not in syst or event config. It will be ignored." << std::endl;
       constrSigmas.erase(it->first);
       constrMeans.erase(it->first);
       mins.erase(it->first);
@@ -160,8 +160,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
     DataSet *dataSet;
     try
     {
-      // WP check the pruned here
-      std::cout << it->second.GetPrunedPath() << std::endl;
+      std::cout << "Loading " <<  it->second.GetPrunedPath() << std::endl;
       dataSet = new ROOTNtuple(it->second.GetPrunedPath(), "pruned");
     }
     catch (const IOError &e_)
@@ -196,9 +195,8 @@ void llh_scan(const std::string &mcmcConfigFile_,
       }
     }
 
-    // Now scale the Asimov component by expected rate, and also save pdf as a histo
-    double rate = it->second.GetRate();
-    dist.Scale(livetime * rate);
+    // Now scale the Asimov component by expected count, and also save pdf as a histo
+    dist.Scale(noms[it->first]);
     if (dist.GetNDims() != asimov.GetNDims())
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
@@ -212,7 +210,6 @@ void llh_scan(const std::string &mcmcConfigFile_,
       indivAsmvDists.push_back(dist);
       IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
     }
-    noms[it->first] = dist.Integral();
   }
 
   // And save combined histogram (final asimov dataset)
