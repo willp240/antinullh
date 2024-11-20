@@ -6,13 +6,17 @@ The first thing you'll want to do is get the environment variables in `env.sh` p
 
 Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. The config files themselves live in `./cfg`.
 
-<h2>Config Loaders</h2>
+<h2>`src/config`</h2>
 
-For each type of config file, there is a class defined in `./src`, along with a loader for that class. Each of these follows a similar structure: the config class has an attribute for each field in the config file, and the config loader classes read values in from the config files and return an instance of the corresponding config class.\
+<h3>Config Loaders</h3>
+
+For each type of config file, there is a class defined in `./src/config`, along with a loader for that class. Each of these follows a similar structure: the config class has an attribute for each field in the config file, and the config loader classes read values in from the config files and return an instance of the corresponding config class.\
 \
 There are also other useful classes and files in `./src`:
 
-<h2>Systematic Factory</h2>
+<h2>`src/syst`</h2>
+
+<h3>Systematic Factory</h3>
 
 The systematic factory, when given a systematic name, type, and list of associated fit parameters, will return a systematic object to be used in the analysis. For some systematics, a function, oscillation grid, and reactor-distance map can also be handed to the systematic factory. The allowed types differ from just the OXO inherited systematic classes as they can also define the function used, as these are defined inline with lambdas to pass the oscillation grid and map if needed. Currently the allowed types are:
 
@@ -22,23 +26,25 @@ The systematic factory, when given a systematic name, type, and list of associat
 - `scale_function`: A ScaleFunction systematic where the function used modifies Birk's Constant
 - `shape`: A Shape systematic, where the function used modifies the oscillation probability
 
-<h2>Functions</h2>
+<h3>Functions</h3>
 
 Functions that can be passed to systematics are defined in here. Currently they are Birk's Law and the Oscillation Probability calculations. However, to pass lambdas to these functions, they had to be defined inline so this file may soon be removed.
 
-<h2>DistBuilder</h2>
-
-The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. 
-
-<h2>OscGrids</h2>
+<h3>OscGrids</h3>
 
 The oscillation probability calculation can be quite slow to do on the fly, so instead we can produce an "Oscillation Grid" (<code>OscGrid</code>). The probability of oscillation depends on the true neutrino energy, the distance travelled, and the oscillation parameters $\Delta m^2_{21}$ and $\theta_{12}$, so we can pre-calculate the probabilities for different values of each of those variables, and the linearly interpolate between them. As the distances to reactor cores are all fixed distinct values, rather than interpolate, we can produce a 3D grid for each reactor core distance.
 
 The `OscGrid` class has attributes for the min and max values and number of grid points for each dimension (true neutrino energy, $\Delta m^2_{21}$ and $\theta_{12}$), along with a vector of probabilities where each element represents the probability at a single point on the grid. An `OscGrid` can be constructed using just the axis ranges and number of points, along with the filename the grid will be written to and the distance it applies for. You can then calculate the probabilities at each grid point using the `CalcGrid` method. This can be written to the output file with the `Write` method. Alternatively you can load up a pre-written and calculated grid with the `Load` method. You can then obtain the probability for a given set of parameters with the `Evaluate` method. There are also 'Getters' for the probability vector, and vectors containing the grid points for each dimension. The calculation of the probability uses code copied from the RAT-tools/AntinuTools repo. We will look at making that code portable so we can call it rather than copy it in the future. The interpolation for calculating probabilities between grid points is done using functions which are stolen from the OXO Solar Analysis (https://github.com/dcookman/solar_analysis/). 
 
-<h2>Utilities</h2>
+<h2>`src/util`</h2>
+
+<h3>Utilities</h3>
 
 This file contains utility functions, mostly related to the Oscillation Grids. There is a function to turn the `OscGrids` max, min, and number of point values for a given dimension into a vector, along with a function to find the grid points that surround a given point in the `OscGrid`. These are both stolen from https://github.com/dcookman/solar_analysis. There is also a function here to load the reactor core indices and distances from SNO+ into a map from a JSON file, and functions taken from the rat-tools antinu tools to calculate the distance from reactors to SNO+.
+
+<h3>DistBuilder</h3>
+
+The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. 
 
 <h2>Configs</h2>
 
