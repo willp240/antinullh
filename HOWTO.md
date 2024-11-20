@@ -163,9 +163,11 @@ These classes and config files, along with all the OXO classes, are brought toge
 
 To calculate the oscillation probability for an MC reactor IBD event, we need to know how far it has travelled, so we need to know the distance from the reactor it was produced in to SNO+. Rather than we do this calculation on the fly at every event for every iteration of a fit, we precalculate the distance for each reactor core. You can do this by running:
 
-> ./bin/make_reactor_json
+> ./bin/make_reactor_json osc_grid_config_file
 
 This will loop over cores defined in the REACTORS RATDB table, and calculate the distance from it to SNO+. This gets saved in a JSON file, along with the reactor's name, and a unique integer assigned to the core. The integer is used as a numerical dimension for the reactor neutrino PDFs.
+
+The output json file path is set in the oscillation grid config. These are likely not to change very often (only when cores come online, or an error in the locations in the RATDB table is fixed. If a reactor's distance to SNO+ physically changes we probably have more pressing issues!), so they can be saved and committed in the `reacttorjsons` directory to avoid having to reproduce them. It will be good practise to indicate in the filename the RAT version it was produced with, and which cores it contains. For RAT 8.0.0, there is a committed json file with all cores, and another one with just Bruce 1 for quicker testing of the machinery.
 
 <h2>Making Oscillation Grids</h2>
 
