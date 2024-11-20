@@ -50,7 +50,7 @@ There are several config files you'll need for running different apps. It's inte
 
 <h3>Event</h3>
 
-This file should contain information on the types of events you want to include in the analysis. An example is shown in `cfg/event_config.ini`. There should be a section, `summary`, which controls which event types are active and where the MC files live. Then there's a table for each event type, which contains the expected rate, a Latex name for axis titles, the exact location of files, the dimensions of the PDF, and the groups the PDF should belong to (different syestematics apply to different groups, see the OXO documentation for more info).
+This file should contain information on the types of events you want to include in the analysis. An example is shown in `cfg/event_config.ini`. There should be a section, `summary`, which controls which event types are active and where the MC files live. Then there's a table for each event type, which contains a Latex name for axis titles, the exact location of files, the dimensions of the PDF, and the groups the PDF should belong to (different syestematics apply to different groups, see the OXO documentation for more info).
 
 <h4>Summary</h4>
 
@@ -62,7 +62,6 @@ This file should contain information on the types of events you want to include 
 <h4>Event Type Tables</h4>
 
 The name of these tables should be the name of the event type.
-- `rate`: The expected rate of the events per year
 - `tex_label`: A latex name for the event type
 - `ntup_files`: File path for the original unpruned files, relative to `orig_base_dir`
 - `dimensions`: Number of dimensions the PDF should have
@@ -76,7 +75,6 @@ This file should contain information on the parameters of the fit, and the fit i
 
 - `datafile`: The file containing the data events
 - `asimov`: Bool to determine if an Asimov or data fit should be run. If 1/True, the scaled PDFs are used as the data to run an Asimov fit
-- `livetime`: The livetime in years, used to scale the PDFs correctly to match the data
 - `iterations`: The number of steps in the Markov Chain
 - `burn_in`: The number of steps rejected at the start of the Markov Chain. This can be changed post analysis for most purposes
 - `fit_dists`: Which PDFs should be fit. Can use `all`
@@ -91,13 +89,13 @@ This file should contain information on the parameters of the fit, and the fit i
 <h4>Fit Parameter Tables</h4>
 
 The name of these tables should be the name of the fit parameter.
+- `nom`: Nominal value of the parameter
 - `min`: The minimum value the parameter is allowed to take
 - `max`: The maximum value the parameter is allowed to take
 - `sig`: The relative width of the Gaussian used to propose new step values (each gets scaled by summary:sigma_scale). Often referred to as the step size
 - `nbins`: Number of bins used for plotting the parameter
 - `constraint_mean`: Mean of the prior constraint on the parameter
 - `constraint_sig`: Width of the prior constraint on the parameter
-- `nom`: Nominal value of the parameter. Not used for the PDF normalisation parameters, as these just have a nominal value of rate(post cuts)*livetime
 
 A note on HMCMC: There is currently the functionality to run some MCMC, followed by some HMCMC starting from the best fit points of the MCMC. However, this didn't give any improvement in results or efficiency over the straight MCMC. The functionality is preserved in case we ever want to use it in the future, but generally we'll just run MCMC, with a notional 1 step HMCMC ran to avoid problems with files not being created when they are expected to.
 It's likely in the future we'll just remove the functionality.
