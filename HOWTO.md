@@ -6,15 +6,14 @@ The first thing you'll want to do is get the environment variables in `env.sh` p
 
 Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. The config files themselves live in `./cfg`.
 
-<h2>`src/config`</h2>
 
-<h3>Config Loaders</h3>
+<h2>Config Loaders (src/config)</h2>
 
 For each type of config file, there is a class defined in `./src/config`, along with a loader for that class. Each of these follows a similar structure: the config class has an attribute for each field in the config file, and the config loader classes read values in from the config files and return an instance of the corresponding config class.\
 \
 There are also other useful classes and files in `./src`:
 
-<h2>`src/syst`</h2>
+<h2>Systematic Related Functions (src/syst)</h2>
 
 <h3>Systematic Factory</h3>
 
@@ -36,7 +35,7 @@ The oscillation probability calculation can be quite slow to do on the fly, so i
 
 The `OscGrid` class has attributes for the min and max values and number of grid points for each dimension (true neutrino energy, $\Delta m^2_{21}$ and $\theta_{12}$), along with a vector of probabilities where each element represents the probability at a single point on the grid. An `OscGrid` can be constructed using just the axis ranges and number of points, along with the filename the grid will be written to and the distance it applies for. You can then calculate the probabilities at each grid point using the `CalcGrid` method. This can be written to the output file with the `Write` method. Alternatively you can load up a pre-written and calculated grid with the `Load` method. You can then obtain the probability for a given set of parameters with the `Evaluate` method. There are also 'Getters' for the probability vector, and vectors containing the grid points for each dimension. The calculation of the probability uses code copied from the RAT-tools/AntinuTools repo. We will look at making that code portable so we can call it rather than copy it in the future. The interpolation for calculating probabilities between grid points is done using functions which are stolen from the OXO Solar Analysis (https://github.com/dcookman/solar_analysis/). 
 
-<h2>`src/util`</h2>
+<h2>Utils (src/util)</h2>
 
 <h3>Utilities</h3>
 
