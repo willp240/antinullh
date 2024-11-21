@@ -206,7 +206,15 @@ A root file `llh_scan.root` will be saved in the output directory specified in t
 
 Now the time has come to run a fit. First you want to make sure everything in you fit config is looking sensible. The min and max values, and sigmas for each event type are fairly well tuned, so it's advised you leave these alone unless you know what you're doing. Certainly, for your first fit testing out the code I would leave it as is. If you have good reason to change them, you probably don't need to be reading this guide! You can run a fit by:
 
-> ./bin/fit_dataset cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+> ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+
+This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories.
+
+In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps are automatically not included.
+
+`auto_correlations.txt` contains how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few thousand steps (there is a separate `autocorrelations` app you can use to run over the outputted tree and get more information). `fit_results.txt` contains each parameter value for the maximum LLH step. `scaled_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain. Also saved is the sum of these, with each systematic’s value at the maximum LLH step applied.
+
+There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.
 
 <h2>Submitting Batch Jobs</h2>
 
@@ -218,7 +226,7 @@ You can submit N jobs with:
 
 The environment file you supply here should be whatever you use to set up ROOT, python, GSL, etc., not `antinullh/env.sh` (which should be sourced before running the python submission). The output directory will be created, with several subdirectories:
 
-`error`, `output` and `log` contain the console outputs and batch log. `sh` and `submit` contain the files used to submit these jobs.
+`error`, `output` and `log` contain the console outputs and batch log. `sh` and `submit` contain the files used to submit these jobs, and `cfg` contains all the config files used to run the fit. 
 
 You can run this script with any of the apps. If you're not running a fit, you probably don't need multiple simultaneous jobs so can just run with N=1. If you're running `make_osc_grid` with the submission script, it will automatically loop over every reactor core in the reactors JSON file and run `make_osc_grid` for each in parallel.
 

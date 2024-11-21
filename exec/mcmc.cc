@@ -12,6 +12,8 @@
 #include <BinnedNLLH.h>
 #include <IO.h>
 #include <Rand.h>
+#include <MetropolisSampler.h>
+#include <MCMC.h>
 
 // ROOT headers
 #include <TH1D.h>
@@ -21,11 +23,11 @@
 
 using namespace antinufit;
 
-void llh_scan(const std::string &fitConfigFile_,
-              const std::string &evConfigFile_,
-              const std::string &pdfConfigFile_,
-              const std::string &systConfigFile_,
-              const std::string &oscGridConfigFile_)
+void mcmc(const std::string &fitConfigFile_,
+          const std::string &evConfigFile_,
+          const std::string &pdfConfigFile_,
+          const std::string &systConfigFile_,
+          const std::string &oscGridConfigFile_)
 {
   Rand::SetSeed(0);
 
@@ -36,16 +38,32 @@ void llh_scan(const std::string &fitConfigFile_,
   bool isAsimov = fitConfig.GetAsimov();
   double livetime = fitConfig.GetLivetime();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
+  int nsteps = fitConfig.GetIterations();
+  int burnin = fitConfig.GetBurnIn();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
   ParameterDict constrSigmas = fitConfig.GetConstrSigmas();
   ParameterDict mins = fitConfig.GetMinima();
   ParameterDict maxs = fitConfig.GetMaxima();
   ParameterDict noms = fitConfig.GetNominals();
+  ParameterDict sigmas = fitConfig.GetSigmas();
+  ParameterDict nbins = fitConfig.GetNBins();
+  double sigmaScale = fitConfig.GetSigmaScale();
 
+  // Create output directories
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
     mkdir(outDir.c_str(), 0700);
+
+  std::string projDir1D = outDir + "/1dlhproj";
+  std::string projDir2D = outDir + "/2dlhproj";
+  std::string scaledDistDir = outDir + "/scaled_dists";
+  if (stat(projDir1D.c_str(), &st) == -1)
+    mkdir(projDir1D.c_str(), 0700);
+  if (stat(projDir2D.c_str(), &st) == -1)
+    mkdir(projDir2D.c_str(), 0700);
+  if (stat(scaledDistDir.c_str(), &st) == -1)
+    mkdir(scaledDistDir.c_str(), 0700);
 
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
@@ -159,7 +177,7 @@ void llh_scan(const std::string &fitConfigFile_,
     DataSet *dataSet;
     try
     {
-      std::cout << "Loading " <<  it->second.GetPrunedPath() << std::endl;
+      std::cout << "Loading " << it->second.GetPrunedPath() << std::endl;
       dataSet = new ROOTNtuple(it->second.GetPrunedPath(), "pruned");
     }
     catch (const IOError &e_)
@@ -244,7 +262,7 @@ void llh_scan(const std::string &fitConfigFile_,
   BinnedNLLH lh;
   // Set the buffer region
   // lh.SetBufferAsOverflow(true);
-  //lh.SetBuffer("energy", 10, 10);
+  // lh.SetBuffer("energy", 10, 10);
   // Add our PDFs and data
   lh.AddPdfs(pdfs, pdfGroups, genRates);
   lh.SetDataDist(dataDist);
@@ -252,12 +270,7 @@ void llh_scan(const std::string &fitConfigFile_,
   lh.SetBarlowBeeston(beestonBarlowFlag);
   // Add the systematics and any prior constraints
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-  {
-    if (systGroup[it->first] != "")
-      lh.AddSystematic(it->second, systGroup[it->first]);
-    else
-      lh.AddSystematic(it->second);
-  }
+    lh.AddSystematic(it->second, systGroup[it->first]);
 
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
@@ -265,85 +278,175 @@ void llh_scan(const std::string &fitConfigFile_,
   // And finally bring it all together
   lh.RegisterFitComponents();
 
-  // Now onto the LLH Scan. First set the number of points in the scan
-  int npoints = 150;
-  int countwidth = double(npoints) / double(5);
-
   // Initialise to nominal values
   ParameterDict parameterValues;
   for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
     parameterValues[it->first] = noms[it->first];
-
   // If we have constraints, initialise to those
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     parameterValues[it->first] = constrMeans[it->first];
-
   // Set to these initial values
   lh.SetParameters(parameterValues);
 
-  // Setup outfile
-  std::string outFileName = outDir + "/llh_scan.root";
-  TFile *outFile = new TFile(outFileName.c_str(), "recreate");
+  // And now the optimiser
+  // Create something to do sampling
+  MetropolisSampler sampler;
 
-  // Loop over parameters
+  // Multiply parameter sigmas by global sigma scales
+  for (ParameterDict::iterator it = sigmas.begin(); it != sigmas.end(); ++it)
+    sigmas[it->first] *= sigmaScale;
+
+  sampler.SetSigmas(sigmas);
+
+  MCMC mh(sampler);
+
+  bool saveChain = true;
+  mh.SetSaveChain(saveChain);
+  mh.SetMaxIter(nsteps);
+  mh.SetBurnIn(burnin);
+  mh.SetMinima(mins);
+  mh.SetMaxima(maxs);
+
+  // We're going to minmise not maximise -log(lh) and the
+  // mc chain needs to know that the test stat is logged
+  // otherwise it will give us the distribution of the log(lh) not the lh
+  mh.SetTestStatLogged(true);
+  mh.SetFlipSign(true);
+
+  // Create some axes for the mc to fill
+  AxisCollection lhAxes;
   for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
+    lhAxes.AddAxis(BinAxis(it->first, it->second, maxs[it->first], nbins[it->first]));
+
+  mh.SetHistogramAxes(lhAxes);
+
+  // Lez Do Dis
+  const FitResult &res = mh.Optimise(&lh);
+  lh.SetParameters(res.GetBestFit());
+
+  // Now save the results
+  res.SaveAs(outDir + "/fit_result.txt");
+  std::cout << "Saved fit result to " << outDir + "/fit_result.txt" << std::endl;
+
+  MCMCSamples samples = mh.GetSamples();
+
+  if (saveChain)
   {
-    // Get param name
-    std::string name = it->first;
-    std::cout << "Scanning for " << name << std::endl;
-
-    // Set scan range from this parameter's max and min values
-    // We plot x axis as relative to the nominal value, so if this = 0 we set it to 1
-    double nom = noms[name];
-    if (nom == 0)
-      nom = 1;
-    double min = mins[name];
-    double max = maxs[name];
-    // Make histogram for this parameter
-    TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
-    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, min / nom, max / nom);
-    hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
-
-    // Commented out bits here are in anticipation of splitting LLH calculation in oxo at some point. Could then see prior and sample contributions separately
-    // TH1D *hScanSam = new TH1D((name+"_sam").c_str(), (name+"_sam").c_str(), npoints, min/nom, max/nom);
-    // hScanSam->SetTitle(std::string(std::string("2LLH_sam, ") + name + ";" + name + "; -2(ln L_{sample})").c_str());
-    // TH1D *hScanPen = new TH1D((name+"_pen").c_str(), (name+"_pen").c_str(), npoints, min/nom, max/nom);
-    // hScanPen->SetTitle(std::string(std::string("2LLH_pen, ") + name + ";" + name + "; -2(ln L_{penalty})").c_str());
-
-    // Now loop from min to max in npoint steps
-    for (int i = 0; i < npoints; i++)
+    // Messy way to make output filename. OutDir is full path to output result directory.
+    // Using find_last_of / and stripping everything before it to get directory name (tempString2).
+    // Similarly find name of directory above (where pdfs and fake data is saved). Output filename is then aboveDirectory_resultDirectory.root, inside OutDir.
+    // Could surely do this in fewer lines, or just call it outputTree.root or something, but nice to have a more unique name
+    std::string chainFileName = outDir;
+    std::string tempString1 = outDir;
+    std::string tempString2 = outDir;
+    size_t last_slash_idx = tempString1.find_last_of("/");
+    tempString2.erase(0, last_slash_idx + 1);
+    if (std::string::npos != last_slash_idx)
     {
-
-      if (i % countwidth == 0)
-        std::cout << i << "/" << npoints << " (" << double(i) / double(npoints) * 100 << "%)" << std::endl;
-
-      // Set Parameters
-      double parval = hScan->GetBinCenter(i + 1) * nom;
-      double tempval = parameterValues[name];
-      parameterValues[name] = parval;
-      lh.SetParameters(parameterValues);
-
-      // Eval LLH (later do sample and penalty)
-      double llh = lh.Evaluate();
-
-      // SetBinContents
-      hScan->SetBinContent(i + 1, llh);
-      // hScanSam->SetBinContent(i+1, llh);
-      // hScanPen->SetBinContent(i+1, llh);
-
-      // return to nominal value
-      parameterValues[name] = tempval;
+      tempString1.erase(last_slash_idx, std::string::npos);
+      last_slash_idx = tempString1.find_last_of("/");
+      if (std::string::npos != last_slash_idx)
+        tempString1.erase(0, last_slash_idx);
     }
-    // Write Histos
-    hScan->Write();
-    // hScanSam->Write();
-    // hScanPen->Write();
-  }
-  // Close file
-  outFile->Close();
-  std::cout << "Wrote scan to " << outFile->GetName() << std::endl;
 
-  delete outFile;
+    chainFileName = outDir + tempString1 + "_" + tempString2 + ".root";
+    TFile *f = new TFile(chainFileName.c_str(), "recreate");
+    TTree *outchain = samples.GetChain();
+    outchain->Write();
+    delete f;
+  }
+
+  // Save the histograms
+  typedef std::map<std::string, Histogram> HistMap;
+  const HistMap &proj1D = samples.Get1DProjections();
+  const HistMap &proj2D = samples.Get2DProjections();
+
+  std::cout << "Saving LH projections to \n\t" << projDir1D << "\n\t" << projDir2D << std::endl;
+
+  for (HistMap::const_iterator it = proj1D.begin(); it != proj1D.end(); ++it)
+    IO::SaveHistogram(it->second, projDir1D + "/" + it->first + ".root");
+
+  for (HistMap::const_iterator it = proj2D.begin(); it != proj2D.end(); ++it)
+    IO::SaveHistogram(it->second, projDir2D + "/" + it->first + ".root");
+
+  // Initialise postfit distributions to same axis as data
+  BinnedED postfitDist;
+  postfitDist = dataDist;
+  postfitDist.Empty();
+
+  // Scale the distributions to the correct heights. They are named the same as their fit parameters
+  std::cout << "Saving scaled histograms and data to \n\t" << scaledDistDir << std::endl;
+
+  if (dataDist.GetHistogram().GetNDims() < 3)
+  {
+    ParameterDict bestFit = res.GetBestFit();
+    for (size_t i = 0; i < pdfs.size(); i++)
+    {
+      std::string name = pdfs.at(i).GetName();
+      pdfs[i].Normalise();
+      pdfs[i].Scale(bestFit[name]);
+      IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+      // Sum all scaled distributions to get full postfit "dataset"
+      postfitDist.Add(pdfs[i]);
+    }
+
+    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
+    {
+      double distInt = postfitDist.Integral();
+      systMap[it->first]->SetParameter(it->first, bestFit[it->first]);
+      postfitDist = systMap[it->first]->operator()(postfitDist);
+      postfitDist.Scale(distInt);
+    }
+    IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
+  }
+  else
+  {
+    ParameterDict bestFit = res.GetBestFit();
+    for (size_t i = 0; i < pdfs.size(); i++)
+    {
+      std::string name = pdfs.at(i).GetName();
+      pdfs[i].Normalise();
+      pdfs[i].Scale(bestFit[name]);
+
+      std::vector<std::string> keepObs;
+      keepObs.push_back("energy");
+      pdfs[i] = pdfs[i].Marginalise(keepObs);
+      IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+      // Sum all scaled distributions to get full postfit "dataset"
+      postfitDist.Add(pdfs[i]);
+    }
+
+    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
+    {
+      double distInt = postfitDist.Integral();
+      systMap[it->first]->SetParameter(it->first, bestFit[it->first]);
+      postfitDist = systMap[it->first]->operator()(postfitDist);
+      postfitDist.Scale(distInt);
+    }
+    IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
+  }
+
+  // And also save the data
+  if (dataDist.GetHistogram().GetNDims() < 3)
+  {
+    IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+  }
+  else
+  {
+    std::vector<std::string> keepObs;
+    keepObs.push_back("energy");
+    dataDist = dataDist.Marginalise(keepObs);
+    IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+  }
+
+  // Save autocorrelations
+  std::ofstream cofs((outDir + "/auto_correlations.txt").c_str());
+  std::vector<double> autocors = samples.GetAutoCorrelations();
+  for (size_t i = 0; i < autocors.size(); i++)
+    cofs << i << "\t" << autocors.at(i) << "\n";
+  cofs.close();
+
+  std::cout << "Fit complete" << std::endl;
 }
 
 int main(int argc, char *argv[])
@@ -360,7 +463,7 @@ int main(int argc, char *argv[])
   std::string systConfigFile(argv[4]);
   std::string oscgridConfigFile(argv[5]);
 
-  llh_scan(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
+  mcmc(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
 
   return 0;
 }
