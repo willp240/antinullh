@@ -138,4 +138,17 @@ namespace antinufit
             return {ind_high - 1, ind_high};
         }
     }
+
+    std::vector<std::string> SplitString(const std::string &input, char delimiter)
+    {
+        std::vector<std::string> tokens;
+        std::stringstream ss(input);
+        std::string token;
+
+        while (std::getline(ss, token, delimiter))
+        {
+            tokens.push_back(token);
+        }
+        return tokens;
+    }
 }

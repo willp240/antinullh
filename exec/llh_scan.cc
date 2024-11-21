@@ -68,7 +68,6 @@ void llh_scan(const std::string &mcmcConfigFile_,
   std::map<std::string, std::string> systType = systConfig.GetType();
   std::map<std::string, std::vector<std::string>> systDistObs = systConfig.GetDistObs();
   std::map<std::string, std::vector<std::string>> systTransObs = systConfig.GetTransObs();
-  std::map<std::string, std::string> systFunctionNames = systConfig.GetFunctionNames();
   std::vector<std::string> fullParamNameVec;
 
   // Load up the oscillation probability grids
@@ -104,7 +103,7 @@ void llh_scan(const std::string &mcmcConfigFile_,
       }
     }
     fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, systFunctionNames[it->first], oscGridMap, indexDistance);
+    Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, oscGridMap, indexDistance);
     AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to

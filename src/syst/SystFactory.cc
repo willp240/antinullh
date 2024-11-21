@@ -11,21 +11,24 @@ namespace antinufit
   {
     std::map<int, OscGrid *> defaultGridMap;
     std::unordered_map<int, double> defaultIndexMap;
-    std::string defaultFunction = "";
-    return New(name, type_, paramnamevec_, paramvals_, defaultFunction, defaultGridMap, defaultIndexMap);
+    return New(name, type_, paramnamevec_, paramvals_, defaultGridMap, defaultIndexMap);
   }
   Systematic *
   SystFactory::New(const std::string &name,
                    const std::string &type_,
                    const std::vector<std::string> &paramnamevec_,
                    ParameterDict &paramvals_,
-                   std::string function_,
                    std::map<int, OscGrid *> &oscgridmap_,
                    std::unordered_map<int, double> &indexdistancemap_)
   {
     Systematic *syst;
 
-    if (type_ == "scale")
+    std::vector<std::string> type_vec = SplitString(type_, ':');
+    std::string type = type_vec.size() > 0 ? type_vec[0] : "";
+    std::string function = type_vec.size() > 1 ? type_vec[1] : "";
+    std::string ploy = type_vec.size() > 2 ? type_vec[2] : "";
+
+    if (type == "Scale")
     {
       Scale *scale = new Scale("scale");
       scale->RenameParameter("scaleFactor", paramnamevec_.at(0));
@@ -33,7 +36,7 @@ namespace antinufit
       syst = scale;
     }
 
-    else if (type_ == "shift")
+    else if (type == "Shift")
     {
       Shift *shift = new Shift("shift");
       shift->RenameParameter("shift", paramnamevec_.at(0));
@@ -41,56 +44,85 @@ namespace antinufit
       syst = shift;
     }
 
-    else if (type_ == "sqroot_scale_conv")
+    else if (type == "Conv")
     {
-      VaryingCDF *smearer = new VaryingCDF("smear");
+      // First declare possible functions and ploys
       // The 0 and 1.0 are arbitrary here. The parameter of the SquareRootScale is what will be a fit component
       Gaussian *gaus = new Gaussian(0, 1.0, paramnamevec_.at(0));
-      smearer->SetKernel(gaus);
-
       SquareRootScale *sqrtscale = new SquareRootScale("e_smear_sigma_func");
-      sqrtscale->RenameParameter("grad", paramnamevec_.at(0));
-      sqrtscale->SetGradient(paramvals_[paramnamevec_.at(0)]);
-      smearer->SetDependance("stddevs_0", sqrtscale);
+
+      VaryingCDF *smearer = new VaryingCDF("smear");
+
+      if (function == "Gaussian")
+      {
+        smearer->SetKernel(gaus);
+      }
+      else
+      {
+        throw ValueError("Unknown function, " + function + ", for systematic type: " + type);
+      }
+
+      if (ploy == "SquareRootScale")
+      {
+        sqrtscale->RenameParameter("grad", paramnamevec_.at(0));
+        sqrtscale->SetGradient(paramvals_[paramnamevec_.at(0)]);
+        smearer->SetDependance("stddevs_0", sqrtscale);
+      }
+      else
+      {
+        throw ValueError("Unknown ploy, " + ploy + ", for systematic type: " + type);
+      }
 
       Convolution *conv = new Convolution("conv");
       conv->SetConditionalPDF(smearer);
       syst = conv;
     }
 
-    else if (type_ == "scale_function")
+    else if (type_ == "ScaleFunction")
     {
 
+      // First declare possible functions
       ScaleFunc BirksLaw = [](const ParameterDict &params, const double &obs_val)
       {
         const double birks_const = 0.074;
         return ((1 + (birks_const * obs_val)) / (1 + (params.at("birks_constant") * obs_val))) * obs_val;
       };
 
-      ScaleFunction *scale_func = new ScaleFunction("scale_function");      scale_func->SetScaleFunction(BirksLaw, paramnamevec_);
-      scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant");
-      ParameterDict params({{"birks_constant", paramvals_[paramnamevec_.at(0)]}});
-      scale_func->SetParameters(params);
+      ScaleFunction *scale_func = new ScaleFunction("scale_function");
+
+      if (function == "BirksLaw")
+      {
+
+        scale_func->SetScaleFunction(BirksLaw, paramnamevec_);
+        scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant");
+        ParameterDict params({{"birks_constant", paramvals_[paramnamevec_.at(0)]}});
+        scale_func->SetParameters(params);
+      }
+      else
+      {
+        throw ValueError("Unknown function, " + function + ", for systematic type: " + type);
+      }
       syst = scale_func;
     }
 
-    else if (type_ == "shape")
+    else if (type_ == "Shape")
     {
+
+      // First declare possible functions
+      ShapeFunction OscProbGrid = [&oscgridmap_, &indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+
+        double distance = indexdistancemap_[obs_vals.at(1)];
+        double nuEnergy = obs_vals.at(2);
+        OscGrid *oscGrid = oscgridmap_[obs_vals.at(1)];
+        double prob = oscGrid->Evaluate(nuEnergy, params.at("deltam21"), params.at("theta12"));
+        return prob;
+      };
 
       ShapeFunction OscProb = [&oscgridmap_, &indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
-        /*
-        //std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors_bruce1.json");
-        double distance = indexdistancemap_[45];
-        double nuEnergy = obs_vals.at(2);
-        OscGrid *oscGrid = oscgridmap_[45];
-        double prob = oscGrid->Evaluate(nuEnergy, params.at("deltam21"), params.at("theta12"));
-        return prob;*/
-
         Double_t nuE_parent = obs_vals.at(2);
-        //std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors.json");
         Double_t baseline = indexdistancemap_[obs_vals.at(1)];
-        //Double_t baseline = indexdistancemap_[45];
         Double_t fDmSqr21 = params.at("deltam21");
         Double_t fDmSqr32 = 2.453e-3;
         Double_t fSSqrTheta12 = sin(params.at("theta12")) * sin(params.at("theta12"));
@@ -159,11 +191,28 @@ namespace antinufit
       };
 
       Shape *shape = new Shape("shape");
-      shape->SetShapeFunction(OscProb, paramnamevec_);
-      shape->RenameParameter(paramnamevec_.at(0), "deltam21");
-      shape->RenameParameter(paramnamevec_.at(1), "theta12");
-      ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
-      shape->SetParameters(params);
+
+      if (function == "OscProbGrid")
+      {
+        shape->SetShapeFunction(OscProbGrid, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "deltam21");
+        shape->RenameParameter(paramnamevec_.at(1), "theta12");
+        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "OscProb")
+      {
+        shape->SetShapeFunction(OscProb, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "deltam21");
+        shape->RenameParameter(paramnamevec_.at(1), "theta12");
+        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        shape->SetParameters(params);
+      }
+      else
+      {
+        throw ValueError("Unknown function, " + function + ", for systematic type: " + type);
+      }
+
       syst = shape;
     }
 

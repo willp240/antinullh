@@ -4,54 +4,51 @@ active=energy_scale,energy_scale_3d,energy_conv,energy_conv_3d,p_recoil_energy_s
 [energy_scale]
 dist_obs=energy
 trans_obs=energy
-type=scale
+type=Scale
 group=1d
 
 [energy_scale_3d]
 param_names=energy_scale
 dist_obs=energy,distance,nu_energy
 trans_obs=energy
-type=scale
+type=Scale
 group=3d
 
 [energy_conv]
 dist_obs=energy
 trans_obs=energy
-type=sqroot_scale_conv
+type=Conv:Gaussian:SquareRootScale
 group=1d
 
 [energy_conv_3d]
 param_names=energy_conv
 dist_obs=energy,distance,nu_energy
 trans_obs=energy
-type=sqroot_scale_conv
+type=Conv:Gaussian:SquareRootScale
 group=3d
 
 [energy_nonlin]
 dist_obs=energy
 trans_obs=energy
-type=scale_function
-function=BirksLaw
+type=ScaleFunction:BirksLaw
 group=1d
 
 [energy_nonlin_3d]
 param_names=energy_nonlin
 dist_obs=energy,distance,nu_energy
 trans_obs=energy
-type=scale_function
-function=BirksLaw
+type=ScaleFunction:BirksLaw
 group=3d
 
 [p_recoil_energy_scale]
 dist_obs=energy
 trans_obs=energy
-type=scale
+type=Scale
 group=p_recoil
 
 [osc_prob]
 dist_obs=energy,distance,nu_energy
 trans_obs=energy,distance,nu_energy
-type=shape
-function=OscProb
+type=Shape:OscProb
 param_names=deltam21,theta12
 group=osc_group

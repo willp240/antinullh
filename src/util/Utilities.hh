@@ -19,5 +19,6 @@ namespace antinufit
   std::unordered_map<std::string, int> LoadNameIndexMap(std::string);
   std::vector<double> LinSpace(double, double, size_t);
   std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double>, double);
+  std::vector<std::string> SplitString(const std::string &, char);
 }
 #endif

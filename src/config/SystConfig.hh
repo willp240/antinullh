@@ -17,12 +17,11 @@ namespace antinufit
     std::map<std::string, std::vector<std::string>> GetDistObs() const;
     std::map<std::string, std::vector<std::string>> GetTransObs() const;
     std::map<std::string, std::string> GetParamNames() const;
-    std::map<std::string, std::string> GetFunctionNames() const;
 
     const std::string &GetName() const;
     void SetName(const std::string &name_);
 
-    void AddParameter(const std::string &name_, const std::string &para_names_, const std::vector<std::string> &distObs_, const std::vector<std::string> &transObs_, const std::string &type_, const std::string &group_, const std::string &function_);
+    void AddParameter(const std::string &name_, const std::string &para_names_, const std::vector<std::string> &distObs_, const std::vector<std::string> &transObs_, const std::string &type_, const std::string &group_);
 
   private:
     std::string fName;
@@ -31,7 +30,6 @@ namespace antinufit
     std::map<std::string, std::string> fType;
     std::map<std::string, std::vector<std::string> > fDistObs;
     std::map<std::string, std::vector<std::string> > fTransObs;
-    std::map<std::string, std::string> fFunctionNames;
   };
 }
 #endif

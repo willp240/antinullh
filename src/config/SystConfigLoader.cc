@@ -24,7 +24,6 @@ namespace antinufit
     std::vector<std::string> transObs;
     std::string type;
     std::string group;
-    std::string function;
 
     if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
     {
@@ -54,22 +53,8 @@ namespace antinufit
       {
         paramNames = name;
       }
-      if(type == "scale_function" || type == "shape"){
-          try
-          {
-            ConfigLoader::Load(name, "function", function);
-          }
-          catch (ConfigFieldMissing) //FIXME change this oor
-          {
-            throw NotFoundError(Formatter() << "SystConfigLoader::No function set for " << type << " systematic: " << name);
-          }
-          if(functionMap.find(function) == functionMap.end())
-            throw NotFoundError(Formatter() << "SystConfigLoader::Invalid function ( " << function << ") set for systematic: " << name);
-      }
-      else
-        function == "";
 
-      ret.AddParameter(name, paramNames, distObs, transObs, type, group, function);
+      ret.AddParameter(name, paramNames, distObs, transObs, type, group);
       distObs.clear();
       transObs.clear();
     }

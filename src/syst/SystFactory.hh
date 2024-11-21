@@ -34,7 +34,6 @@ namespace antinufit
                            const std::string &type_,
                            const std::vector<std::string> &paramnamevec_,
                            ParameterDict &paramvals_,
-                           std::string function_,
                            std::map<int, OscGrid *> &oscgridmap_,
                            std::unordered_map<int, double> &indexdistancemap_ );
   };
