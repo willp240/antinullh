@@ -6,6 +6,9 @@ It reads in input files specified in the event config and
 literally just loops over events, filling new ntuples
 with the quantities we want. These get written to wherever
 was specified in the config file.
+As the alpha-n's are simulated into the same files, we here
+divide each alpha-n process into separate files. We use the
+energy to determine which alpha-n process an event was
 */
 
 // Antinu headers
@@ -27,8 +30,12 @@ was specified in the config file.
 #include <unordered_map>
 #include <string>
 #include <nlohmann/json.hpp>
+#include <filesystem>
 
 using namespace antinufit;
+
+double precoil_cscatter_bound = 3.5;
+double cscatter_oscatter_bound = 5.4;
 
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
@@ -70,7 +77,9 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
       {
         std::cout << i << " / " << chain.GetEntries() << "\t ( " << 10 * i / tenPercent << " %)" << std::endl;
       }
+
       chain.GetEntry(i);
+
       std::string originReactorString(reactorName->Data());
       if (originReactorString != "")
       {
@@ -78,6 +87,15 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
       }
       else
         reactorIndex = 999;
+
+      // The alpha n particles are simulated at the same time into the same files. We'll split them now, by energy
+      if (std::filesystem::path(outFilename_).filename().string() == "alphan_PRecoil" && energy > precoil_cscatter_bound)
+        continue;
+      if (std::filesystem::path(outFilename_).filename().string() == "alphan_CScatter" && (energy < precoil_cscatter_bound || energy > cscatter_oscatter_bound) )
+        continue;
+      if (std::filesystem::path(outFilename_).filename().string() == "alphan_PRecoil" && energy < cscatter_oscatter_bound)
+        continue;
+
       outp.cd();
       nt.Fill(energy, neutrinoEnergy, reactorIndex, alphaNClassifier);
     }

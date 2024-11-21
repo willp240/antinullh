@@ -186,6 +186,8 @@ The `prune_trees` app does this for us. Having set your filepaths in your `event
 
 This looks for ntuple files for each of the event types specified in the `event` config (you can select/deselect event types with the active/inactive fields) and produces a new set of files containing only the relevant trees for the analysis (energy, position, fit validity, pulse shape discrimination values, and true neutrino energy and reactor name for reactor neutrinos). Be warned, if using all event types, this will take some time! (of order several hours).
 
+This app also divides the three alpha-n processes into different files. They are all simulated at once, and so each of the three alpha-n processes gets events from the same files. For each alpha-n process, we loop over all alpha-n events, and select the events of that specific alpha-n process using the reconstructed energy.
+
 <h2>LLH Scans</h2>
 
 Right, we've now pruned our trees and used them to build PDFs and a simulated dataset(s). In theory, we're now ready to launch a fit! But let's be steady Eddies, Cautious Carols, and Nervous Nigels, and make sure everything is behaving as intended. Running fits can be computationally and storage expensive, so it would be a shame to find out after running them that something had previously gone wrong.  
