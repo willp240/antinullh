@@ -16,13 +16,14 @@ There are also other useful classes and files in `./src`:
 
 <h3>Systematic Factory</h3>
 
-The systematic factory, when given a systematic name, type, and list of associated fit parameters, will return a systematic object to be used in the analysis. For some systematics, a function, oscillation grid, and reactor-distance map can also be handed to the systematic factory. The allowed types differ from just the OXO inherited systematic classes as they can also define the function used, as these are defined inline with lambdas to pass the oscillation grid and map if needed. Currently the allowed types are:
+The systematic factory, when given a systematic name, type, and list of associated fit parameters, will return a systematic object to be used in the analysis. For some systematics, a vector of oscillation grids and a reactor-distance map can also be handed to the systematic factory. The allowed types are the OXO systematic classes, along with a possible function name and ploy name, each separated with a colon. The possible functions and ploys are defined in the Systematic Factory. These are the current allowed combinations
 
-- `scale`: A linear Scale systematic
-- `shift`: A Shift systematic
-- `sqroot_scale_conv`: A Gaussian Convolution where the width of the Gaussian runs with the square root of the axis in question
-- `scale_function`: A ScaleFunction systematic where the function used modifies Birk's Constant
-- `shape`: A Shape systematic, where the function used modifies the oscillation probability
+- `Scale`: A linear Scale systematic
+- `Shift`: A Shift systematic
+- `Conv:Gaussian:SquareRootScale`: A Convolution with a Gaussian function where the width of the Gaussian runs with the square root of the axis in question
+- `ScaleFunction:BirksLaw`: A ScaleFunction systematic where the function used modifies Birk's Constant
+- `Shape:OscProb`: A Shape systematic, where the function used modifies the oscillation probability. The probability is calculated directly
+- `Shape:OscProbGrid`: A Shape systematic, where the function used modifies the oscillation probability. The probability is obtained from OscGrids
 
 <h3>Functions</h3>
 
