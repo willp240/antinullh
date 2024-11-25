@@ -78,7 +78,7 @@ namespace antinufit
       syst = conv;
     }
 
-    else if (type_ == "ScaleFunction")
+    else if (type == "ScaleFunction")
     {
 
       // First declare possible functions
@@ -105,7 +105,7 @@ namespace antinufit
       syst = scale_func;
     }
 
-    else if (type_ == "Shape")
+    else if (type == "Shape")
     {
 
       // First declare possible functions

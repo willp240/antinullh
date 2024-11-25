@@ -74,10 +74,11 @@ void llh_scan(const std::string &fitConfigFile_,
   OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
   OscGridConfig oscGridConfig = oscGridLoader.Load();
   std::string outfilename = oscGridConfig.GetFilename();
+  std::string reactorjson = oscGridConfig.GetReactorsJsonFile();
   std::map<int, OscGrid *> oscGridMap;
 
   // First read the reactor distance info
-  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors_bruce1.json");
+  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorjson);
   for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
   {
     std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".root";
