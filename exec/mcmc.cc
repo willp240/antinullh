@@ -36,7 +36,6 @@ void mcmc(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
-  double livetime = fitConfig.GetLivetime();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   int nsteps = fitConfig.GetIterations();
   int burnin = fitConfig.GetBurnIn();

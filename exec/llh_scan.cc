@@ -34,7 +34,6 @@ void llh_scan(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
-  double livetime = fitConfig.GetLivetime();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
