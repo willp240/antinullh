@@ -34,7 +34,6 @@ void llh_scan(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
-  double livetime = fitConfig.GetLivetime();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
@@ -58,7 +57,8 @@ void llh_scan(const std::string &fitConfigFile_,
   std::string pdfDir = pdfConfig.GetPDFDir();
   std::vector<std::string> dataObs = pdfConfig.GetDataBranchNames();
   ObsSet dataObsSet(dataObs);
-  AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, dataObs.size());
+  bool useAxisColBinCache = false;
+  AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, dataObs.size(), useAxisColBinCache);
 
   // Load up the systematics
   SystConfigLoader systLoader(systConfigFile_);
@@ -105,7 +105,7 @@ void llh_scan(const std::string &fitConfigFile_,
     }
     fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
     Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, oscGridMap, indexDistance);
-    AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
+    AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size(), useAxisColBinCache);
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to
     syst->SetTransformationObs(systTransObs[it->first]);
@@ -267,7 +267,7 @@ void llh_scan(const std::string &fitConfigFile_,
   lh.RegisterFitComponents();
 
   // Now onto the LLH Scan. First set the number of points in the scan
-  int npoints = 150;
+  int npoints = 5;
   int countwidth = double(npoints) / double(5);
 
   // Initialise to nominal values
