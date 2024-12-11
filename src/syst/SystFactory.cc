@@ -30,7 +30,7 @@ namespace antinufit
 
     if (type == "Scale")
     {
-      Scale *scale = new Scale("scale");
+      Scale *scale = new Scale(name);
       scale->RenameParameter("scaleFactor", paramnamevec_.at(0));
       scale->SetScaleFactor(paramvals_[paramnamevec_.at(0)]);
       syst = scale;
@@ -48,7 +48,7 @@ namespace antinufit
     {
       // First declare possible functions and ploys
       // The 0 and 1.0 are arbitrary here. The parameter of the SquareRootScale is what will be a fit component
-      Gaussian *gaus = new Gaussian(0, 1.0, paramnamevec_.at(0));
+      Gaussian *gaus = new Gaussian(0, 1.0, "gaus");
       SquareRootScale *sqrtscale = new SquareRootScale("e_smear_sigma_func");
 
       VaryingCDF *smearer = new VaryingCDF("smear");
