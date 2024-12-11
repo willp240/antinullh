@@ -63,4 +63,34 @@ namespace antinufit
     return dist;
   }
 
+  BinnedED
+  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double theta12_, std::unordered_map<int, double> indexDistance_)
+  {
+    // Create the axes
+    AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
+    // Put it all together
+    BinnedED dist(name_, axes);
+    const std::vector<std::string> p = pdfConfig_.GetBranchNames(numDimensions_);
+    dist.SetObservables(p);
+
+    // Fill it up
+    for (int i = 0; i < data_->GetNEntries(); i++)
+    {
+      if (!(i % 10000000))
+        std::cout << i << "/" << data_->GetNEntries() << std::endl;
+      Event ev = data_->GetEntry(i);
+      double nuEnergy = ev.GetDatum("nu_energy");
+      int reacIndex = ev.GetDatum("reactorIndex");
+      double baseline = indexDistance_[reacIndex];
+      double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, theta12_);
+      TRandom3 *rndm = new TRandom3();
+      double r = rndm->Rndm();
+      if (r > oscprob)
+      {
+        dist.Fill(ev);
+      }
+    }
+
+    return dist;
+  }
 }
