@@ -43,6 +43,9 @@ namespace antinufit
     while (std::getline(ss, indiv_group, ','))
       groups.push_back(indiv_group);
 
+    if (groups.size() == 0)
+      groups.push_back("");
+
     EventConfig retVal;
     retVal.SetNtupFiles(ntupFiles);
     retVal.SetTexLabel(texLabel);
