@@ -32,7 +32,7 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/llh_scan bin/mcmc #bin/make_plots bin/auto_corrs
+all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/llh_scan bin/grid_llhscan bin/grid_fit bin/mcmc # bin/auto_corrs bin/make_plots
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
@@ -54,6 +54,14 @@ bin/llh_scan: exec/llh_scan.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/llh_scan.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
+bin/grid_llhscan: exec/grid_llhscan.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  exec/grid_llhscan.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+
+bin/grid_fit: exec/grid_fit.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  exec/grid_fit.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -lMinuit2 -o $@
+
 bin/mcmc: exec/mcmc.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/mcmc.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
@@ -61,6 +69,10 @@ bin/mcmc: exec/mcmc.cc $(LIB)
 bin/auto_corrs: exec/auto_corrs.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/auto_corrs.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+
+bin/make_plots: exec/make_plots.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  exec/make_plots.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
 $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)
@@ -71,12 +83,15 @@ build/%.o : src/*/%.cc
 	$(CXX) -c -w $< $(INCLUDES) -w $(ROOT_FLAGS) $(G4_FLAGS) -o $@
 
 clean:
-	rm -f bin/make_plots
 	rm -f bin/prune_trees
 	rm -f bin/make_reactor_json
+	rm -f bin/make_osc_grids
+	rm -f bin/compare_osc_grids
+	rm -f bin/llh_scan
+	rm -f bin/grid_fit
+	rm -f bin/grid_llhscan
 	rm -f bin/mcmc
 	rm -f bin/auto_corrs
-	rm -f bin/llh_scan
-	rm -f bin/compare_osc_grids
+	rm -f bin/make_plots
 	rm -f build/*.o
 	rm -f lib/libantinullh.a
