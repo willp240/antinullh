@@ -72,6 +72,7 @@ namespace antinufit
     BinnedED dist(name_, axes);
     const std::vector<std::string> p = pdfConfig_.GetBranchNames(numDimensions_);
     dist.SetObservables(p);
+    TRandom3 *rndm = new TRandom3();
 
     // Fill it up
     for (int i = 0; i < data_->GetNEntries(); i++)
@@ -82,8 +83,7 @@ namespace antinufit
       double nuEnergy = ev.GetDatum("nu_energy");
       int reacIndex = ev.GetDatum("reactorIndex");
       double baseline = indexDistance_[reacIndex];
-      double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, theta12_);
-      TRandom3 *rndm = new TRandom3();
+      double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sin(M_PI*theta12_/180)*sin(M_PI*theta12_/180));
       double r = rndm->Rndm();
       if (r > oscprob)
       {
