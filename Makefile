@@ -32,7 +32,7 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/llh_scan bin/grid_llhscan bin/grid_fit bin/mcmc # bin/auto_corrs bin/make_plots
+all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/grid_llhscan bin/grid_fit bin/llh_scan bin/mcmc #bin/auto_corrs bin/make_plots
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
