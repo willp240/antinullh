@@ -80,7 +80,7 @@ void mcmc(const std::string &fitConfigFile_,
   // Load up the systematics
   SystConfigLoader systLoader(systConfigFile_);
   SystConfig systConfig = systLoader.LoadActive();
-  std::map<std::string, std::string> systParamNames = systConfig.GetParamNames();
+  std::map<std::string, std::vector<std::string>> systParamNames = systConfig.GetParamNames();
   std::map<std::string, std::string> systGroup = systConfig.GetGroup();
   std::map<std::string, std::string> systType = systConfig.GetType();
   std::map<std::string, std::vector<std::string>> systDistObs = systConfig.GetDistObs();
@@ -91,10 +91,11 @@ void mcmc(const std::string &fitConfigFile_,
   OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
   OscGridConfig oscGridConfig = oscGridLoader.Load();
   std::string outfilename = oscGridConfig.GetFilename();
+  std::string reactorjson = oscGridConfig.GetReactorsJsonFile();
   std::map<int, OscGrid *> oscGridMap;
 
   // First read the reactor distance info
-  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors_bruce1.json");
+  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorjson);
   for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
   {
     std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".root";
@@ -106,21 +107,22 @@ void mcmc(const std::string &fitConfigFile_,
   std::map<std::string, Systematic *> systMap;
   for (std::map<std::string, std::string>::iterator it = systType.begin(); it != systType.end(); ++it)
   {
-    std::cout << "Constructing " << it->first << std::endl;
-    std::vector<std::string> paramNameVec;
-    std::stringstream ss(systParamNames[it->first]);
-    std::string paramName;
-    while (std::getline(ss, paramName, ','))
+    // Check any parameter defined for a systematic, was declared in the fit config
+    for (std::map<std::string, std::vector<std::string>>::iterator paramIt = systParamNames.begin(); paramIt != systParamNames.end(); ++paramIt)
     {
-      paramNameVec.push_back(paramName);
-      if (noms.find(paramName) == noms.end())
+      for (int iParam = 0; iParam < paramIt->second.size(); iParam++)
       {
-        std::cout << "ERROR: Syst config defines systematic with parameter " << paramName << ", but this parameter is not defined in the fit config" << std::endl;
-        throw;
+        if (noms.find(paramIt->second.at(iParam)) == noms.end())
+        {
+          std::cout << "ERROR: Syst config defines systematic with parameter " << paramIt->second.at(iParam) << ", but this parameter is not defined in the fit config" << std::endl;
+          throw;
+        }
       }
     }
-    fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, oscGridMap, indexDistance);
+    fullParamNameVec.insert(fullParamNameVec.end(), systParamNames[it->first].begin(), systParamNames[it->first].end());
+
+    // Now build the systematic
+    Systematic *syst = SystFactory::New(it->first, systType[it->first], systParamNames[it->first], noms, oscGridMap, indexDistance);
     AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to
@@ -145,6 +147,8 @@ void mcmc(const std::string &fitConfigFile_,
       constrMeans.erase(it->first);
       mins.erase(it->first);
       maxs.erase(it->first);
+      sigmas.erase(it->first);
+      nbins.erase(it->first);
       it = noms.erase(it);
       if (it != noms.begin())
         it--;
@@ -157,7 +161,6 @@ void mcmc(const std::string &fitConfigFile_,
 
   // Create the individual PDFs and Asimov components (could these be maps not vectors?)
   std::vector<BinnedED> pdfs;
-  std::vector<BinnedED> indivAsmvDists;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
 
@@ -189,6 +192,7 @@ void mcmc(const std::string &fitConfigFile_,
     BinnedED dist;
     int num_dimensions = it->second.GetNumDimensions();
     dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
+    // Add small numbers to avoid 0 probability bins
     dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
@@ -217,25 +221,23 @@ void mcmc(const std::string &fitConfigFile_,
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
-      indivAsmvDists.push_back(marginalised);
       IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
     }
     else
     {
       asimov.Add(dist);
-      indivAsmvDists.push_back(dist);
       IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
     }
   }
 
-  // And save combined histogram (final asimov dataset)
+  // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
+  // compare to to calculate the llh
   IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
 
   // Now let's load up the data
   BinnedED dataDist;
   if (!isAsimov)
   {
-
     std::string dataPath = fitConfig.GetDatafile();
 
     // Could be h5 or root file
@@ -259,21 +261,18 @@ void mcmc(const std::string &fitConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
-  // Set the buffer region
-  // lh.SetBufferAsOverflow(true);
-  // lh.SetBuffer("energy", 10, 10);
-  // Add our PDFs and data
-  lh.AddPdfs(pdfs, pdfGroups, genRates);
+  // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
   lh.SetBarlowBeeston(beestonBarlowFlag);
   // Add the systematics and any prior constraints
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
     lh.AddSystematic(it->second, systGroup[it->first]);
-
+  // Add our pdfs
+  lh.AddPdfs(pdfs, pdfGroups, genRates);
+  // And constraints
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -284,6 +283,7 @@ void mcmc(const std::string &fitConfigFile_,
   // If we have constraints, initialise to those
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     parameterValues[it->first] = constrMeans[it->first];
+
   // Set to these initial values
   lh.SetParameters(parameterValues);
 

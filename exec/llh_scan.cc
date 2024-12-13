@@ -62,7 +62,7 @@ void llh_scan(const std::string &fitConfigFile_,
   // Load up the systematics
   SystConfigLoader systLoader(systConfigFile_);
   SystConfig systConfig = systLoader.LoadActive();
-  std::map<std::string, std::string> systParamNames = systConfig.GetParamNames();
+  std::map<std::string, std::vector<std::string>> systParamNames = systConfig.GetParamNames();
   std::map<std::string, std::string> systGroup = systConfig.GetGroup();
   std::map<std::string, std::string> systType = systConfig.GetType();
   std::map<std::string, std::vector<std::string>> systDistObs = systConfig.GetDistObs();
@@ -89,21 +89,22 @@ void llh_scan(const std::string &fitConfigFile_,
   std::map<std::string, Systematic *> systMap;
   for (std::map<std::string, std::string>::iterator it = systType.begin(); it != systType.end(); ++it)
   {
-    std::cout << "Constructing " << it->first << std::endl;
-    std::vector<std::string> paramNameVec;
-    std::stringstream ss(systParamNames[it->first]);
-    std::string paramName;
-    while (std::getline(ss, paramName, ','))
+    // Check any parameter defined for a systematic, was declared in the fit config
+    for (std::map<std::string, std::vector<std::string>>::iterator paramIt = systParamNames.begin(); paramIt != systParamNames.end(); ++paramIt)
     {
-      paramNameVec.push_back(paramName);
-      if (noms.find(paramName) == noms.end())
+      for (int iParam = 0; iParam < paramIt->second.size(); iParam++)
       {
-        std::cout << "ERROR: Syst config defines systematic with parameter " << paramName << ", but this parameter is not defined in the fit config" << std::endl;
-        throw;
+        if (noms.find(paramIt->second.at(iParam)) == noms.end())
+        {
+          std::cout << "ERROR: Syst config defines systematic with parameter " << paramIt->second.at(iParam) << ", but this parameter is not defined in the fit config" << std::endl;
+          throw;
+        }
       }
     }
-    fullParamNameVec.insert(fullParamNameVec.end(), paramNameVec.begin(), paramNameVec.end());
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], paramNameVec, noms, oscGridMap, indexDistance);
+    fullParamNameVec.insert(fullParamNameVec.end(), systParamNames[it->first].begin(), systParamNames[it->first].end());
+
+    // Now build the systematic
+    Systematic *syst = SystFactory::New(it->first, systType[it->first], systParamNames[it->first], noms, oscGridMap, indexDistance);
     AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to
@@ -138,9 +139,8 @@ void llh_scan(const std::string &fitConfigFile_,
       it++;
   }
 
-  // Create the individual PDFs and Asimov components (could these be maps not vectors?)
+  // Create the individual PDFs and Asimov components
   std::vector<BinnedED> pdfs;
-  std::vector<BinnedED> indivAsmvDists;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
 
@@ -159,7 +159,7 @@ void llh_scan(const std::string &fitConfigFile_,
     DataSet *dataSet;
     try
     {
-      std::cout << "Loading " <<  it->second.GetPrunedPath() << std::endl;
+      std::cout << "Loading " << it->second.GetPrunedPath() << std::endl;
       dataSet = new ROOTNtuple(it->second.GetPrunedPath(), "pruned");
     }
     catch (const IOError &e_)
@@ -172,6 +172,7 @@ void llh_scan(const std::string &fitConfigFile_,
     BinnedED dist;
     int num_dimensions = it->second.GetNumDimensions();
     dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
+    // Add small numbers to avoid 0 probability bins
     dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
@@ -183,13 +184,13 @@ void llh_scan(const std::string &fitConfigFile_,
     pdfs.push_back(dist);
 
     // Apply nominal systematic variables
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
+    for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
     {
       // If group is "", we apply to all groups
-      if (systGroup[it->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[it->first]) != pdfGroups.back().end())
+      if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
       {
         double distInt = dist.Integral();
-        dist = it->second->operator()(dist);
+        dist = systIt->second->operator()(dist);
         dist.Scale(distInt);
       }
     }
@@ -200,25 +201,23 @@ void llh_scan(const std::string &fitConfigFile_,
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
-      indivAsmvDists.push_back(marginalised);
       IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
     }
     else
     {
       asimov.Add(dist);
-      indivAsmvDists.push_back(dist);
       IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
     }
   }
 
-  // And save combined histogram (final asimov dataset)
+  // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
+  // compare to to calculate the llh at each point in the scans
   IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
 
   // Now let's load up the data
   BinnedED dataDist;
   if (!isAsimov)
   {
-
     std::string dataPath = fitConfig.GetDatafile();
 
     // Could be h5 or root file
@@ -242,26 +241,18 @@ void llh_scan(const std::string &fitConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
-  // Set the buffer region
-  // lh.SetBufferAsOverflow(true);
-  //lh.SetBuffer("energy", 10, 10);
-  // Add our PDFs and data
-  lh.AddPdfs(pdfs, pdfGroups, genRates);
+  // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
   lh.SetBarlowBeeston(beestonBarlowFlag);
-  // Add the systematics and any prior constraints
+  // Add the systematics
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-  {
-    if (systGroup[it->first] != "")
-      lh.AddSystematic(it->second, systGroup[it->first]);
-    else
-      lh.AddSystematic(it->second);
-  }
-
+    lh.AddSystematic(it->second, systGroup[it->first]);
+  // Add our pdfs
+  lh.AddPdfs(pdfs, pdfGroups, genRates);
+  // And constraints
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -273,13 +264,15 @@ void llh_scan(const std::string &fitConfigFile_,
   ParameterDict parameterValues;
   for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
     parameterValues[it->first] = noms[it->first];
-
   // If we have constraints, initialise to those
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     parameterValues[it->first] = constrMeans[it->first];
 
   // Set to these initial values
   lh.SetParameters(parameterValues);
+
+  // Calculate the nominal LLH
+  double nomllh = lh.Evaluate();
 
   // Setup outfile
   std::string outFileName = outDir + "/llh_scan.root";
@@ -304,12 +297,6 @@ void llh_scan(const std::string &fitConfigFile_,
     TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, min / nom, max / nom);
     hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
 
-    // Commented out bits here are in anticipation of splitting LLH calculation in oxo at some point. Could then see prior and sample contributions separately
-    // TH1D *hScanSam = new TH1D((name+"_sam").c_str(), (name+"_sam").c_str(), npoints, min/nom, max/nom);
-    // hScanSam->SetTitle(std::string(std::string("2LLH_sam, ") + name + ";" + name + "; -2(ln L_{sample})").c_str());
-    // TH1D *hScanPen = new TH1D((name+"_pen").c_str(), (name+"_pen").c_str(), npoints, min/nom, max/nom);
-    // hScanPen->SetTitle(std::string(std::string("2LLH_pen, ") + name + ";" + name + "; -2(ln L_{penalty})").c_str());
-
     // Now loop from min to max in npoint steps
     for (int i = 0; i < npoints; i++)
     {
@@ -325,19 +312,14 @@ void llh_scan(const std::string &fitConfigFile_,
 
       // Eval LLH (later do sample and penalty)
       double llh = lh.Evaluate();
-
-      // SetBinContents
-      hScan->SetBinContent(i + 1, llh);
-      // hScanSam->SetBinContent(i+1, llh);
-      // hScanPen->SetBinContent(i+1, llh);
+      // Set bin contents
+      hScan->SetBinContent(i + 1, llh - nomllh);
 
       // return to nominal value
       parameterValues[name] = tempval;
     }
     // Write Histos
     hScan->Write();
-    // hScanSam->Write();
-    // hScanPen->Write();
   }
   // Close file
   outFile->Close();
