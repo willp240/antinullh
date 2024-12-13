@@ -27,7 +27,7 @@ namespace antinufit
     return fGroup;
   }
 
-  std::map<std::string, std::string>
+  std::map<std::string, std::vector<std::string>>
   SystConfig::GetParamNames() const
   {
     return fParamNames;
@@ -40,7 +40,7 @@ namespace antinufit
   }
 
   void
-  SystConfig::AddParameter(const std::string &name_, const std::string &param_names_, const std::vector<std::string> &dist_obs_, const std::vector<std::string> &trans_obs_, const std::string &type_, const std::string &group_)
+  SystConfig::AddParameter(const std::string &name_, const std::vector<std::string> &param_names_, const std::vector<std::string> &dist_obs_, const std::vector<std::string> &trans_obs_, const std::string &type_, const std::string &group_)
   {
     fDistObs[name_] = dist_obs_;
     fTransObs[name_] = trans_obs_;

@@ -19,7 +19,7 @@ namespace antinufit
     ConfigLoader::Load("summary", "active", toLoad);
 
     std::string name;
-    std::string paramNames;
+    std::vector<std::string> paramNames;
     std::vector<std::string> distObs;
     std::vector<std::string> transObs;
     std::string type;
@@ -51,12 +51,22 @@ namespace antinufit
       }
       catch (ConfigFieldMissing)
       {
-        paramNames = name;
+        try
+        {
+          std::string paramname;
+          ConfigLoader::Load(name, "param_names", paramname);
+          paramNames.push_back(paramname);
+        }
+        catch (ConfigFieldMissing)
+        {
+          paramNames.push_back(name);
+        }
       }
 
       ret.AddParameter(name, paramNames, distObs, transObs, type, group);
       distObs.clear();
       transObs.clear();
+      paramNames.clear();
     }
     return ret;
   }
