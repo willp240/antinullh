@@ -22,7 +22,7 @@ namespace antinufit
     std::string texLabel;
     std::vector<std::string> ntupFiles;
     int numDimensions;
-    std::string group;
+    std::vector<std::string> groups;
 
     ConfigLoader::Load(name_, "tex_label", texLabel);
     ConfigLoader::Load(name_, "ntup_files", ntupFiles);
@@ -30,18 +30,12 @@ namespace antinufit
 
     try
     {
-      ConfigLoader::Load(name_, "groups", group);
+      ConfigLoader::Load(name_, "groups", groups);
     }
     catch (...)
     {
-      group = "";
+      groups.push_back("");
     }
-
-    std::vector<std::string> groups;
-    std::stringstream ss(group);
-    std::string indiv_group;
-    while (std::getline(ss, indiv_group, ','))
-      groups.push_back(indiv_group);
 
     if (groups.size() == 0)
       groups.push_back("");
