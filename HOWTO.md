@@ -6,15 +6,15 @@ The first thing you'll want to do is get the environment variable in `env.sh` po
 
 Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. Templates of the config files themselves live in `./cfg`.
 
-<h2>Config Loaders (src/config)</h2>
+<h2>Source Code and Classes</h2>
+
+<h3>Config Loaders (src/config)</h3>
 
 For each type of config file, there is a class defined in `./src/config`, along with a loader for that class. Each of these follows a similar structure: the config class has an attribute for each field in the config file, and the config loader classes read values in from the config files and return an instance of the corresponding config class.\
-\
-There are also other useful classes and files in `./src`:
 
-<h2>Systematic Related Functions (src/syst)</h2>
+<h3>Systematic Related Functions (src/syst)</h3>
 
-<h3>Systematic Factory</h3>
+<h4>Systematic Factory</h4>
 
 The systematic factory, when given a systematic name, type, and list of associated fit parameters, will return a systematic object to be used in the analysis. For some systematics, a vector of oscillation grids and a reactor-distance map can also be handed to the systematic factory. The allowed types are the OXO systematic classes, along with a possible function name and ploy name, each separated with a colon. The possible functions and ploys are defined in the Systematic Factory. These are the current allowed combinations
 
@@ -25,42 +25,42 @@ The systematic factory, when given a systematic name, type, and list of associat
 - `Shape:OscProb`: A Shape systematic, where the function used modifies the oscillation probability. The probability is calculated directly
 - `Shape:OscProbGrid`: A Shape systematic, where the function used modifies the oscillation probability. The probability is obtained from OscGrids
 
-<h3>Functions</h3>
+<h4>Functions</h4>
 
 Functions that can be passed to systematics are defined in here. Currently they are Birk's Law and the Oscillation Probability calculations. However, to pass lambdas to these functions, they had to be defined inline so this file may soon be removed.
 
-<h3>OscGrids</h3>
+<h4>OscGrids</h4>
 
 The oscillation probability calculation can be quite slow to do on the fly, so instead we can produce an "Oscillation Grid" (<code>OscGrid</code>). The probability of oscillation depends on the true neutrino energy, the distance travelled, and the oscillation parameters $\Delta m^2_{21}$ and $\theta_{12}$, so we can pre-calculate the probabilities for different values of each of those variables, and the linearly interpolate between them. As the distances to reactor cores are all fixed distinct values, rather than interpolate, we can produce a 3D grid for each reactor core distance.
 
 The `OscGrid` class has attributes for the min and max values and number of grid points for each dimension (true neutrino energy, $\Delta m^2_{21}$ and $\theta_{12}$), along with a vector of probabilities where each element represents the probability at a single point on the grid. An `OscGrid` can be constructed using just the axis ranges and number of points, along with the filename the grid will be written to and the distance it applies for. You can then calculate the probabilities at each grid point using the `CalcGrid` method. This can be written to the output file with the `Write` method. Alternatively you can load up a pre-written and calculated grid with the `Load` method. You can then obtain the probability for a given set of parameters with the `Evaluate` method. There are also 'Getters' for the probability vector, and vectors containing the grid points for each dimension. The calculation of the probability uses code copied from the RAT-tools/AntinuTools repo. We will look at making that code portable so we can call it rather than copy it in the future. The interpolation for calculating probabilities between grid points is done using functions which are stolen from the OXO Solar Analysis (https://github.com/dcookman/solar_analysis/). 
 
-<h2>Utils (src/util)</h2>
+<h3>Utils (src/util)</h3>
 
-<h3>Utilities</h3>
+<h4>Utilities</h4>
 
 This file contains utility functions, mostly related to the Oscillation Grids. There is a function to turn the `OscGrids` max, min, and number of point values for a given dimension into a vector, along with a function to find the grid points that surround a given point in the `OscGrid`. These are both stolen from https://github.com/dcookman/solar_analysis. There is also a function here to load the reactor core indices and distances from SNO+ into a map from a JSON file, and functions taken from the rat-tools antinu tools to calculate the distance from reactors to SNO+.
 
-<h3>DistBuilder</h3>
+<h4>DistBuilder</h4>
 
 The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. 
 
-<h2>Configs</h2>
+<h3>Configs</h3>
 
 There are several config files you'll need for running different apps. It's intended that you make a copy of the template config files and fill in the filepaths yourself. Just be aware of any subsequent changes to the format or content of the templates, as you'll probably want to propagate these to your own local config files.
 
-<h3>Event</h3>
+<h4>Event</h4>
 
 This file should contain information on the types of events you want to include in the analysis. An example is shown in `cfg/event_config.ini`. There should be a section, `summary`, which controls which event types are active and where the MC files live. Then there's a table for each event type, which contains a Latex name for axis titles, the exact location of files, the dimensions of the PDF, and the groups the PDF should belong to (different syestematics apply to different groups, see the OXO documentation for more info).
 
-<h4>Summary</h4>
+<h5>Summary</h5>
 
 - `active`: The event types to be used in the analysis. These should be comma separated, and each should also be the name of an Event field also defined in the file. You can also use `all` to use all events defined in the file
 - `inactive`: Event types defined in the config that aren't being used in the analysis at this time
 - `orig_base_dir`: The directory where the original (unpruned) MC files have been downloaded to
 - `pruned_ntup_dir`: The directory where the pruned MC files should be written to, and later read from
 
-<h4>Event Type Tables</h4>
+<h5>Event Type Tables</h5>
 
 The name of these tables should be the name of the event type.
 - `tex_label`: A latex name for the event type
@@ -68,11 +68,11 @@ The name of these tables should be the name of the event type.
 - `dimensions`: Number of dimensions the PDF should have
 - `groups`: The groups the PDFs are part of. Each systematic is applied to one group (or all event types)
 
-<h3>Fit</h3>
+<h4>Fit</h4>
 
 This file should contain information on the parameters of the fit, and the fit itself. An example is shown in `cfg/fit_config.ini`.
 
-<h4>Summary</h4>
+<h5>Summary</h5>
 
 - `datafile`: The file containing the data events
 - `asimov`: Bool to determine if an Asimov or data fit should be run. If 1/True, the scaled PDFs are used as the data to run an Asimov fit
@@ -87,7 +87,7 @@ This file should contain information on the parameters of the fit, and the fit i
 - `sigma_scale`: Global scaling factor each step size gets multiplied by
 - `beeston_barlow`: Bool to determine if we should use the Beeston-Barlow method to account for MC stats uncertainty. If 1/True, it is used
 
-<h4>Fit Parameter Tables</h4>
+<h5>Fit Parameter Tables</h5>
 
 The name of these tables should be the name of the fit parameter.
 - `nom`: Nominal value of the parameter
@@ -101,17 +101,17 @@ The name of these tables should be the name of the fit parameter.
 A note on HMCMC: There is currently the functionality to run some MCMC, followed by some HMCMC starting from the best fit points of the MCMC. However, this didn't give any improvement in results or efficiency over the straight MCMC. The functionality is preserved in case we ever want to use it in the future, but generally we'll just run MCMC, with a notional 1 step HMCMC ran to avoid problems with files not being created when they are expected to.
 It's likely in the future we'll just remove the functionality.
 
-<h3>PDF</h3>
+<h4>PDF</h4>
 
 This file should contain information on the pdf axes. An example is shown in `cfg/pdf_config.ini`.
 
-<h4>Summary</h4>
+<h5>Summary</h5>
   
 - `build_order`: The axes used for the PDFs. These will be defined in the same file as axis tables. The order is important: the dimensions field in `events` config sets the number of dimensions, N, for a given PDF. The axes used will be the first N axes here
 - `data_axes`: The axes the data will have
 - `pdf_dir`: Where the PDFs should be saved to as histograms
 
-<h4>PDF Axis Tables</h4>
+<h5>PDF Axis Tables</h5>
   
 The name of these tables should be the name of the axis.
 - `nbins`: The number of bins in the axis
@@ -120,7 +120,7 @@ The name of these tables should be the name of the axis.
 - `branch_name`: The name of the branch in the ntuple
 - `tex_name`: A latex name for the axis to be used in plot labels
 
-<h3>Syst</h3>
+<h4>Syst</h4>
 
 This file should contain information on the systematics used in the analysis. An example is shown in `cfg/syst_config.ini`.
 
@@ -128,7 +128,7 @@ This file should contain information on the systematics used in the analysis. An
  
 - `active`: Which systematics (defined in the systematics tables) will be used in the analysis
 
-<h4>Systematic Tables</h4>
+<h5>Systematic Tables</h5>
 
 The name of these tables should be the name of the systematic.
 - `param_names`: Comma separated list of the names of the fit parameters that control the systematic. These should all match a fit parameter defined in the fit config. If this is empty, the systematic name is assumed to be the name of the fit parameter
@@ -138,11 +138,11 @@ The name of these tables should be the name of the systematic.
 - `function`: The name of the function used if the systematic needs one. There is some redundancy here with type at the moment but we'll improve that soon
 - `group`: This is the group of pdfs the systematic will be applied to. If this is left blank it will apply to all PDFs
 
-<h3>Oscillation Grid</h3>
+<h4>Oscillation Grid</h4>
 
 This file should contain information about the oscillation grids you want to use in the analysis, both for producing them, and reading them.
 
-<h4>Summary</h4>
+<h5>Summary</h5>
 
 - `filename`: Where the oscillation grids should be written to and read from
 - `reactorsjson`: Where the reactor distances should be read from
@@ -156,9 +156,11 @@ This file should contain information about the oscillation grids you want to use
 - `maxssqth12`: The maximum sin$^2 \theta_{12}$value of the grid
 - `numvalsssqth12`: The number of grid points on the sin$^2 \theta_{12}$ axis
 
-These classes and config files, along with all the OXO classes, are brought together in various apps in the `antinullh` top directory. These are described below in the order you will probably want to use them:
+<h2>Apps</h2>
 
-<h2>Calculating Reactor Distances</h2>
+These above classes and config files, along with all the OXO classes, are brought together in various apps in the `exec` directory. These are described in this section in the order you will probably want to use them:
+
+<h3>Calculating Reactor Distances</h3>
 
 To calculate the oscillation probability for an MC reactor IBD event, we need to know how far it has travelled, so we need to know the distance from the reactor it was produced in to SNO+. Rather than we do this calculation on the fly at every event for every iteration of a fit, we precalculate the distance for each reactor core. You can do this by running:
 
@@ -168,7 +170,7 @@ This will loop over cores defined in the REACTORS RATDB table, and calculate the
 
 The output json file path is set in the oscillation grid config. These are likely not to change very often (only when cores come online, or an error in the locations in the RATDB table is fixed. If a reactor's distance to SNO+ physically changes we probably have more pressing issues!), so they can be saved and committed in the `reacttorjsons` directory to avoid having to reproduce them. It will be good practise to indicate in the filename the RAT version it was produced with, and which cores it contains. For RAT 8.0.0, there is a committed json file with all cores, and another one with just Bruce 1 for quicker testing of the machinery.
 
-<h2>Making Oscillation Grids</h2>
+<h3>Making Oscillation Grids</h3>
 
 To produce a single reactor core `OscGrid`, run:
 
@@ -176,7 +178,7 @@ To produce a single reactor core `OscGrid`, run:
 
 In the submitting batch jobs section we will discuss running over all reactor cores at once.
 
-<h2>Pruning Trees</h2>
+<h3>Pruning Trees</h3>
 
 Raw SNO+ ntuples, although much more lightweight than RATDS files, still contain much more information than we need at analysis level. So instead of carrying around that deadweight for the whole analysis, we first take the time to prune out the branches we don't need and save what we do need in new files to be used.  
 
@@ -188,27 +190,45 @@ This looks for ntuple files for each of the event types specified in the `event`
 
 This app also divides the three alpha-n processes into different files. They are all simulated at once, and so each of the three alpha-n processes gets events from the same files. For each alpha-n process, we loop over all alpha-n events, and select the events of that specific alpha-n process using the reconstructed energy.
 
-<h2>LLH Scans</h2>
+<h3>LLH Scans</h3>
 
-Right, we've now pruned our trees and used them to build PDFs and a simulated dataset(s). In theory, we're now ready to launch a fit! But let's be steady Eddies, Cautious Carols, and Nervous Nigels, and make sure everything is behaving as intended. Running fits can be computationally and storage expensive, so it would be a shame to find out after running them that something had previously gone wrong.  
+Right, we've now pruned our trees and can use them to build PDFs and a simulated dataset(s). In theory, we're now ready to launch a fit! But let's be steady Eddies, Cautious Carols, and Nervous Nigels, and make sure everything is behaving as intended. Running fits can be computationally and storage expensive, so it would be a shame to find out after running them that something had previously gone wrong.  
 
-One of way doing this is with likelihood scans. The `llh_scan` app first builds the same test statistic that the fit will use, and we will hand it the same dataset we intend to hand the fitter. For a single floated parameter, it will scan over a range of values centred at the nominal value. For each of 150 steps, it will rebuild the dataset by scaling the PDFs and applying any systematics all set at their nominal values, except the parameter in question which is set to the value we've reached in the scan. This is compared to the actual dataset using the test statistic (probably the binned LLH). The LLH is saved at each step, and once we reach the end of the scan for a parameter, it is set back to its nominal value, and we repeat for the next parameter.  
+One of way doing this is with likelihood scans. The likelihood scan apps first build the same test statistic that the fit will use, and we will hand it the same PDFs, parameters, and systematics we intend to hand the fitter. For a single floated parameter, it will scan over a range of values centred at the nominal value. For each of 150 steps, it will rebuild the dataset by scaling the PDFs and applying any systematics all set at their nominal values, except the parameter in question which is set to the value we've reached in the scan. This is compared to the actual dataset using the test statistic (probably the binned LLH). The LLH (minus the nominal LLH) is saved at each step, and once we reach the end of the scan for a parameter, it is set back to its nominal value, and we repeat for the next parameter.  
 
-For the 'true' Asimov dataset, these scans should all minimise at 1 (where the x axis is parameter value / nominal value) i.e., by changing a parameter, you can't produce a dataset more similar to the target dataset than by using the exact values used to produce the target dataset. For the other forms of Asimov dataset, most parameters will minimise close to 1, but probably not exactly. The event types with higher rates will be closer to 1 as changes in these will have a greater impact on the LLH, and the small fluctuations causing the differences between the PDFs and Asimov dataset will be smaller proportionally.  
+For the 'true' Asimov dataset, these scans should all minimise at (1,0) (where the x axis is parameter value / nominal value) i.e., by changing a parameter, you can't produce a dataset more similar to the target dataset than by using the exact values used to produce the target dataset. For the other forms of Asimov dataset, most parameters will minimise close to 1, but probably not exactly. The event types with higher rates will be closer to 1 as changes in these will have a greater impact on the LLH, and the small fluctuations causing the differences between the PDFs and Asimov dataset will be smaller proportionally.  
+
+There are two likelihood scan apps. The first, `grid_llhscan` initially loops over all parameters except the oscillation parameters. The oscillation parameters are not handed to the `OXO` `BinnedNLLH` object, and the reactor PDF is produced with the oscillation parameters at nominal values. After performing the LLH scan for all non-oscillation parameters, it rebuilds the reactor PDF for each of the 150 values for each oscillation parameter. For each of these, it rebuilds the dataset and hands this to the `BinnedNLLH` to compare to the Asimov dataset. This is because, for speed, sometimes we want to run fits where the oscillation is handled outside of `OXO` (see the grid fits below). This version of the likelihood scan is designed to be used for validating that fit.
+
+To run the grid LLH scan:  
+
+> ./bin/grid_llhscan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+
+A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
+
+The other version of the likelihood scan, `llh_scan`, hands all the parameters, including the oscillation parameters, to the `BinnedNLLH`. It then scans through all parameters in the same way, setting the values in the `BinnedNLLH` and evaluating the likelihood. This version of the likelihood scan is designed to be used for validating the full fits where every parameter floats at once (see below).
 
 To run the LLH scan:  
 
 > ./bin/llh_scan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
-A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.   
+<h3>Running a Fit</h3>
 
-<h2>Running a Fit</h2>
+Now the time has come to run a fit. When we float the oscillation parameters, we need extra dimensions for the reactors PDF to contain the true neutrino energy and the reactor core it came from. As there are 483 cores, if we have 140 bins in each energy dimension, we end up with over 9 million bins! This means marginalising down to 1D to compare to data takes a lot of time. There are few ideas to get around this, but first let's run individual fits where we don't vary the oscillation parameters (so everything remains 1D and fast), and do this at all points in a grid of oscillation parameter values. We can do this for one point with:
 
-Now the time has come to run a fit. First you want to make sure everything in you fit config is looking sensible. The min and max values, and sigmas for each event type are fairly well tuned, so it's advised you leave these alone unless you know what you're doing. Certainly, for your first fit testing out the code I would leave it as is. If you have good reason to change them, you probably don't need to be reading this guide! You can run a fit by:
+> ./bin/grid_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+
+The value of the oscillation parameters should be set in the `fit` config file. This performs a `Minuit` fit, with the oscillation parameters fixed at those values. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced.
+
+In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case, all other parameters are marginalised over.
+
+`fit_results.txt` contains each parameter value for the maximum LLH point. `scaled_dists` contains the PDFs for each event type, scaled by the event type parameter value at the best fit point. Also saved is the sum of these, with each systematic’s best fit value applied.
+
+If you want to run a full fit where everything is floated at once, there is an app to run some Markov Chain Monte Carlo. First you want to make sure everything in your fit config is looking sensible. The min and max values, and sigmas for each event type are fairly well tuned, so it's advised you leave these alone unless you know what you're doing. Certainly, for your first fit testing out the code I would leave it as is. If you have good reason to change them, you probably don't need to be reading this guide! You can run a full fit by:
 
 > ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
-This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories.
+This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories, some of which are the same as for `grid_fit`.
 
 In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps are automatically not included.
 
@@ -216,7 +236,7 @@ In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter
 
 There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.
 
-<h2>Submitting Batch Jobs</h2>
+<h3>Submitting Batch Jobs</h3>
 
 For running full fits, it’s advisable to run multiple fits at once in parallel as you probably want around 1 million steps. Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think).  
 
@@ -230,7 +250,9 @@ The environment file you supply here should be whatever you use to set up ROOT, 
 
 You can run this script with any of the apps. If you're not running a fit, you probably don't need multiple simultaneous jobs so can just run with N=1. If you're running `make_osc_grid` with the submission script, it will automatically loop over every reactor core in the reactors JSON file and run `make_osc_grid` for each in parallel.
 
-<h2> Postfit Analysis</h2>
+Soon we will produce a similar python script, but for submitting batch jobs for the grid scan fits. As there are 500x500 fits in the scan, it won't do one job for each fit, but will probably submit multiple jobs which each run multiple fits.
+
+<h3> Postfit Analysis</h3>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is!
 
