@@ -15,13 +15,13 @@ namespace antinufit
 
     // use index to determine distance
     // First read the reactor distance info
-    //std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors.json");
+    // std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors.json");
     // use distance to determine oscgrid name
     // load up osc grid
     // calc prob
     // retuurn prob
 
-    //antinufit::OscGrid osc1(oscgridFile1);
+    // antinufit::OscGrid osc1(oscgridFile1);
 
     Double_t nuE_parent = obs_vals.at(1);
 
