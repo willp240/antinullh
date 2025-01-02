@@ -423,7 +423,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
   // Now we do the same for the oscillation parameters
   TString htitle = Form("%s, Nom. Value: %f", "deltam21", deltam21_nom);
   TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, deltam21_min, deltam21_max);
-  hDeltam->SetTitle(std::string(htitle + "; deltam21 (MeV); -(ln L_{full})").c_str());
+  hDeltam->SetTitle(std::string(htitle + "; #Delta m^{2}_{21} (eV^{2}); -(ln L_{full})").c_str());
   std::cout << "Scanning for deltam21" << std::endl;
   for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
   {
@@ -468,7 +468,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
   // Repeat for theta
   htitle = Form("%s, Nom. Value: %f", "theta12", theta12_nom);
   TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, theta12_min, theta12_max);
-  hTheta12->SetTitle(std::string(htitle + "; theta12 (degrees); -(ln L_{full})").c_str());
+  hTheta12->SetTitle(std::string(htitle + "; #theta_{12} (^{o}); -(ln L_{full})").c_str());
   std::cout << "Scanning for theta12" << std::endl;
   for (int iTheta12 = 0; iTheta12 < npoints; iTheta12++)
   {
