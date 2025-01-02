@@ -298,6 +298,10 @@ void grid_fit(const std::string &fitConfigFile_,
 
   // Now save the results
   res.SaveAs(outDir + "/fit_result.txt");
+  double finalLLH = lh.Evaluate();
+  std::ofstream file(outDir + "/fit_result.txt", std::ios::app);
+  file << "\nLLH: " << finalLLH << "\n";
+  file.close();
   std::cout << "Saved fit result to " << outDir + "/fit_result.txt" << std::endl;
 
   // Initialise postfit distributions to same axis as data

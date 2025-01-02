@@ -3,6 +3,8 @@ import argparse
 import configparser
 import json
 
+numpoints = 500
+
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
     if(dname[-1] != "/"):
@@ -38,9 +40,9 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
 
 
     # Loop over dm values, write fit_config with dm and theta values in
-    for i in range(500):
+    for i in range(numpoints):
 
-        deltam = 0.0000678 + i*(0.0000828-0.0000678)/500
+        deltam = 0.0000678 + i*(0.0000828-0.0000678)/numpoints
         deltam = "{:.6f}".format(deltam)
 
         # Read the file
@@ -102,9 +104,9 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                      "cd " + str(run_dir) + "\n" + \
                      str(other_commands) + "\n"
     # now loop over dm values ie do this with different fit configs
-    for i in range(500):
+    for i in range(numpoints):
 
-        deltam = 0.0000678 + i*(0.0000828-0.0000678)/500
+        deltam = 0.0000678 + i*(0.0000828-0.0000678)/numpoints
         deltam = "{:.6f}".format(deltam)
 
         fit_config_base = os.path.basename(fit_config)
@@ -200,9 +202,9 @@ if __name__ == "__main__":
         osc_config = run_dir + "/" + args.osc_cfg
 
     # Otherwise do N jobs
-    for i in range(500):
+    for i in range(numpoints):
 
-        theta = i*(180/500)
+        theta = i*(180/numpoints)
         theta = "{:.2f}".format(theta)
 
         job_name = base_name + "_{0}".format(i)
