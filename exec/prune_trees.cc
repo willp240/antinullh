@@ -34,8 +34,8 @@ energy to determine which alpha-n process an event was
 
 using namespace antinufit;
 
-double precoil_cscatter_bound = 3.5;
-double cscatter_oscatter_bound = 5.4;
+double precoil_cscatter_bound = 3.8;
+double cscatter_oscatter_bound = 5.1;
 
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
@@ -89,11 +89,11 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
         reactorIndex = 999;
 
       // The alpha n particles are simulated at the same time into the same files. We'll split them now, by energy
-      if (std::filesystem::path(outFilename_).filename().string() == "alphan_PRecoil" && energy > precoil_cscatter_bound)
+      if (std::filesystem::path(outFilename_).filename().string() == "alphan_PRecoil.root" && energy > precoil_cscatter_bound)
         continue;
-      if (std::filesystem::path(outFilename_).filename().string() == "alphan_CScatter" && (energy < precoil_cscatter_bound || energy > cscatter_oscatter_bound) )
+      if (std::filesystem::path(outFilename_).filename().string() == "alphan_CScatter.root" && (energy < precoil_cscatter_bound || energy > cscatter_oscatter_bound) )
         continue;
-      if (std::filesystem::path(outFilename_).filename().string() == "alphan_PRecoil" && energy < cscatter_oscatter_bound)
+      if (std::filesystem::path(outFilename_).filename().string() == "alphan_OExcited.root" && energy < cscatter_oscatter_bound)
         continue;
 
       outp.cd();
