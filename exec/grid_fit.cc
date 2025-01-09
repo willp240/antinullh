@@ -176,7 +176,7 @@ void grid_fit(const std::string &fitConfigFile_,
     BinnedED dist;
     int num_dimensions = it->second.GetNumDimensions();
 
-    if (it->first == "reactorIBD")
+    if (it->first == "reactor_nubar")
     {
       // Build the distribution with oscillation parameters at their nominal values
       DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance);
