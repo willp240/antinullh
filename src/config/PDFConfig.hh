@@ -13,6 +13,7 @@ namespace antinufit
   {
   public:
     int GetAxisCount() const;
+    int GetDataAxisCount() const;
     void GetAxis(int index_,
                  std::string &name_, std::string &branchName_, std::string &texName_,
                  int &binCount_, double &min_, double &max_) const;

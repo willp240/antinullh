@@ -7,6 +7,11 @@ namespace antinufit
     return fAxisNames.size();
   }
 
+  int PDFConfig::GetDataAxisCount() const
+  {
+    return fDataAxesNames.size();
+  }
+
   void
   PDFConfig::GetAxis(int index_, std::string &name_,
                       std::string &branchName_,

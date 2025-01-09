@@ -247,7 +247,7 @@ void grid_fit(const std::string &fitConfigFile_,
       ROOTNtuple dataToFit(dataPath, "pruned");
 
       // And bin the data inside
-      dataDist = DistBuilder::Build("data", pdfConfig, (DataSet *)&dataToFit);
+      dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
     }
   }
   else

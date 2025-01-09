@@ -336,7 +336,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
       ROOTNtuple dataToFit(dataPath, "pruned");
 
       // And bin the data inside
-      dataDist = DistBuilder::Build("data", pdfConfig, (DataSet *)&dataToFit);
+      dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
     }
   }
   else
@@ -344,6 +344,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
+  lh.SetBuffer("energy",1,14);
   // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
