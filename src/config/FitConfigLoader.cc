@@ -69,6 +69,9 @@ namespace antinufit
     double sig;
     double constrMean;
     double constrSigma;
+    double constrRatioMean;
+    double constrRatioSigma;
+    std::string constrRatioParName;
     int nbins;
 
     if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
@@ -102,7 +105,19 @@ namespace antinufit
       }
       catch (const ConfigFieldMissing &e_)
       {
-        ret.AddParameter(name, nom, min, max, sig, nbins);
+        try
+        {
+          ConfigLoader::Load(name, "constraint_ratiomean", constrRatioMean);
+          ConfigLoader::Load(name, "constraint_ratiosigma", constrRatioSigma);
+          ConfigLoader::Load(name, "constraint_ratioparname", constrRatioParName);
+          ret.AddParameter(name, nom, min, max, sig, nbins,constrRatioMean, constrRatioSigma,constrRatioParName);
+        }
+        catch(const ConfigFieldMissing &e_)
+        {
+          ret.AddParameter(name, nom, min, max, sig, nbins);
+
+        }
+        
       }
     }
 
