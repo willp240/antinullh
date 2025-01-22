@@ -41,7 +41,10 @@ void grid_llhscan(const std::string &fitConfigFile_,
   ParameterDict mins = fitConfig.GetMinima();
   ParameterDict maxs = fitConfig.GetMaxima();
   ParameterDict noms = fitConfig.GetNominals();
-
+  ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
+  ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
+  std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  
   // Create output directories
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
@@ -357,6 +360,8 @@ void grid_llhscan(const std::string &fitConfigFile_,
   // And constraints
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -431,6 +436,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
+    osclh.SetBuffer("energy",1,14);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 
@@ -452,6 +458,8 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // And set any constraints
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
 
     if (iDeltaM % countwidth == 0)
       std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
@@ -476,6 +484,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
+    osclh.SetBuffer("energy",1,14);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 
@@ -497,6 +506,8 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // And set any constraints
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
 
     if (iTheta12 % countwidth == 0)
       std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;

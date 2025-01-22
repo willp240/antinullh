@@ -189,6 +189,22 @@ namespace antinufit
   {
     return fConstrSigmas;
   }
+  ParameterDict
+  FitConfig::GetConstrRatioMeans() const
+  {
+    return fConstrRatioMeans;
+  }
+
+  ParameterDict
+  FitConfig::GetConstrRatioSigmas() const
+  {
+    return fConstrRatioSigmas;
+  }
+  std::map<std::string,std::string> 
+  FitConfig::GetConstrRatioParName() const
+  {
+    return fConstrRatioParName;
+  }
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_,
@@ -209,6 +225,18 @@ namespace antinufit
     fNominals[name_] = nom_;
     fSigmas[name_] = sigma_;
     fNbins[name_] = nbins_;
+  }
+
+  void
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_,
+                          double constrRatioMean_, double constrRatioSigma_,std::string constrRatioParName_)
+  {
+
+    fConstrRatioMeans[name_]    = constrRatioMean_;
+    fConstrRatioSigmas[name_]   = constrRatioSigma_;
+    fConstrRatioParName[name_]  = constrRatioParName_;
+
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_);
   }
 
 }

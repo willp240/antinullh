@@ -43,6 +43,9 @@ void grid_fit(const std::string &fitConfigFile_,
   ParameterDict maxs = fitConfig.GetMaxima();
   ParameterDict noms = fitConfig.GetNominals();
   ParameterDict sigmas = fitConfig.GetSigmas();
+  ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
+  ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
+  std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
 
   // Create output directories
   struct stat st = {0};
@@ -198,7 +201,7 @@ void grid_fit(const std::string &fitConfigFile_,
     pdfs.push_back(dist);
 
     // Apply nominal systematic variables
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
+    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)    
     {
       // If group is "", we apply to all groups
       if (systGroup[it->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[it->first]) != pdfGroups.back().end())
@@ -268,6 +271,8 @@ void grid_fit(const std::string &fitConfigFile_,
   // And constraints
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
 
   // And finally bring it all together
   lh.RegisterFitComponents();
