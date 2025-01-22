@@ -234,7 +234,7 @@ namespace antinufit
 
     fConstrRatioMeans[name_]    = constrRatioMean_;
     fConstrRatioSigmas[name_]   = constrRatioSigma_;
-    fConstrRatioParName[name_] = constrRatioParName_;
+    fConstrRatioParName[name_]  = constrRatioParName_;
 
     AddParameter(name_, nom_, min_, max_, sigma_, nbins_);
   }

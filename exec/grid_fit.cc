@@ -204,7 +204,7 @@ void grid_fit(const std::string &fitConfigFile_,
     for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)    
     {
       // If group is "", we apply to all groups
-      if (systGroup[it->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[it->first]) != pdfGroups.back().end())      
+      if (systGroup[it->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[it->first]) != pdfGroups.back().end())
       {
         double distInt = dist.Integral();
         dist = it->second->operator()(dist);

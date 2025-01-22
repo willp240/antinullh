@@ -115,9 +115,7 @@ namespace antinufit
         catch(const ConfigFieldMissing &e_)
         {
           ret.AddParameter(name, nom, min, max, sig, nbins);
-
-        }
-        
+        }   
       }
     }
 
