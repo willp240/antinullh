@@ -146,6 +146,8 @@ void llh_scan(const std::string &fitConfigFile_,
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
+  std::vector<NormFittingStatus> *norm_fitting_statuses;
+  norm_fitting_statuses->clear();
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -185,6 +187,7 @@ void llh_scan(const std::string &fitConfigFile_,
     if (dist.Integral())
       dist.Normalise();
     pdfs.push_back(dist);
+    norm_fitting_statuses->push_back(INDIRECT);
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
@@ -252,7 +255,7 @@ void llh_scan(const std::string &fitConfigFile_,
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
-  lh.AddPdfs(pdfs, pdfGroups, genRates);
+  lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
   // And constraints
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
