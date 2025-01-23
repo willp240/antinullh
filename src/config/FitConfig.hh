@@ -19,6 +19,10 @@ namespace antinufit
     ParameterDict GetConstrMeans() const;
     ParameterDict GetConstrSigmas() const;
 
+    ParameterDict GetConstrRatioMeans() const;
+    ParameterDict GetConstrRatioSigmas() const;
+    std::map<std::string,std::string>   GetConstrRatioParName() const;
+
     int GetIterations() const;
     void SetIterations(int);
     int GetHMCIterations() const;
@@ -32,6 +36,8 @@ namespace antinufit
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_);
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_,
                       double constrMean_, double constrSigma_);
+    void AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_,
+                      double constrRatioMean_, double constrRatioSigma_,std::string constrRatioParName_);
 
     std::set<std::string> GetParamNames() const;
 
@@ -63,6 +69,8 @@ namespace antinufit
     std::string fOutDir;
     ParameterDict fConstrMeans;
     ParameterDict fConstrSigmas;
+    ParameterDict fConstrRatioMeans;
+    ParameterDict fConstrRatioSigmas;
     ParameterDict fNominals;
     ParameterDict fMinima;
     ParameterDict fMaxima;
@@ -79,6 +87,7 @@ namespace antinufit
     bool fAsimov;
     double fLivetime;
     std::string fDatafile;
+    std::map<std::string,std::string> fConstrRatioParName;
   };
 }
 #endif
