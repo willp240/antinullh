@@ -15,6 +15,7 @@ namespace antinufit
     ParameterDict GetSigmas() const;
     ParameterDict GetNBins() const;
     ParameterDict GetNominals() const;
+    ParameterDict GetFakeData() const;
 
     ParameterDict GetConstrMeans() const;
     ParameterDict GetConstrSigmas() const;
@@ -29,8 +30,8 @@ namespace antinufit
     int GetHMCBurnIn() const;
     void SetHMCBurnIn(int);
 
-    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_);
-    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_,
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_);
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_,
                       double constrMean_, double constrSigma_);
 
     std::set<std::string> GetParamNames() const;
@@ -53,6 +54,9 @@ namespace antinufit
     bool GetAsimov() const;
     void SetAsimov(bool);
 
+    bool GetFakeDataFit() const;
+    void SetFakeDataFit(bool);
+
     std::string GetDatafile() const;
     void SetDatafile(std::string);
 
@@ -64,6 +68,7 @@ namespace antinufit
     ParameterDict fConstrMeans;
     ParameterDict fConstrSigmas;
     ParameterDict fNominals;
+    ParameterDict fFakeDataVals;
     ParameterDict fMinima;
     ParameterDict fMaxima;
     ParameterDict fSigmas;
@@ -77,6 +82,7 @@ namespace antinufit
     double fEpsilon;
     double fSigmaScale;
     bool fAsimov;
+    bool fFakeDataFit;
     double fLivetime;
     std::string fDatafile;
   };

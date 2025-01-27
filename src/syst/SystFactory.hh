@@ -35,7 +35,11 @@ namespace antinufit
                            const std::vector<std::string> &paramnamevec_,
                            ParameterDict &paramvals_,
                            std::map<int, OscGrid *> &oscgridmap_,
-                           std::unordered_map<int, double> &indexdistancemap_ );
+                           std::unordered_map<int, double> &indexdistancemap_);
+    static void UpdateSystParamVals(const std::string &name,
+                                    const std::string &type_,
+                                    const std::vector<std::string> &paramnamevec_,
+                                    ParameterDict &paramvals_, Systematic *syst_);
   };
 
 }

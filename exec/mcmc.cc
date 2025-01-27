@@ -36,6 +36,7 @@ void mcmc(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
+  bool isFakeData = fitConfig.GetFakeDataFit();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   int nsteps = fitConfig.GetIterations();
   int burnin = fitConfig.GetBurnIn();
@@ -47,6 +48,7 @@ void mcmc(const std::string &fitConfigFile_,
   ParameterDict noms = fitConfig.GetNominals();
   ParameterDict sigmas = fitConfig.GetSigmas();
   ParameterDict nbins = fitConfig.GetNBins();
+  ParameterDict fdValues = fitConfig.GetFakeData();
   double sigmaScale = fitConfig.GetSigmaScale();
 
   // Create output directories
@@ -167,6 +169,9 @@ void mcmc(const std::string &fitConfigFile_,
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
   asimov.SetObservables(dataObs);
+  // And an empty fake data dist
+  BinnedED fakeDataset = BinnedED("fake_dataset", systAxes);
+  fakeDataset.SetObservables(dataObs);
 
   // Build each of the PDFs, scale them to the correct size
   for (EvMap::iterator it = toGet.begin(); it != toGet.end(); ++it)
@@ -203,6 +208,9 @@ void mcmc(const std::string &fitConfigFile_,
       dist.Normalise();
     pdfs.push_back(dist);
 
+    // Now make a fake data dist for the event type
+    BinnedED fakeDataDist = dist;
+
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
     {
@@ -217,26 +225,51 @@ void mcmc(const std::string &fitConfigFile_,
 
     // Now scale the Asimov component by expected count, and also save pdf as a histo
     dist.Scale(noms[it->first]);
+    fakeDataDist.Scale(fdValues[it->first]);
     if (dist.GetNDims() != asimov.GetNDims())
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
       IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+
+      // Also scale fake data dist by fake data value
+      if (isFakeData)
+      {
+        BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
+        fakeDataset.Add(marginalisedFakeData);
+      }
     }
     else
     {
       asimov.Add(dist);
       IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      // Also scale fake data dist by fake data value
+      if (isFakeData)
+      {
+        fakeDataset.Add(fakeDataDist);
+      }
     }
   }
 
   // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
   // compare to to calculate the llh
   IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
+  if (isFakeData)
+  {
+    IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata.root", "fakedata");
+  }
 
   // Now let's load up the data
   BinnedED dataDist;
-  if (!isAsimov)
+  if (isAsimov)
+  {
+    dataDist = asimov;
+  }
+  else if (isFakeData)
+  {
+    dataDist = fakeDataset;
+  }
+  else
   {
     std::string dataPath = fitConfig.GetDatafile();
 
@@ -256,8 +289,6 @@ void mcmc(const std::string &fitConfigFile_,
       dataDist = DistBuilder::Build("data", pdfConfig, (DataSet *)&dataToFit);
     }
   }
-  else
-    dataDist = asimov;
 
   // Now build the likelihood
   BinnedNLLH lh;
