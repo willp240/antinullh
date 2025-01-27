@@ -44,6 +44,9 @@ void grid_fit(const std::string &fitConfigFile_,
   ParameterDict maxs = fitConfig.GetMaxima();
   ParameterDict noms = fitConfig.GetNominals();
   ParameterDict sigmas = fitConfig.GetSigmas();
+  ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
+  ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
+  std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
   ParameterDict fdValues = fitConfig.GetFakeData();
 
   // Create output directories
@@ -149,6 +152,8 @@ void grid_fit(const std::string &fitConfigFile_,
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
+  std::vector<NormFittingStatus> *norm_fitting_statuses;
+  norm_fitting_statuses->clear();
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -201,6 +206,8 @@ void grid_fit(const std::string &fitConfigFile_,
     if (dist.Integral())
       dist.Normalise();
     pdfs.push_back(dist);
+
+    norm_fitting_statuses->push_back(INDIRECT);
 
     // Now make a fake data dist for the event type
     BinnedED fakeDataDist = dist;
@@ -298,10 +305,12 @@ void grid_fit(const std::string &fitConfigFile_,
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
-  lh.AddPdfs(pdfs, pdfGroups, genRates);
+  lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
   // And constraints
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
   // And finally bring it all together
   lh.RegisterFitComponents();

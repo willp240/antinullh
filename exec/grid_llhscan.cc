@@ -42,6 +42,9 @@ void grid_llhscan(const std::string &fitConfigFile_,
   ParameterDict mins = fitConfig.GetMinima();
   ParameterDict maxs = fitConfig.GetMaxima();
   ParameterDict noms = fitConfig.GetNominals();
+  ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
+  ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
+  std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
   ParameterDict fdValues = fitConfig.GetFakeData();
 
   // Create output directories
@@ -154,6 +157,8 @@ void grid_llhscan(const std::string &fitConfigFile_,
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
+  std::vector<NormFittingStatus> *norm_fitting_statuses;
+  norm_fitting_statuses->clear();
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -275,6 +280,8 @@ void grid_llhscan(const std::string &fitConfigFile_,
       dist.Normalise();
     pdfs.push_back(dist);
 
+    norm_fitting_statuses->push_back(INDIRECT);
+
     // Now make a fake data dist for the event type
     BinnedED fakeDataDist = dist;
 
@@ -392,10 +399,12 @@ void grid_llhscan(const std::string &fitConfigFile_,
   for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
-  lh.AddPdfs(pdfs, pdfGroups, genRates);
+  lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
   // And constraints
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -479,6 +488,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
+    osclh.SetBuffer("energy", 1, 14);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 
@@ -495,11 +505,13 @@ void grid_llhscan(const std::string &fitConfigFile_,
       else
         pdfvec.push_back(oscPDFs.at(iDeltaM));
     }
-    osclh.AddPdfs(pdfvec, pdfGroups, genRates);
+    osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
 
     // And set any constraints
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
     if (iDeltaM % countwidth == 0)
       std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
@@ -524,6 +536,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
+    osclh.SetBuffer("energy", 1, 14);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 
@@ -540,11 +553,13 @@ void grid_llhscan(const std::string &fitConfigFile_,
       else
         pdfvec.push_back(oscPDFs.at(iTheta12 + npoints));
     }
-    osclh.AddPdfs(pdfvec, pdfGroups, genRates);
+    osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
 
     // And set any constraints
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
     if (iTheta12 % countwidth == 0)
       std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;
