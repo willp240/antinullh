@@ -157,8 +157,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
-  std::vector<NormFittingStatus> *norm_fitting_statuses;
-  norm_fitting_statuses->clear();
+  std::vector<NormFittingStatus>* norm_fitting_statuses = new std::vector<NormFittingStatus>;
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -214,7 +213,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
       // Now loop over deltam points and make a new pdf for each
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
       {
-        double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / npoints;
+        double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / (npoints - 1);
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21 << ", theta12: " << theta12_nom << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance);
         oscDist.AddPadding(1E-6);
@@ -240,7 +239,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
       // And do the same for theta
       for (int iTheta = 0; iTheta < npoints; iTheta++)
       {
-        double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / npoints;
+        double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints-1);
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance);
         oscDist.AddPadding(1E-6);
@@ -293,13 +292,11 @@ void grid_llhscan(const std::string &fitConfigFile_,
       if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
       {
         double distInt = dist.Integral();
-        std::cout << distInt << std::endl;
         dist = systIt->second->operator()(dist);
         dist.Scale(distInt);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
         SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
         distInt = fakeDataDist.Integral();
-        std::cout << distInt << std::endl;
         fakeDataDist = systIt->second->operator()(fakeDataDist);
         fakeDataDist.Scale(distInt);
       }

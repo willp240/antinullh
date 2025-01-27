@@ -283,6 +283,7 @@ void llh_scan(const std::string &fitConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
+  lh.SetBuffer("energy", 1, 14);
   // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
