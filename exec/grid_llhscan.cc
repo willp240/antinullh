@@ -157,7 +157,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
-  std::vector<NormFittingStatus>* norm_fitting_statuses = new std::vector<NormFittingStatus>;
+  std::vector<NormFittingStatus> *norm_fitting_statuses = new std::vector<NormFittingStatus>;
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -167,15 +167,15 @@ void grid_llhscan(const std::string &fitConfigFile_,
   fakeDataset.SetObservables(dataObs);
 
   // And we're going to create a scaled "asimov" dataset and reactor PDF for each point in the oscillation parameter scans
-  // The oscAsimovs aren't actually used in the scan, but we save them as they're useful to look at. But the teststat object
+  // The oscDatasets aren't actually used in the scan, but we save them as they're useful to look at. But the teststat object
   // should build exact equivalents if everything has gone to plan
-  std::vector<BinnedED> oscAsimovs;
+  std::vector<BinnedED> oscDatasets;
   std::vector<BinnedED> oscPDFs;
   for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
   {
     BinnedED oscAsmv = BinnedED("asimov", systAxes);
     oscAsmv.SetObservables(dataObs);
-    oscAsimovs.push_back(oscAsmv);
+    oscDatasets.push_back(oscAsmv);
   }
 
   // Build each of the PDFs, scale them to the correct size
@@ -232,14 +232,14 @@ void grid_llhscan(const std::string &fitConfigFile_,
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
         oscDist.Scale(noms[it->first]);
-        // oscAsimovs is a vector of "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
+        // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
         // We'll Add the rest of the PDFs later
-        oscAsimovs.at(iDeltaM).Add(oscDist);
+        oscDatasets.at(iDeltaM).Add(oscDist);
       }
       // And do the same for theta
       for (int iTheta = 0; iTheta < npoints; iTheta++)
       {
-        double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints-1);
+        double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints - 1);
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance);
         oscDist.AddPadding(1E-6);
@@ -258,9 +258,9 @@ void grid_llhscan(const std::string &fitConfigFile_,
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
         oscDist.Scale(noms[it->first]);
-        // oscAsimovs is a vector of "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
+        // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
         // We'll Add the rest of the PDFs later
-        oscAsimovs.at(npoints + iTheta).Add(oscDist);
+        oscDatasets.at(npoints + iTheta).Add(oscDist);
       }
     }
     else
@@ -327,7 +327,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
       {
         for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
         {
-          oscAsimovs.at(iOscPoints).Add(dist);
+          oscDatasets.at(iOscPoints).Add(dist);
         }
       }
       // Also scale fake data dist by fake data value
@@ -347,11 +347,17 @@ void grid_llhscan(const std::string &fitConfigFile_,
   }
 
   // Now save the datasets for each point in the oscillation scans. These are the same as the above but with an oscillated reactor PDF
-  for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
+  for (int iOscPoints = 0; iOscPoints < npoints; iOscPoints++)
   {
-    std::stringstream oscasimovname;
-    oscasimovname << "oscasimov_" << iOscPoints << ".root";
-    IO::SaveHistogram(oscAsimovs.at(iOscPoints).GetHistogram(), outDir + "/" + oscasimovname.str(), "asimov");
+    double deltam21 = deltam21_min + (double)iOscPoints * (deltam21_max - deltam21_min) / (npoints - 1);
+    std::stringstream dmOscAsimovName;
+    dmOscAsimovName << "oscAsimov_dm21_" << deltam21 << ".root";
+    IO::SaveHistogram(oscDatasets.at(iOscPoints).GetHistogram(), outDir + "/" + dmOscAsimovName.str(), "asimov");
+
+    double theta12 = theta12_min + (double)iOscPoints * (theta12_max - theta12_min) / (npoints - 1);
+    std::stringstream thOscAsimovName;
+    thOscAsimovName << "oscAsimov_th12_" << theta12 << ".root";
+    IO::SaveHistogram(oscDatasets.at(iOscPoints + npoints).GetHistogram(), outDir + "/" + thOscAsimovName.str(), "asimov");
   }
 
   // Now let's load up the data
