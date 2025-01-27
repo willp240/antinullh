@@ -137,7 +137,7 @@ namespace antinufit
           ConfigLoader::Load(name, "constraint_ratiomean", constrRatioMean);
           ConfigLoader::Load(name, "constraint_ratiosigma", constrRatioSigma);
           ConfigLoader::Load(name, "constraint_ratioparname", constrRatioParName);
-          ret.AddParameter(name, nom, min, max, sig, nbins, constrRatioMean, constrRatioSigma, constrRatioParName, fakeDataVal);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, constrRatioMean, constrRatioSigma, constrRatioParName);
         }
         catch(const ConfigFieldMissing &e_)
         {

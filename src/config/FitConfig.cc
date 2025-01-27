@@ -247,7 +247,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_,
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
                           double constrRatioMean_, double constrRatioSigma_,std::string constrRatioParName_)
   {
 
@@ -255,7 +255,7 @@ namespace antinufit
     fConstrRatioSigmas[name_]   = constrRatioSigma_;
     fConstrRatioParName[name_]  = constrRatioParName_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_);
   }
 
 }
