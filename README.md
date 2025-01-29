@@ -13,4 +13,4 @@ Edit the env.sh file to point to your `OXO` install, this `antinullh` directory,
 
 <h3>Running:</h3>
 
-Full instructions on how to run the code is in the `HowTo.md` guide
+Full instructions on how to run the code is in the `HOWTO.md` guide
