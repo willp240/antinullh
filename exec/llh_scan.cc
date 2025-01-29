@@ -34,6 +34,7 @@ void llh_scan(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
+  bool isFakeData = fitConfig.GetFakeDataFit();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
@@ -44,6 +45,7 @@ void llh_scan(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  ParameterDict fdValues = fitConfig.GetFakeData();
 
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
@@ -152,6 +154,9 @@ void llh_scan(const std::string &fitConfigFile_,
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
   asimov.SetObservables(dataObs);
+  // And an empty fake data dist
+  BinnedED fakeDataset = BinnedED("fake_dataset", systAxes);
+  fakeDataset.SetObservables(dataObs);
 
   // Build each of the PDFs, scale them to the correct size
   for (EvMap::iterator it = toGet.begin(); it != toGet.end(); ++it)
@@ -187,7 +192,11 @@ void llh_scan(const std::string &fitConfigFile_,
     if (dist.Integral())
       dist.Normalise();
     pdfs.push_back(dist);
+
     norm_fitting_statuses->push_back(INDIRECT);
+
+    // Now make a fake data dist for the event type
+    BinnedED fakeDataDist = dist;
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
@@ -198,31 +207,60 @@ void llh_scan(const std::string &fitConfigFile_,
         double distInt = dist.Integral();
         dist = systIt->second->operator()(dist);
         dist.Scale(distInt);
+        // Set syst parameter to fake data value, and apply to fake data dist and rescale
+        SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
+        fakeDataDist = systIt->second->operator()(fakeDataDist);
+        fakeDataDist.Scale(distInt);
       }
     }
 
     // Now scale the Asimov component by expected count, and also save pdf as a histo
     dist.Scale(noms[it->first]);
+    fakeDataDist.Scale(fdValues[it->first]);
     if (dist.GetNDims() != asimov.GetNDims())
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
       IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+
+      // Also scale fake data dist by fake data value
+      if (isFakeData)
+      {
+        BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
+        fakeDataset.Add(marginalisedFakeData);
+      }
     }
     else
     {
       asimov.Add(dist);
       IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      // Also scale fake data dist by fake data value
+      if (isFakeData)
+      {
+        fakeDataset.Add(fakeDataDist);
+      }
     }
   }
 
   // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
   // compare to to calculate the llh at each point in the scans
   IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
+  if (isFakeData)
+  {
+    IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata.root", "fakedata");
+  }
 
   // Now let's load up the data
   BinnedED dataDist;
-  if (!isAsimov)
+  if (isAsimov)
+  {
+    dataDist = asimov;
+  }
+  else if (isFakeData)
+  {
+    dataDist = fakeDataset;
+  }
+  else
   {
     std::string dataPath = fitConfig.GetDatafile();
 
@@ -242,11 +280,10 @@ void llh_scan(const std::string &fitConfigFile_,
       dataDist = DistBuilder::Build("data", pdfConfig, (DataSet *)&dataToFit);
     }
   }
-  else
-    dataDist = asimov;
 
   // Now build the likelihood
   BinnedNLLH lh;
+  lh.SetBuffer("energy", 1, 14);
   // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
@@ -260,7 +297,7 @@ void llh_scan(const std::string &fitConfigFile_,
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-    lh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -281,6 +318,15 @@ void llh_scan(const std::string &fitConfigFile_,
 
   // Calculate the nominal LLH
   double nomllh = lh.Evaluate();
+
+  if (isFakeData)
+  {
+    for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
+      parameterValues[it->first] = fdValues[it->first];
+
+    lh.SetParameters(parameterValues);
+    nomllh = lh.Evaluate();
+  }
 
   // Setup outfile
   std::string outFileName = outDir + "/llh_scan.root";

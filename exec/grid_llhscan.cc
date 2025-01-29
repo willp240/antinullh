@@ -34,6 +34,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
+  bool isFakeData = fitConfig.GetFakeDataFit();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
@@ -44,7 +45,8 @@ void grid_llhscan(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
-  
+  ParameterDict fdValues = fitConfig.GetFakeData();
+
   // Create output directories
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
@@ -155,23 +157,25 @@ void grid_llhscan(const std::string &fitConfigFile_,
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
-  std::vector<NormFittingStatus> *norm_fitting_statuses;
-  norm_fitting_statuses->clear();
+  std::vector<NormFittingStatus> *norm_fitting_statuses = new std::vector<NormFittingStatus>;
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
   asimov.SetObservables(dataObs);
+  // And an empty fake data dist
+  BinnedED fakeDataset = BinnedED("fake_dataset", systAxes);
+  fakeDataset.SetObservables(dataObs);
 
   // And we're going to create a scaled "asimov" dataset and reactor PDF for each point in the oscillation parameter scans
-  // The oscAsimovs aren't actually used in the scan, but we save them as they're useful to look at. But the teststat object
+  // The oscDatasets aren't actually used in the scan, but we save them as they're useful to look at. But the teststat object
   // should build exact equivalents if everything has gone to plan
-  std::vector<BinnedED> oscAsimovs;
+  std::vector<BinnedED> oscDatasets;
   std::vector<BinnedED> oscPDFs;
   for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
   {
     BinnedED oscAsmv = BinnedED("asimov", systAxes);
     oscAsmv.SetObservables(dataObs);
-    oscAsimovs.push_back(oscAsmv);
+    oscDatasets.push_back(oscAsmv);
   }
 
   // Build each of the PDFs, scale them to the correct size
@@ -209,7 +213,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
       // Now loop over deltam points and make a new pdf for each
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
       {
-        double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / npoints;
+        double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / (npoints - 1);
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21 << ", theta12: " << theta12_nom << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance);
         oscDist.AddPadding(1E-6);
@@ -228,14 +232,14 @@ void grid_llhscan(const std::string &fitConfigFile_,
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
         oscDist.Scale(noms[it->first]);
-        // oscAsimovs is a vector of "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
+        // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
         // We'll Add the rest of the PDFs later
-        oscAsimovs.at(iDeltaM).Add(oscDist);
+        oscDatasets.at(iDeltaM).Add(oscDist);
       }
       // And do the same for theta
       for (int iTheta = 0; iTheta < npoints; iTheta++)
       {
-        double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / npoints;
+        double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints - 1);
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance);
         oscDist.AddPadding(1E-6);
@@ -254,9 +258,9 @@ void grid_llhscan(const std::string &fitConfigFile_,
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
         oscDist.Scale(noms[it->first]);
-        // oscAsimovs is a vector of "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
+        // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
         // We'll Add the rest of the PDFs later
-        oscAsimovs.at(npoints + iTheta).Add(oscDist);
+        oscDatasets.at(npoints + iTheta).Add(oscDist);
       }
     }
     else
@@ -274,7 +278,11 @@ void grid_llhscan(const std::string &fitConfigFile_,
     if (dist.Integral())
       dist.Normalise();
     pdfs.push_back(dist);
+
     norm_fitting_statuses->push_back(INDIRECT);
+
+    // Now make a fake data dist for the event type
+    BinnedED fakeDataDist = dist;
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
@@ -286,16 +294,29 @@ void grid_llhscan(const std::string &fitConfigFile_,
         double distInt = dist.Integral();
         dist = systIt->second->operator()(dist);
         dist.Scale(distInt);
+        // Set syst parameter to fake data value, and apply to fake data dist and rescale
+        SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
+        distInt = fakeDataDist.Integral();
+        fakeDataDist = systIt->second->operator()(fakeDataDist);
+        fakeDataDist.Scale(distInt);
       }
     }
 
     // Now scale the Asimov component by expected count, and also save pdf as a histo
     dist.Scale(noms[it->first]);
+    fakeDataDist.Scale(fdValues[it->first]);
     if (dist.GetNDims() != asimov.GetNDims())
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
       IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+
+      // Also scale fake data dist by fake data value
+      if (isFakeData)
+      {
+        BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
+        fakeDataset.Add(marginalisedFakeData);
+      }
     }
     else
     {
@@ -306,8 +327,13 @@ void grid_llhscan(const std::string &fitConfigFile_,
       {
         for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
         {
-          oscAsimovs.at(iOscPoints).Add(dist);
+          oscDatasets.at(iOscPoints).Add(dist);
         }
+      }
+      // Also scale fake data dist by fake data value
+      if (isFakeData)
+      {
+        fakeDataset.Add(fakeDataDist);
       }
     }
   } // End loop over PDFs
@@ -315,17 +341,36 @@ void grid_llhscan(const std::string &fitConfigFile_,
   // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
   // compare to to calculate the llh at each point in the scans
   IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
-  // Now save the datasets for each point in the oscillation scans. These are the same as the above but with an oscillated reactor PDF
-  for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
+  if (isFakeData)
   {
-    std::stringstream oscasimovname;
-    oscasimovname << "oscasimov_" << iOscPoints << ".root";
-    IO::SaveHistogram(oscAsimovs.at(iOscPoints).GetHistogram(), outDir + "/" + oscasimovname.str(), "asimov");
+    IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata.root", "fakedata");
+  }
+
+  // Now save the datasets for each point in the oscillation scans. These are the same as the above but with an oscillated reactor PDF
+  for (int iOscPoints = 0; iOscPoints < npoints; iOscPoints++)
+  {
+    double deltam21 = deltam21_min + (double)iOscPoints * (deltam21_max - deltam21_min) / (npoints - 1);
+    std::stringstream dmOscAsimovName;
+    dmOscAsimovName << "oscAsimov_dm21_" << deltam21 << ".root";
+    IO::SaveHistogram(oscDatasets.at(iOscPoints).GetHistogram(), outDir + "/" + dmOscAsimovName.str(), "asimov");
+
+    double theta12 = theta12_min + (double)iOscPoints * (theta12_max - theta12_min) / (npoints - 1);
+    std::stringstream thOscAsimovName;
+    thOscAsimovName << "oscAsimov_th12_" << theta12 << ".root";
+    IO::SaveHistogram(oscDatasets.at(iOscPoints + npoints).GetHistogram(), outDir + "/" + thOscAsimovName.str(), "asimov");
   }
 
   // Now let's load up the data
   BinnedED dataDist;
-  if (!isAsimov)
+  if (isAsimov)
+  {
+    dataDist = asimov;
+  }
+  else if (isFakeData)
+  {
+    dataDist = fakeDataset;
+  }
+  else
   {
     std::string dataPath = fitConfig.GetDatafile();
 
@@ -345,12 +390,10 @@ void grid_llhscan(const std::string &fitConfigFile_,
       dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
     }
   }
-  else
-    dataDist = asimov;
 
   // Now build the likelihood
   BinnedNLLH lh;
-  lh.SetBuffer("energy",1,14);
+  lh.SetBuffer("energy", 1, 14);
   // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
@@ -364,7 +407,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-    lh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -380,6 +423,15 @@ void grid_llhscan(const std::string &fitConfigFile_,
 
   // Calculate the nominal LLH
   double nomllh = lh.Evaluate();
+
+  if (isFakeData)
+  {
+    for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
+      parameterValues[it->first] = fdValues[it->first];
+
+    lh.SetParameters(parameterValues);
+    nomllh = lh.Evaluate();
+  }
 
   // Setup outfile
   std::string outFileName = outDir + "/llh_scan.root";
@@ -439,7 +491,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
-    osclh.SetBuffer("energy",1,14);
+    osclh.SetBuffer("energy", 1, 14);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 
@@ -462,7 +514,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-      osclh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
     if (iDeltaM % countwidth == 0)
       std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
@@ -487,7 +539,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
-    osclh.SetBuffer("energy",1,14);
+    osclh.SetBuffer("energy", 1, 14);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 
@@ -510,7 +562,7 @@ void grid_llhscan(const std::string &fitConfigFile_,
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-      osclh.SetConstraint(it->first, constrRatioParName.at(it->first),it->second, constrRatioSigmas.at(it->first));
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
     if (iTheta12 % countwidth == 0)
       std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;

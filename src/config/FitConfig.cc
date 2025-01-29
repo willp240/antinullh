@@ -22,6 +22,12 @@ namespace antinufit
   }
 
   ParameterDict
+  FitConfig::GetFakeData() const
+  {
+    return fFakeDataVals;
+  }
+
+  ParameterDict
   FitConfig::GetSigmas() const
   {
     return fSigmas;
@@ -111,6 +117,18 @@ namespace antinufit
   FitConfig::SetAsimov(bool b_)
   {
     fAsimov = b_;
+  }
+
+  bool
+  FitConfig::GetFakeDataFit() const
+  {
+    return fFakeDataFit;
+  }
+
+  void
+  FitConfig::SetFakeDataFit(bool b_)
+  {
+    fFakeDataFit = b_;
   }
 
   std::string
@@ -207,28 +225,29 @@ namespace antinufit
   }
 
   void
-  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_,
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
                           double constrMean_, double constrSigma_)
   {
 
     fConstrMeans[name_] = constrMean_;
     fConstrSigmas[name_] = constrSigma_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_);
   }
 
   void
-  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_)
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_)
   {
     fMinima[name_] = min_;
     fMaxima[name_] = max_;
     fNominals[name_] = nom_;
+    fFakeDataVals[name_] = fdvalue_;
     fSigmas[name_] = sigma_;
     fNbins[name_] = nbins_;
   }
 
   void
-  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_,
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
                           double constrRatioMean_, double constrRatioSigma_,std::string constrRatioParName_)
   {
 
@@ -236,7 +255,7 @@ namespace antinufit
     fConstrRatioSigmas[name_]   = constrRatioSigma_;
     fConstrRatioParName[name_]  = constrRatioParName_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_);
   }
 
 }

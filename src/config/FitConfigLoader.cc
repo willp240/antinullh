@@ -29,6 +29,7 @@ namespace antinufit
     std::string dataSet;
     bool beestonBarlowFlag;
     bool asimovFlag;
+    bool fakeDataFitFlag;
     double livetime;
     std::string datafile;
 
@@ -45,6 +46,21 @@ namespace antinufit
     ConfigLoader::Load("summary", "datafile", datafile);
     ConfigLoader::Load("summary", "livetime", livetime);
 
+    try
+    {
+      ConfigLoader::Load("summary", "fake_data_fit", fakeDataFitFlag);
+    }
+    catch (const std::exception &e)
+    {
+      fakeDataFitFlag = false;
+    }
+
+    if (asimovFlag && fakeDataFitFlag)
+    {
+      std::cout << "WARNING: Asimov and Fake Data Fit flags both set to true in config. Will default to Asimov fit" << std::endl;
+      fakeDataFitFlag = false;
+    }
+
     ret.SetOutDir(outDir);
     ret.SetNSteps(nSteps);
     ret.SetEpsilon(epsilon);
@@ -55,6 +71,7 @@ namespace antinufit
     ret.SetSigmaScale(sigmaScale);
     ret.SetBeestonBarlow(beestonBarlowFlag);
     ret.SetAsimov(asimovFlag);
+    ret.SetFakeDataFit(fakeDataFitFlag);
     ret.SetDatafile(datafile);
     ret.SetLivetime(livetime);
 
@@ -64,6 +81,7 @@ namespace antinufit
 
     std::string name;
     double nom;
+    double fakeDataVal;
     double min;
     double max;
     double sig;
@@ -99,9 +117,18 @@ namespace antinufit
 
       try
       {
+        ConfigLoader::Load(name, "fake_data_val", fakeDataVal);
+      }
+      catch (const std::exception &e)
+      {
+        fakeDataVal = nom;
+      }
+
+      try
+      {
         ConfigLoader::Load(name, "constraint_mean", constrMean);
         ConfigLoader::Load(name, "constraint_sigma", constrSigma);
-        ret.AddParameter(name, nom, min, max, sig, nbins, constrMean, constrSigma);
+        ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, constrMean, constrSigma);
       }
       catch (const ConfigFieldMissing &e_)
       {
@@ -110,11 +137,11 @@ namespace antinufit
           ConfigLoader::Load(name, "constraint_ratiomean", constrRatioMean);
           ConfigLoader::Load(name, "constraint_ratiosigma", constrRatioSigma);
           ConfigLoader::Load(name, "constraint_ratioparname", constrRatioParName);
-          ret.AddParameter(name, nom, min, max, sig, nbins,constrRatioMean, constrRatioSigma,constrRatioParName);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, constrRatioMean, constrRatioSigma, constrRatioParName);
         }
         catch(const ConfigFieldMissing &e_)
         {
-          ret.AddParameter(name, nom, min, max, sig, nbins);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal);
         }   
       }
     }

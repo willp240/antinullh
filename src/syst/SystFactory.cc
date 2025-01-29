@@ -111,7 +111,6 @@ namespace antinufit
       // First declare possible functions
       ShapeFunction OscProbGrid = [&oscgridmap_, &indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
-
         double distance = indexdistancemap_[obs_vals.at(1)];
         double nuEnergy = obs_vals.at(2);
         OscGrid *oscGrid = oscgridmap_[obs_vals.at(1)];
@@ -222,5 +221,57 @@ namespace antinufit
     }
 
     return syst;
+  }
+
+  void
+  SystFactory::UpdateSystParamVals(const std::string &name,
+                      const std::string &type_,
+                      const std::vector<std::string> &paramnamevec_,
+                      ParameterDict &paramvals_,
+                      Systematic *syst_)
+  {
+    std::vector<std::string> type_vec = SplitString(type_, ':');
+    std::string type = type_vec.size() > 0 ? type_vec[0] : "";
+    std::string function = type_vec.size() > 1 ? type_vec[1] : "";
+    std::string ploy = type_vec.size() > 2 ? type_vec[2] : "";
+
+    if (type == "Scale")
+    {
+      ParameterDict params({{paramnamevec_.at(0), paramvals_[paramnamevec_.at(0)]}});
+      syst_->SetParameters(params);
+    }
+    else if (type == "Shift")
+    {
+      ParameterDict params({{paramnamevec_.at(0), paramvals_[paramnamevec_.at(0)]}});
+      syst_->SetParameters(params);
+    }
+    else if (type == "Conv")
+    {
+      ParameterDict params({{paramnamevec_.at(0), paramvals_[paramnamevec_.at(0)]}});
+      syst_->SetParameters(params);
+    }
+
+    else if (type == "ScaleFunction")
+    {
+      if (function == "BirksLaw")
+      {
+        ParameterDict params({{"birks_constant", paramvals_[paramnamevec_.at(0)]}});
+        syst_->SetParameters(params);
+      }
+      else
+      {
+        throw ValueError("Unknown function, " + function + ", for systematic type: " + type);
+      }
+    }
+
+    else if (type == "Shape")
+    {
+      ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+      syst_->SetParameters(params);
+    }
+    else
+    {
+      throw ValueError("Unknown systematic type: " + type_);
+    }
   }
 }
