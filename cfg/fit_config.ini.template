@@ -1,6 +1,7 @@
 [summary]
 datafile = 
 asimov = 1
+fake_data = 0
 iterations = 50000
 burn_in = 1000
 fit_dists = all

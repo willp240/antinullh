@@ -29,7 +29,7 @@ namespace antinufit
     std::string dataSet;
     bool beestonBarlowFlag;
     bool asimovFlag;
-    bool fakeDataFitFlag;
+    bool fakeDataFlag;
     double livetime;
     std::string datafile;
 
@@ -48,17 +48,17 @@ namespace antinufit
 
     try
     {
-      ConfigLoader::Load("summary", "fake_data_fit", fakeDataFitFlag);
+      ConfigLoader::Load("summary", "fake_data", fakeDataFlag);
     }
     catch (const std::exception &e)
     {
-      fakeDataFitFlag = false;
+      fakeDataFlag = false;
     }
 
-    if (asimovFlag && fakeDataFitFlag)
+    if (asimovFlag && fakeDataFlag)
     {
-      std::cout << "WARNING: Asimov and Fake Data Fit flags both set to true in config. Will default to Asimov fit" << std::endl;
-      fakeDataFitFlag = false;
+      std::cout << "WARNING: Asimov and Fake Data flags both set to true in config. Will default to Asimov fit" << std::endl;
+      fakeDataFlag = false;
     }
 
     ret.SetOutDir(outDir);
@@ -71,7 +71,7 @@ namespace antinufit
     ret.SetSigmaScale(sigmaScale);
     ret.SetBeestonBarlow(beestonBarlowFlag);
     ret.SetAsimov(asimovFlag);
-    ret.SetFakeDataFit(fakeDataFitFlag);
+    ret.SetFakeData(fakeDataFlag);
     ret.SetDatafile(datafile);
     ret.SetLivetime(livetime);
 

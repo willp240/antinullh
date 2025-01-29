@@ -34,7 +34,7 @@ void llh_scan(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
-  bool isFakeData = fitConfig.GetFakeDataFit();
+  bool isFakeData = fitConfig.GetFakeData();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
@@ -45,7 +45,7 @@ void llh_scan(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
-  ParameterDict fdValues = fitConfig.GetFakeData();
+  ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)

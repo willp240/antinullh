@@ -36,7 +36,7 @@ void mcmc(const std::string &fitConfigFile_,
   FitConfigLoader fitLoader(fitConfigFile_);
   fitConfig = fitLoader.LoadActive();
   bool isAsimov = fitConfig.GetAsimov();
-  bool isFakeData = fitConfig.GetFakeDataFit();
+  bool isFakeData = fitConfig.GetFakeData();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   int nsteps = fitConfig.GetIterations();
   int burnin = fitConfig.GetBurnIn();
@@ -48,7 +48,7 @@ void mcmc(const std::string &fitConfigFile_,
   ParameterDict noms = fitConfig.GetNominals();
   ParameterDict sigmas = fitConfig.GetSigmas();
   ParameterDict nbins = fitConfig.GetNBins();
-  ParameterDict fdValues = fitConfig.GetFakeData();
+  ParameterDict fdValues = fitConfig.GetFakeDataVals();
   double sigmaScale = fitConfig.GetSigmaScale();
 
   // Create output directories

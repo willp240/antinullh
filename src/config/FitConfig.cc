@@ -22,7 +22,7 @@ namespace antinufit
   }
 
   ParameterDict
-  FitConfig::GetFakeData() const
+  FitConfig::GetFakeDataVals() const
   {
     return fFakeDataVals;
   }
@@ -120,15 +120,15 @@ namespace antinufit
   }
 
   bool
-  FitConfig::GetFakeDataFit() const
+  FitConfig::GetFakeData() const
   {
-    return fFakeDataFit;
+    return fFakeData;
   }
 
   void
-  FitConfig::SetFakeDataFit(bool b_)
+  FitConfig::SetFakeData(bool b_)
   {
-    fFakeDataFit = b_;
+    fFakeData = b_;
   }
 
   std::string

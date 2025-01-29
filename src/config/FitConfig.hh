@@ -15,7 +15,7 @@ namespace antinufit
     ParameterDict GetSigmas() const;
     ParameterDict GetNBins() const;
     ParameterDict GetNominals() const;
-    ParameterDict GetFakeData() const;
+    ParameterDict GetFakeDataVals() const;
 
     ParameterDict GetConstrMeans() const;
     ParameterDict GetConstrSigmas() const;
@@ -60,8 +60,8 @@ namespace antinufit
     bool GetAsimov() const;
     void SetAsimov(bool);
 
-    bool GetFakeDataFit() const;
-    void SetFakeDataFit(bool);
+    bool GetFakeData() const;
+    void SetFakeData(bool);
 
     std::string GetDatafile() const;
     void SetDatafile(std::string);
@@ -90,7 +90,7 @@ namespace antinufit
     double fEpsilon;
     double fSigmaScale;
     bool fAsimov;
-    bool fFakeDataFit;
+    bool fFakeData;
     double fLivetime;
     std::string fDatafile;
     std::map<std::string,std::string> fConstrRatioParName;
