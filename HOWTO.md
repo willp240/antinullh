@@ -2,7 +2,7 @@
 
 This file is a guide on how to run the most commonly used apps in the antinu oxo likelihood analysis.  
 
-The first thing you'll want to do is get the environment variable in `env.sh` pointing to your OXO install. It's recommended you make a copy of this env.sh to avoid merge conflicts down the line.
+The first thing you'll want to do is get the environment variable in `env.sh` pointing to your `OXO` install. It's recommended you make a copy of this env.sh to avoid merge conflicts down the line.
 
 Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. Templates of the config files themselves live in `./cfg`.
 
@@ -10,13 +10,13 @@ Most of the executables live within the `exec` directory. Within `./src`, there 
 
 <h3>Config Loaders (src/config)</h3>
 
-For each type of config file, there is a class defined in `./src/config`, along with a loader for that class. Each of these follows a similar structure: the config class has an attribute for each field in the config file, and the config loader classes read values in from the config files and return an instance of the corresponding config class.\
+For each type of config file, there is a class defined in `./src/config`, along with a loader for that class. Each of these follows a similar structure: the config class has an attribute for each field in the config file, and the config loader classes read values in from the config files and return an instance of the corresponding config class.
 
 <h3>Systematic Related Functions (src/syst)</h3>
 
 <h4>Systematic Factory</h4>
 
-The systematic factory, when given a systematic name, type, and list of associated fit parameters, will return a systematic object to be used in the analysis. For some systematics, a vector of oscillation grids and a reactor-distance map can also be handed to the systematic factory. The allowed types are the OXO systematic classes, along with a possible function name and ploy name, each separated with a colon. The possible functions and ploys are defined in the Systematic Factory. These are the current allowed combinations
+The systematic factory, when given a systematic name, type, and list of associated fit parameters, will return a systematic object to be used in the analysis. For some systematics, a vector of oscillation grids and a reactor-distance map can also be handed to the systematic factory. The allowed types are the `OXO` systematic classes, along with a possible function name and ploy name, each separated with a colon. The possible functions and ploys are defined in the `SystematicFactory`. These are the current allowed combinations
 
 - `Scale`: A linear Scale systematic
 - `Shift`: A Shift systematic
@@ -33,7 +33,7 @@ Functions that can be passed to systematics are defined in here. Currently they 
 
 The oscillation probability calculation can be quite slow to do on the fly, so instead we can produce an "Oscillation Grid" (<code>OscGrid</code>). The probability of oscillation depends on the true neutrino energy, the distance travelled, and the oscillation parameters $\Delta m^2_{21}$ and $\theta_{12}$, so we can pre-calculate the probabilities for different values of each of those variables, and the linearly interpolate between them. As the distances to reactor cores are all fixed distinct values, rather than interpolate, we can produce a 3D grid for each reactor core distance.
 
-The `OscGrid` class has attributes for the min and max values and number of grid points for each dimension (true neutrino energy, $\Delta m^2_{21}$ and $\theta_{12}$), along with a vector of probabilities where each element represents the probability at a single point on the grid. An `OscGrid` can be constructed using just the axis ranges and number of points, along with the filename the grid will be written to and the distance it applies for. You can then calculate the probabilities at each grid point using the `CalcGrid` method. This can be written to the output file with the `Write` method. Alternatively you can load up a pre-written and calculated grid with the `Load` method. You can then obtain the probability for a given set of parameters with the `Evaluate` method. There are also 'Getters' for the probability vector, and vectors containing the grid points for each dimension. The calculation of the probability uses code copied from the RAT-tools/AntinuTools repo. We will look at making that code portable so we can call it rather than copy it in the future. The interpolation for calculating probabilities between grid points is done using functions which are stolen from the OXO Solar Analysis (https://github.com/dcookman/solar_analysis/). 
+The `OscGrid` class has attributes for the min and max values and number of grid points for each dimension (true neutrino energy, $\Delta m^2_{21}$ and $\theta_{12}$), along with a vector of probabilities where each element represents the probability at a single point on the grid. An `OscGrid` can be constructed using just the axis ranges and number of points, along with the filename the grid will be written to and the distance it applies for. You can then calculate the probabilities at each grid point using the `CalcGrid` method. This can be written to the output file with the `Write` method. Alternatively you can load up a pre-written and calculated grid with the `Load` method. You can then obtain the probability for a given set of parameters with the `Evaluate` method. There are also 'Getters' for the probability vector, and vectors containing the grid points for each dimension. The calculation of the probability uses code copied from the RAT-tools/AntinuTools repo. We will look at making that code portable so we can call it rather than copy it in the future. The interpolation for calculating probabilities between grid points is done using functions which are stolen from the `OXO` Solar Analysis (https://github.com/dcookman/solar_analysis/). 
 
 <h3>Utils (src/util)</h3>
 
@@ -45,13 +45,13 @@ This file contains utility functions, mostly related to the Oscillation Grids. T
 
 The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. 
 
-<h3>Configs</h3>
+<h3>Configs (src/config)</h3>
 
 There are several config files you'll need for running different apps. It's intended that you make a copy of the template config files and fill in the filepaths yourself. Just be aware of any subsequent changes to the format or content of the templates, as you'll probably want to propagate these to your own local config files.
 
 <h4>Event</h4>
 
-This file should contain information on the types of events you want to include in the analysis. An example is shown in `cfg/event_config.ini`. There should be a section, `summary`, which controls which event types are active and where the MC files live. Then there's a table for each event type, which contains a Latex name for axis titles, the exact location of files, the dimensions of the PDF, and the groups the PDF should belong to (different syestematics apply to different groups, see the OXO documentation for more info).
+This file should contain information on the types of events you want to include in the analysis. An example is shown in `cfg/event_config.ini`. There should be a section, `summary`, which controls which event types are active and where the MC files live. Then there's a table for each event type, which contains a Latex name for axis titles, the exact location of files, the dimensions of the PDF, and the groups the PDF should belong to (different syestematics apply to different groups, see the `OXO` documentation for more info).
 
 <h5>Summary</h5>
 
@@ -75,7 +75,8 @@ This file should contain information on the parameters of the fit, and the fit i
 <h5>Summary</h5>
 
 - `datafile`: The file containing the data events
-- `asimov`: Bool to determine if an Asimov or data fit should be run. If 1/True, the scaled PDFs are used as the data to run an Asimov fit
+- `asimov`: Bool to determine if an Asimov dataset should be used. If 1/True, the scaled PDFs are used as the data to run an Asimov fit
+- `fake_data`: Bool to determine if a 'fake dataset' should be used. If 1/True, PDFs are scaled to fake data values specified later in this config to produce the dataset. Fake data values of systematics are also applied. If both this and 'asimov' are true, the Asimov dataset is used
 - `iterations`: The number of steps in the Markov Chain
 - `burn_in`: The number of steps rejected at the start of the Markov Chain. This can be changed post analysis for most purposes
 - `fit_dists`: Which PDFs should be fit. Can use `all`
@@ -97,9 +98,15 @@ The name of these tables should be the name of the fit parameter.
 - `nbins`: Number of bins used for plotting the parameter
 - `constraint_mean`: Mean of the prior constraint on the parameter
 - `constraint_sig`: Width of the prior constraint on the parameter
+- `constraint_ratiomean`: Mean of prior constraint on ratio of this parameter to another
+- `constraint_ratiosigma`: Width of prior constraint on ratio of this parameter to another
+- `constraint_ratioparname`: Name of other parameter the ratio constraint corresponds to. This must be another parameter defined and activated in this file. 
+- `fake_data_val`: Value to use to produce a fake dataset if `fake_data` is true in the Summary
 
 A note on HMCMC: There is currently the functionality to run some MCMC, followed by some HMCMC starting from the best fit points of the MCMC. However, this didn't give any improvement in results or efficiency over the straight MCMC. The functionality is preserved in case we ever want to use it in the future, but generally we'll just run MCMC, with a notional 1 step HMCMC ran to avoid problems with files not being created when they are expected to.
 It's likely in the future we'll just remove the functionality.
+
+A note on Ratio Constraints: There is currently functionality to have a constraint on the ratio between two parameters. This should be specified by defining the constraint for one parameter and setting `constraint_ratioparname` to the name of the other. Do not then define the constraint for the second parameter as well, else the constraint will be applied twice. It does not matter which of the two parameters you define it for. It is not currently possible to have a ratio constraint for a parameter with more than one other parameters. We could change this in the future if it is needed. 
 
 <h4>PDF</h4>
 
