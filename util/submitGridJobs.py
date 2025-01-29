@@ -3,7 +3,7 @@ import argparse
 import configparser
 import json
 
-numpoints = 10
+numpoints = 500
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
