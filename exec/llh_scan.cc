@@ -148,8 +148,7 @@ void llh_scan(const std::string &fitConfigFile_,
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
-  std::vector<NormFittingStatus> *norm_fitting_statuses;
-  norm_fitting_statuses->clear();
+  std::vector<NormFittingStatus> *norm_fitting_statuses = new std::vector<NormFittingStatus>;
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
