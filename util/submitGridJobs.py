@@ -3,7 +3,7 @@ import argparse
 import configparser
 import json
 
-numpoints = 500
+numpoints = 10
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
@@ -28,8 +28,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     if exec_name == "make_osc_grids":
         batch_name, index = job_name.split('_index_')
     else:
-        index = ""
-        batch_name = job_name
+        batch_name, index = job_name.split('_')
 
     # Set a condor path to be called later
     condor_path = "{0}/".format(out_dir)
