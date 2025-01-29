@@ -245,6 +245,8 @@ There will also be a root file (`fit_name_i.root`) which contains a tree. Each e
 
 <h3>Submitting Batch Jobs</h3>
 
+<h4>Full fits</h4>
+
 For running full fits, it’s advisable to run multiple fits at once in parallel as you probably want around 1 million steps. Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think).  
 
 You can submit N jobs with:  
@@ -257,8 +259,20 @@ The environment file you supply here should be whatever you use to set up ROOT, 
 
 You can run this script with any of the apps. If you're not running a fit, you probably don't need multiple simultaneous jobs so can just run with N=1. If you're running `make_osc_grid` with the submission script, it will automatically loop over every reactor core in the reactors JSON file and run `make_osc_grid` for each in parallel.
 
-Soon we will produce a similar python script, but for submitting batch jobs for the grid scan fits. As there are 500x500 fits in the scan, it won't do one job for each fit, but will probably submit multiple jobs which each run multiple fits.
+<h4>Fixed Oscillation Parameters Fits</h4>
 
+First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
+
+There is a script, similar to `utils/submitCondor.py` but for submitting these fixed oscillation parameter fits. This is in `util/submitGridJobs.py`. 
+
+You can submit the jobs with:
+
+> python utils/submitGridJobs.py grid_fit output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini -o cfg/oscgrid.ini
+
+In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the oscillation parameter's fake data values to be their nominal values. This way, for every step in the grid, the fake dataset will be produced with the nominal values, and this will be the same for each fit. The python script will update the nominal values of the oscillation parameters in the config file to the current values in the grid scan, so we always fit the same fake data, but with different fixed oscillation parameter values each time. 
+
+`output_dir` will contain all the configs and logs for each fit, but the outputted root files will be produced in independent directories (one for each fit) inside the `output_directory` set in the `fit_config` file, so it is recommended you use the same directory on the command line and in that file.
+ 
 <h3> Postfit Analysis</h3>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is!
