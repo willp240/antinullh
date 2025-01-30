@@ -1,7 +1,5 @@
 import os
 import argparse
-import configparser
-import json
 
 numpoints = 500
 
@@ -25,7 +23,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     '''
 
     print (job_name)
-    batch_name, index = job_name.split('_')
+    batch_name, _ = job_name.rsplit('_', 1)
 
     # Set a condor path to be called later
     condor_path = "{0}/".format(out_dir)
@@ -34,40 +32,47 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     configs_path = os.path.abspath('{0}/cfg'.format(condor_path))
     check_dir(configs_path)
 
+    # Read the file
+    with open(fit_config, "r") as file:
+        lines = file.readlines()
+
+    for iline, line in enumerate(lines):
+        if line.startswith("[deltam21]"):
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("min ="):
+                    deltam_min = lines[jline].split("=")[1].strip()
+                    break
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("max ="):
+                    deltam_max = lines[jline].split("=")[1].strip()
+                    break
 
     # Loop over dm values, write fit_config with dm and theta values in
-    for i in range(numpoints):
+    for iFit in range(numpoints):
 
-        deltam = 0.0000678 + i*(0.0000828-0.0000678)/numpoints
+        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numpoints
         deltam = "{:.6f}".format(deltam)
 
-        # Read the file
-        with open(fit_config, "r") as file:
-            lines = file.readlines()
-
-        # Modify the relevant lines
-        updated_lines = []
         # Process the file and make updates
-        for i, line in enumerate(lines):
+        for iline, line in enumerate(lines):
             # Update theta12 nom
             if line.startswith("[theta12]"):
-                for j in range(i + 1, len(lines)):
-                    if lines[j].startswith("nom ="):
-                        lines[j] = f"nom = {theta}\n"
+                for jline in range(iline + 1, len(lines)):
+                    if lines[jline].startswith("nom ="):
+                        lines[jline] = f"nom = {theta}\n"
                         break
             # Update deltam21 nom
             elif line.startswith("[deltam21]"):
-                for j in range(i + 1, len(lines)):
-                    if lines[j].startswith("nom ="):
-                        lines[j] = f"nom = {deltam}\n"
+                for jline in range(iline + 1, len(lines)):
+                    if lines[jline].startswith("nom ="):
+                        lines[jline] = f"nom = {deltam}\n"
                         break
             # Update output_directory
             elif line.startswith("output_directory ="):
-                current_directory = line.split("=")[1].strip()
                 subdir = f"th{theta}_dm{deltam}"
-                updated_directory = os.path.join(current_directory, subdir)
-                lines[i] = f"output_directory = {updated_directory}\n"
-                subdir = check_dir("{0}/{1}".format(current_directory,subdir))
+                updated_directory = os.path.join(out_dir, subdir)
+                lines[iline] = f"output_directory = {updated_directory}\n"
+                subdir = check_dir("{0}/{1}".format(out_dir,subdir))
 
         fit_config_base = os.path.basename(fit_config)
         base_name, ext = os.path.splitext(fit_config_base)
@@ -100,9 +105,9 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                      "cd " + str(run_dir) + "\n" + \
                      str(other_commands) + "\n"
     # now loop over dm values ie do this with different fit configs
-    for i in range(numpoints):
+    for iFit in range(numpoints):
 
-        deltam = 0.0000678 + i*(0.0000828-0.0000678)/numpoints
+        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numpoints
         deltam = "{:.6f}".format(deltam)
 
         fit_config_base = os.path.basename(fit_config)
@@ -110,8 +115,8 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
         new_filename = f"{base_name}_th{theta}_dm{deltam}{ext}"
         new_filename = configs_path + "/" + new_filename
 
-        out_macro_text += str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + " " + index + "\n"
-        print(str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + " " + index + "\n")
+        out_macro_text += str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + "\n"
+        print(str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + "\n")
 
     sh_filepath = "{0}/sh/".format(condor_path) + str(job_name).replace("/", "") + '.sh'
     if not os.path.exists(os.path.dirname(sh_filepath)):
@@ -152,7 +157,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     out_submit_file.write(out_submit_text)
     out_submit_file.close()
 
-    # Lez do dis
+    # Lez doo dis
     command = 'condor_submit -batch-name \"' + batch_name +'\" ' + submit_filepath
     print ("executing job: " + command)
     os.system(command)
@@ -197,13 +202,28 @@ if __name__ == "__main__":
     if osc_config != "":
         osc_config = run_dir + "/" + args.osc_cfg
 
-    # Otherwise do N jobs
-    for i in range(numpoints):
+    # Read the file
+    with open(fit_config, "r") as file:
+        lines = file.readlines()
 
-        theta = i*(180/numpoints)
+    for iline, line in enumerate(lines):
+        if line.startswith("[theta12]"):
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("min ="):
+                    theta_min = lines[jline].split("=")[1].strip()
+                    break
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("max ="):
+                    theta_max = lines[jline].split("=")[1].strip()
+                    break
+
+    # Loop over theta points, and do job one for each
+    for iJob in range(numpoints):
+
+        theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numpoints
         theta = "{:.2f}".format(theta)
 
-        job_name = base_name + "_{0}".format(i)
+        job_name = base_name + "_th{0}".format(theta)
 
         log_dir = check_dir("{0}/log/".format(out_dir))
         error_dir = check_dir("{0}/error/".format(out_dir))
