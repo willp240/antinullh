@@ -22,7 +22,7 @@
 
 using namespace antinufit;
 
-void grid_fit(const std::string &fitConfigFile_,
+void fixedosc_fit(const std::string &fitConfigFile_,
               const std::string &evConfigFile_,
               const std::string &pdfConfigFile_,
               const std::string &systConfigFile_,
@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
 {
   if (argc != 6)
   {
-    std::cout << "\nUsage: grid_fit <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
+    std::cout << "\nUsage fixedosc_fit <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
     return 1;
   }
 
@@ -443,7 +443,7 @@ int main(int argc, char *argv[])
   std::string systConfigFile(argv[4]);
   std::string oscgridConfigFile(argv[5]);
 
-  grid_fit(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
+  fixedosc_fit(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
 
   return 0;
 }

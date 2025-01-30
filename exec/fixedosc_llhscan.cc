@@ -21,7 +21,7 @@
 
 using namespace antinufit;
 
-void grid_llhscan(const std::string &fitConfigFile_,
+void fixedosc_llhscan(const std::string &fitConfigFile_,
                   const std::string &evConfigFile_,
                   const std::string &pdfConfigFile_,
                   const std::string &systConfigFile_,
@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
 {
   if (argc != 6)
   {
-    std::cout << "\nUsage: grid_llhscan <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
+    std::cout << "\nUsage: fixedosc_llhscan <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
     return 1;
   }
 
@@ -598,7 +598,7 @@ int main(int argc, char *argv[])
   std::string systConfigFile(argv[4]);
   std::string oscgridConfigFile(argv[5]);
 
-  grid_llhscan(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
+  fixedosc_llhscan(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
 
   return 0;
 }
