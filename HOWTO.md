@@ -205,11 +205,11 @@ One of way doing this is with likelihood scans. The likelihood scan apps first b
 
 For the 'true' Asimov dataset, these scans should all minimise at (1,0) (where the x axis is parameter value / nominal value) i.e., by changing a parameter, you can't produce a dataset more similar to the target dataset than by using the exact values used to produce the target dataset. For the other forms of Asimov dataset, most parameters will minimise close to 1, but probably not exactly. The event types with higher rates will be closer to 1 as changes in these will have a greater impact on the LLH, and the small fluctuations causing the differences between the PDFs and Asimov dataset will be smaller proportionally.  
 
-There are two likelihood scan apps. The first, `grid_llhscan` initially loops over all parameters except the oscillation parameters. The oscillation parameters are not handed to the `OXO` `BinnedNLLH` object, and the reactor PDF is produced with the oscillation parameters at nominal values. After performing the LLH scan for all non-oscillation parameters, it rebuilds the reactor PDF for each of the 150 values for each oscillation parameter. For each of these, it rebuilds the dataset and hands this to the `BinnedNLLH` to compare to the Asimov dataset. This is because, for speed, sometimes we want to run fits where the oscillation is handled outside of `OXO` (see the grid fits below). This version of the likelihood scan is designed to be used for validating that fit.
+There are two likelihood scan apps. The first, `fixedosc_llhscan` initially loops over all parameters except the oscillation parameters. The oscillation parameters are not handed to the `OXO` `BinnedNLLH` object, and the reactor PDF is produced with the oscillation parameters at nominal values. After performing the LLH scan for all non-oscillation parameters, it rebuilds the reactor PDF for each of the 150 values for each oscillation parameter. For each of these, it rebuilds the dataset and hands this to the `BinnedNLLH` to compare to the Asimov dataset. This is because, for speed, sometimes we want to run fits where the oscillation is handled outside of `OXO` (see the fixed oscillation parameters fits below). This version of the likelihood scan is designed to be used for validating that fit.
 
-To run the grid LLH scan:  
+To run the fixedosc LLH scan:  
 
-> ./bin/grid_llhscan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+> ./bin/fixedosc_llhscan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
 A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
 
@@ -223,7 +223,7 @@ To run the LLH scan:
 
 Now the time has come to run a fit. When we float the oscillation parameters, we need extra dimensions for the reactors PDF to contain the true neutrino energy and the reactor core it came from. As there are 483 cores, if we have 140 bins in each energy dimension, we end up with over 9 million bins! This means marginalising down to 1D to compare to data takes a lot of time. There are few ideas to get around this, but first let's run individual fits where we don't vary the oscillation parameters (so everything remains 1D and fast), and do this at all points in a grid of oscillation parameter values. We can do this for one point with:
 
-> ./bin/grid_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+> ./bin/fixedosc_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
 The value of the oscillation parameters should be set in the `fit` config file. This performs a `Minuit` fit, with the oscillation parameters fixed at those values. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced.
 
@@ -235,7 +235,7 @@ If you want to run a full fit where everything is floated at once, there is an a
 
 > ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
-This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories, some of which are the same as for `grid_fit`.
+This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories, some of which are the same as for `fixedosc_fit`.
 
 In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps are automatically not included.
 
@@ -263,13 +263,13 @@ You can run this script with any of the apps. If you're not running a fit, you p
 
 First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
 
-There is a script, similar to `utils/submitCondor.py` but for submitting these fixed oscillation parameter fits. This is in `util/submitGridJobs.py`. 
+There is a script, similar to `utils/submitCondor.py` but for submitting these fixed oscillation parameter fits. This is in `util/submitfixedoscJobs.py`. 
 
 You can submit the jobs with:
 
-> python utils/submitGridJobs.py grid_fit output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini -o cfg/oscgrid.ini
+> python utils/submitFixedOscJobs.py fixedosc_fit output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini -o cfg/oscgrid.ini
 
-In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the oscillation parameter's fake data values to be their nominal values. This way, for every step in the grid, the fake dataset will be produced with the nominal values, and this will be the same for each fit. The python script will update the nominal values of the oscillation parameters in the config file to the current values in the grid scan, so we always fit the same fake data, but with different fixed oscillation parameter values each time. 
+In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the oscillation parameter's fake data values to be their nominal values. This way, for every step in the grid, the fake dataset will be produced with the nominal values, and this will be the same for each fit. The python script will update the nominal values of the oscillation parameters in the config file to the current values in the fixed oscillation parameters scan, so we always fit the same fake data, but with different fixed oscillation parameter values each time. 
 
 `output_dir` will contain all the configs and logs for each fit, but the outputted root files will be produced in independent directories (one for each fit) inside the `output_directory` set in the `fit_config` file, so it is recommended you use the same directory on the command line and in that file.
  
