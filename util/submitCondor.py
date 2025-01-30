@@ -118,7 +118,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     # Lez do dis
     command = 'condor_submit -batch-name \"' + batch_name +'\" ' + submit_filepath
     print ("executing job: " + command)
-    #os.system(command)
+    os.system(command)
 
 
 if __name__ == "__main__":
