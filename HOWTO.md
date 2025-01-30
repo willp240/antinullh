@@ -255,7 +255,7 @@ You can submit N jobs with:
 
 The environment file you supply here should be whatever you use to set up ROOT, python, GSL, etc., not `antinullh/env.sh` (which should be sourced before running the python submission). The output directory will be created, with several subdirectories:
 
-`error`, `output` and `log` contain the console outputs and batch log. `sh` and `submit` contain the files used to submit these jobs, and `cfg` contains all the config files used to run the fit. 
+`error`, `output` and `log` contain the console outputs and batch log. `sh` and `submit` contain the files used to submit these jobs, and `cfg` contains all the config files used to run the fit. The `output_directory` set in the `fit_config` file will be overwritten by the command line `output_dir` argument.
 
 You can run this script with any of the apps. If you're not running a fit, you probably don't need multiple simultaneous jobs so can just run with N=1. If you're running `make_osc_grid` with the submission script, it will automatically loop over every reactor core in the reactors JSON file and run `make_osc_grid` for each in parallel.
 
