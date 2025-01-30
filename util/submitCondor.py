@@ -54,6 +54,19 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
 
     other_commands = 'sleep $[($RANDOM%' + str(sleep_time+1) + ')+1]s'
 
+    # Read the file
+    with open(fit_config, "r") as file:
+        lines = file.readlines()
+
+    for iline, line in enumerate(lines):
+        # Update output_directory
+        if line.startswith("output_directory ="):
+            lines[iline] = f"output_directory = {out_dir}\n"
+
+    # Write the updated lines back to the file
+    with open(fit_config, "w") as file:
+        file.writelines(lines)
+
     # Write sh file to be ran
     out_macro_text = "#!/usr/bin/sh  \n" + \
                      "source " + env_file + "\n" + \
@@ -105,7 +118,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     # Lez do dis
     command = 'condor_submit -batch-name \"' + batch_name +'\" ' + submit_filepath
     print ("executing job: " + command)
-    os.system(command)
+    #os.system(command)
 
 
 if __name__ == "__main__":
