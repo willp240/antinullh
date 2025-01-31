@@ -22,10 +22,10 @@
 using namespace antinufit;
 
 void fixedosc_llhscan(const std::string &fitConfigFile_,
-                  const std::string &evConfigFile_,
-                  const std::string &pdfConfigFile_,
-                  const std::string &systConfigFile_,
-                  const std::string &oscGridConfigFile_)
+                      const std::string &evConfigFile_,
+                      const std::string &pdfConfigFile_,
+                      const std::string &systConfigFile_,
+                      const std::string &oscGridConfigFile_)
 {
   Rand::SetSeed(0);
 
@@ -225,9 +225,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           // If group is "", we apply to all groups
           if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
           {
-            double distInt = oscDist.Integral();
-            oscDist = systIt->second->operator()(oscDist);
-            oscDist.Scale(distInt);
+            double norm;
+            oscDist = systIt->second->operator()(oscDist, &norm);
           }
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
@@ -251,9 +250,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           // If group is "", we apply to all groups
           if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
           {
-            double distInt = oscDist.Integral();
-            oscDist = systIt->second->operator()(oscDist);
-            oscDist.Scale(distInt);
+            double norm;
+            oscDist = systIt->second->operator()(oscDist, &norm);
           }
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
@@ -283,6 +281,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
     // Now make a fake data dist for the event type
     BinnedED fakeDataDist = dist;
+    double distInt = dist.Integral();
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
@@ -291,16 +290,15 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       // If group is "", we apply to all groups
       if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
       {
-        double distInt = dist.Integral();
-        dist = systIt->second->operator()(dist);
-        dist.Scale(distInt);
+        double norm;
+        dist = systIt->second->operator()(dist, &norm);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
         SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
-        distInt = fakeDataDist.Integral();
-        fakeDataDist = systIt->second->operator()(fakeDataDist);
-        fakeDataDist.Scale(distInt);
+        fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
+    dist.Scale(distInt);
+    fakeDataDist.Scale(distInt);
 
     // Now scale the Asimov component by expected count, and also save pdf as a histo
     dist.Scale(noms[it->first]);
@@ -449,11 +447,18 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     double nom = noms[name];
     if (nom == 0)
       nom = 1;
-    double min = mins[name];
-    double max = maxs[name];
+
+    // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
+    double width = (maxs[name] - mins[name]) / (npoints);
+    int numStepsBelowNom = floor((noms[name] - mins[name]) / width);
+    int numStepsAboveNom = floor((maxs[name] - noms[name]) / width);
+
+    double min = noms[name] - numStepsBelowNom * width;
+    double max = noms[name] + numStepsAboveNom * width;
+
     // Make histogram for this parameter
     TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
-    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, min / nom, max / nom);
+    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
     hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
 
     // Now loop from min to max in npoint steps
@@ -482,9 +487,18 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   }
 
   // Now we do the same for the oscillation parameters
+
+  // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
+  double width = (deltam21_max - deltam21_max) / (npoints);
+  int numStepsBelowNom = floor((deltam21_nom - deltam21_min) / width);
+  int numStepsAboveNom = floor((deltam21_max - deltam21_nom) / width);
+  double min = deltam21_nom - numStepsBelowNom * width;
+  double max = deltam21_nom + numStepsAboveNom * width;
+
   TString htitle = Form("%s, Nom. Value: %f", "deltam21", deltam21_nom);
-  TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, deltam21_min, deltam21_max);
+  TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, (min - (width / 2)) / deltam21_nom, (max + (width / 2)) / deltam21_nom);
   hDeltam->SetTitle(std::string(htitle + "; #Delta m^{2}_{21} (eV^{2}); -(ln L_{full})").c_str());
+
   std::cout << "Scanning for deltam21" << std::endl;
   for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
   {
@@ -529,9 +543,16 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   }
   hDeltam->Write();
 
+  // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
+  width = (theta12_max - theta12_min) / (npoints);
+  numStepsBelowNom = floor((theta12_nom - theta12_min) / width);
+  numStepsAboveNom = floor((theta12_max - theta12_nom) / width);
+  min = theta12_nom - numStepsBelowNom * width;
+  max = theta12_nom + numStepsAboveNom * width;
+
   // Repeat for theta
   htitle = Form("%s, Nom. Value: %f", "theta12", theta12_nom);
-  TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, theta12_min, theta12_max);
+  TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, (min - (width / 2)) / theta12_nom, (max + (width / 2)) / theta12_nom);
   hTheta12->SetTitle(std::string(htitle + "; #theta_{12} (^{o}); -(ln L_{full})").c_str());
   std::cout << "Scanning for theta12" << std::endl;
   for (int iTheta12 = 0; iTheta12 < npoints; iTheta12++)
