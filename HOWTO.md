@@ -116,7 +116,6 @@ This file should contain information on the pdf axes. An example is shown in `cf
   
 - `build_order`: The axes used for the PDFs. These will be defined in the same file as axis tables. The order is important: the dimensions field in `events` config sets the number of dimensions, N, for a given PDF. The axes used will be the first N axes here
 - `data_axes`: The axes the data will have
-- `pdf_dir`: Where the PDFs should be saved to as histograms
 
 <h5>PDF Axis Tables</h5>
   
