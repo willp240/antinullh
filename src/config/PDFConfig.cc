@@ -46,18 +46,6 @@ namespace antinufit
     fMaxima.push_back(max_);
   }
 
-  const std::string &
-  PDFConfig::GetPDFDir() const
-  {
-    return fPDFDir;
-  }
-
-  void
-  PDFConfig::SetPDFDir(const std::string &s_)
-  {
-    fPDFDir = s_;
-  }
-
   std::vector<std::string>
   PDFConfig::GetBranchNames() const
   {

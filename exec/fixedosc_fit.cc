@@ -23,10 +23,10 @@
 using namespace antinufit;
 
 void fixedosc_fit(const std::string &fitConfigFile_,
-              const std::string &evConfigFile_,
-              const std::string &pdfConfigFile_,
-              const std::string &systConfigFile_,
-              const std::string &oscGridConfigFile_)
+                  const std::string &evConfigFile_,
+                  const std::string &pdfConfigFile_,
+                  const std::string &systConfigFile_,
+                  const std::string &oscGridConfigFile_)
 {
   Rand::SetSeed(0);
 
@@ -55,8 +55,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     mkdir(outDir.c_str(), 0700);
 
   std::string scaledDistDir = outDir + "/scaled_dists";
+  std::string pdfDir = outDir + "/pdfs";
   if (stat(scaledDistDir.c_str(), &st) == -1)
     mkdir(scaledDistDir.c_str(), 0700);
+  if (stat(pdfDir.c_str(), &st) == -1)
+    mkdir(pdfDir.c_str(), 0700);
 
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
@@ -66,7 +69,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
   PDFConfigLoader pdfLoader(pdfConfigFile_);
   PDFConfig pdfConfig = pdfLoader.Load();
-  std::string pdfDir = pdfConfig.GetPDFDir();
   std::vector<std::string> dataObs = pdfConfig.GetDataBranchNames();
   ObsSet dataObsSet(dataObs);
   AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, dataObs.size());

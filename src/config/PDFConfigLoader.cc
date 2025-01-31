@@ -22,9 +22,6 @@ namespace antinufit
     std::vector<std::string> data_axes;
     ConfigLoader::Load("summary", "data_axes", data_axes);
 
-    std::string pdfDir;
-    ConfigLoader::Load("summary", "pdf_dir", pdfDir);
-
     PDFConfig retVal;
 
     double min;
@@ -47,7 +44,6 @@ namespace antinufit
       ConfigLoader::Load(name, "tex_name", texName);
       retVal.AddAxis(name, branchName, texName, binCount, min, max);
     }
-    retVal.SetPDFDir(pdfDir);
     retVal.SetDataBranchNames(data_axes);
     return retVal;
   }

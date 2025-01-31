@@ -52,6 +52,10 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   if (stat(outDir.c_str(), &st) == -1)
     mkdir(outDir.c_str(), 0700);
 
+  std::string pdfDir = outDir + "/pdfs";
+  if (stat(pdfDir.c_str(), &st) == -1)
+    mkdir(pdfDir.c_str(), 0700);
+
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
   EventConfigLoader loader(evConfigFile_);
@@ -60,7 +64,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
   PDFConfigLoader pdfLoader(pdfConfigFile_);
   PDFConfig pdfConfig = pdfLoader.Load();
-  std::string pdfDir = pdfConfig.GetPDFDir();
   std::vector<std::string> dataObs = pdfConfig.GetDataBranchNames();
   ObsSet dataObsSet(dataObs);
   AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, dataObs.size());
@@ -489,14 +492,14 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   // Now we do the same for the oscillation parameters
 
   // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
-  double width = (deltam21_max - deltam21_max) / (npoints);
+  double width = (deltam21_max - deltam21_min) / (npoints);
   int numStepsBelowNom = floor((deltam21_nom - deltam21_min) / width);
   int numStepsAboveNom = floor((deltam21_max - deltam21_nom) / width);
   double min = deltam21_nom - numStepsBelowNom * width;
   double max = deltam21_nom + numStepsAboveNom * width;
 
   TString htitle = Form("%s, Nom. Value: %f", "deltam21", deltam21_nom);
-  TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, (min - (width / 2)) / deltam21_nom, (max + (width / 2)) / deltam21_nom);
+  TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, (min - (width / 2)), (max + (width / 2)));
   hDeltam->SetTitle(std::string(htitle + "; #Delta m^{2}_{21} (eV^{2}); -(ln L_{full})").c_str());
 
   std::cout << "Scanning for deltam21" << std::endl;
@@ -552,7 +555,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // Repeat for theta
   htitle = Form("%s, Nom. Value: %f", "theta12", theta12_nom);
-  TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, (min - (width / 2)) / theta12_nom, (max + (width / 2)) / theta12_nom);
+  TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, (min - (width / 2)), (max + (width / 2)));
   hTheta12->SetTitle(std::string(htitle + "; #theta_{12} (^{o}); -(ln L_{full})").c_str());
   std::cout << "Scanning for theta12" << std::endl;
   for (int iTheta12 = 0; iTheta12 < npoints; iTheta12++)

@@ -1,7 +1,6 @@
 [summary]
 build_order = energy,reactor,nu_energy
 data_axes = energy
-pdf_dir =
 
 [energy]
 n_bins=140

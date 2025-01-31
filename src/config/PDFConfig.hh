@@ -21,9 +21,6 @@ namespace antinufit
                  const std::string &texName_,
                  int binCount_, double min_, double max_);
 
-    const std::string &GetPDFDir() const;
-    void SetPDFDir(const std::string &);
-
     const std::vector<std::string> &GetDataBranchNames() const;
     void SetDataBranchNames(const std::vector<std::string> &);
 
@@ -31,7 +28,6 @@ namespace antinufit
     std::vector<std::string> GetBranchNames( const int ) const;
 
   private:
-    std::string fPDFDir;
     std::vector<std::string> fAxisNames;
     std::vector<std::string> fDataAxesNames;
     std::vector<std::string> fBranchNames;
