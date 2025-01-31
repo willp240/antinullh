@@ -118,7 +118,7 @@ namespace antinufit
         return prob;
       };
 
-      ShapeFunction OscProb = [&oscgridmap_, &indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
+      ShapeFunction OscProb = [&indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
         Double_t nuE_parent = obs_vals.at(2);
         Double_t baseline = indexdistancemap_[obs_vals.at(1)];
