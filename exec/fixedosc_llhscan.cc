@@ -489,14 +489,14 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   // Now we do the same for the oscillation parameters
 
   // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
-  double width = (deltam21_max - deltam21_max) / (npoints);
+  double width = (deltam21_max - deltam21_min) / (npoints);
   int numStepsBelowNom = floor((deltam21_nom - deltam21_min) / width);
   int numStepsAboveNom = floor((deltam21_max - deltam21_nom) / width);
   double min = deltam21_nom - numStepsBelowNom * width;
   double max = deltam21_nom + numStepsAboveNom * width;
 
   TString htitle = Form("%s, Nom. Value: %f", "deltam21", deltam21_nom);
-  TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, (min - (width / 2)) / deltam21_nom, (max + (width / 2)) / deltam21_nom);
+  TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, (min - (width / 2)), (max + (width / 2)));
   hDeltam->SetTitle(std::string(htitle + "; #Delta m^{2}_{21} (eV^{2}); -(ln L_{full})").c_str());
 
   std::cout << "Scanning for deltam21" << std::endl;
@@ -552,7 +552,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // Repeat for theta
   htitle = Form("%s, Nom. Value: %f", "theta12", theta12_nom);
-  TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, (min - (width / 2)) / theta12_nom, (max + (width / 2)) / theta12_nom);
+  TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, (min - (width / 2)), (max + (width / 2)));
   hTheta12->SetTitle(std::string(htitle + "; #theta_{12} (^{o}); -(ln L_{full})").c_str());
   std::cout << "Scanning for theta12" << std::endl;
   for (int iTheta12 = 0; iTheta12 < npoints; iTheta12++)
