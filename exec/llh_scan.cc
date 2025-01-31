@@ -47,9 +47,14 @@ void llh_scan(const std::string &fitConfigFile_,
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
+  // Create output directories
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
     mkdir(outDir.c_str(), 0700);
+
+  std::string pdfDir = outDir + "/pdfs";
+  if (stat(pdfDir.c_str(), &st) == -1)
+    mkdir(pdfDir.c_str(), 0700);
 
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
@@ -59,7 +64,6 @@ void llh_scan(const std::string &fitConfigFile_,
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
   PDFConfigLoader pdfLoader(pdfConfigFile_);
   PDFConfig pdfConfig = pdfLoader.Load();
-  std::string pdfDir = pdfConfig.GetPDFDir();
   std::vector<std::string> dataObs = pdfConfig.GetDataBranchNames();
   ObsSet dataObsSet(dataObs);
   AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, dataObs.size());
@@ -355,7 +359,7 @@ void llh_scan(const std::string &fitConfigFile_,
 
     // Make histogram for this parameter
     TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
-    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, (min-(width/2)) / nom, (max+(width/2)) / nom);
+    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
     hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
 
     // Now loop from min to max in npoint steps
