@@ -197,21 +197,22 @@ void llh_scan(const std::string &fitConfigFile_,
     // Now make a fake data dist for the event type
     BinnedED fakeDataDist = dist;
 
+    double distInt = dist.Integral();
+    double norm;
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
     {
       // If group is "", we apply to all groups
       if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
       {
-        double distInt = dist.Integral();
-        dist = systIt->second->operator()(dist);
-        dist.Scale(distInt);
+        dist = systIt->second->operator()(dist, &norm);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
         SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
-        fakeDataDist = systIt->second->operator()(fakeDataDist);
-        fakeDataDist.Scale(distInt);
+        fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
+    dist.Scale(distInt);
+    fakeDataDist.Scale(distInt);
 
     // Now scale the Asimov component by expected count, and also save pdf as a histo
     dist.Scale(noms[it->first]);
@@ -343,11 +344,18 @@ void llh_scan(const std::string &fitConfigFile_,
     double nom = noms[name];
     if (nom == 0)
       nom = 1;
-    double min = mins[name];
-    double max = maxs[name];
+
+    // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
+    double width = (maxs[name] - mins[name]) / (npoints);
+    int numStepsBelowNom = floor((noms[name] - mins[name]) / width);
+    int numStepsAboveNom = floor((maxs[name] - noms[name]) / width);
+
+    double min = noms[name] - numStepsBelowNom * width;
+    double max = noms[name] + numStepsAboveNom * width;
+
     // Make histogram for this parameter
     TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
-    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, min / nom, max / nom);
+    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, (min-(width/2)) / nom, (max+(width/2)) / nom);
     hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
 
     // Now loop from min to max in npoint steps
@@ -368,7 +376,7 @@ void llh_scan(const std::string &fitConfigFile_,
       // Set bin contents
       hScan->SetBinContent(i + 1, llh - nomllh);
 
-      // return to nominal value
+      // Return to nominal value
       parameterValues[name] = tempval;
     }
     // Write Histos
