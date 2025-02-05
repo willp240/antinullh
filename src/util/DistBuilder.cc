@@ -64,7 +64,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double theta12_, std::unordered_map<int, double> indexDistance_)
+  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double theta12_, std::unordered_map<int, double> indexDistance_, double& ratio)
   {
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
@@ -90,6 +90,8 @@ namespace antinufit
         dist.Fill(ev);
       }
     }
+
+    ratio = dist.Integral() / data_->GetNEntries();
 
     return dist;
   }

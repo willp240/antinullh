@@ -190,7 +190,13 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     if (it->first == "reactor_nubar")
     {
       // Build the distribution with oscillation parameters at their nominal values
-      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance);
+      double ratio = 1.0;
+      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance, ratio);
+
+      // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
+      constrMeans[it->first] = constrMeans[it->first] * ratio;
+      constrSigmas[it->first] = constrSigmas[it->first] * ratio;
+      noms[it->first] = noms[it->first] * ratio;
     }
     else
     {
