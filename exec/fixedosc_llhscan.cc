@@ -211,14 +211,27 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     {
       reacPDFNum = pdfs.size();
       // Build the distribution with oscillation parameters at their nominal values
-      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance);
+      // Pass double by reference here to get ratio of unoscillated to oscillated events
+      double ratio = 1.0;
+      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance, ratio);
+
+      // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
+      constrMeans[it->first] = constrMeans[it->first] * ratio;
+      constrSigmas[it->first] = constrSigmas[it->first] * ratio;
+      noms[it->first] = noms[it->first] * ratio;
 
       // Now loop over deltam points and make a new pdf for each
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
       {
         double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / (npoints - 1);
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21 << ", theta12: " << theta12_nom << std::endl;
-        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance);
+        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance, ratio);
+
+        // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
+        constrMeans[it->first] = constrMeans[it->first] * ratio;
+        constrSigmas[it->first] = constrSigmas[it->first] * ratio;
+        noms[it->first] = noms[it->first] * ratio;
+
         oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
@@ -243,7 +256,13 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       {
         double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints - 1);
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
-        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance);
+        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance, ratio);
+
+        // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
+        constrMeans[it->first] = constrMeans[it->first] * ratio;
+        constrSigmas[it->first] = constrSigmas[it->first] * ratio;
+        noms[it->first] = noms[it->first] * ratio;
+
         oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
