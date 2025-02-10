@@ -199,7 +199,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       noms[it->first] = noms[it->first] * ratio;
       mins[it->first] = mins[it->first] * ratio;
       maxs[it->first] = maxs[it->first] * ratio;
-      fdValues[it->first] = noms[it->first];
+      fdValues[it->first] = fdValues[it->first] * ratio;
     }
     else
     {

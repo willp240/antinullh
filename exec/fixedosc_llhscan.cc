@@ -128,7 +128,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   double theta12_max = maxs["theta12"];
 
   // Define the number of points
-  int npoints =150;
+  int npoints = 150;
   int countwidth = double(npoints) / double(5);
 
   // A parameter could have been defined in the fit config but isn't associated with a pdf or systematic
@@ -207,7 +207,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
     // If it's the reactor PDF, two things are different from the others. Firstly we use the BuildOscillatedDist rather than just Build.
     // Also, we're going to loop over oscillation scan points to make the reactor's PDF for that point as well
-    std::vector<double> constrMeans_Map;
     if (it->first == "reactor_nubar")
     {
       reacPDFNum = pdfs.size();
@@ -215,6 +214,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       // Pass double by reference here to get ratio of unoscillated to oscillated events
       double ratio = 1.0;
       dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance, ratio);
+      
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
       
       double constrMeans_config = constrMeans[it->first];  
@@ -227,7 +227,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       noms[it->first] = noms_config * ratio;
       mins[it->first] = min_config * ratio;
       maxs[it->first] = max_config * ratio;
-      fdValues[it->first] = noms[it->first];
+      fdValues[it->first] = fdValues[it->first] *ratio;
       
       // Now loop over deltam points and make a new pdf for each
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
