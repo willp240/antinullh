@@ -216,10 +216,15 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance, ratio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
+      
+      double noms_config = noms[it->first];  
       constrMeans[it->first] = constrMeans[it->first] * ratio;
       constrSigmas[it->first] = constrSigmas[it->first] * ratio;
-      noms[it->first] = noms[it->first] * ratio;
-
+      noms[it->first] = noms_config * ratio;
+      mins[it->first] = mins[it->first] * ratio;
+      maxs[it->first] = maxs[it->first] * ratio;
+      fdValues[it->first] = fdValues[it->first] *ratio;
+      
       // Now loop over deltam points and make a new pdf for each
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
       {
@@ -228,10 +233,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance, ratio);
 
         // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-        constrMeans[it->first] = constrMeans[it->first] * ratio;
-        constrSigmas[it->first] = constrSigmas[it->first] * ratio;
-        noms[it->first] = noms[it->first] * ratio;
-
         oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
@@ -246,7 +247,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           }
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
-        oscDist.Scale(noms[it->first]);
+        oscDist.Scale(noms_config * ratio);
         // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
         // We'll Add the rest of the PDFs later
         oscDatasets.at(iDeltaM).Add(oscDist);
@@ -258,11 +259,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance, ratio);
 
-        // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-        constrMeans[it->first] = constrMeans[it->first] * ratio;
-        constrSigmas[it->first] = constrSigmas[it->first] * ratio;
-        noms[it->first] = noms[it->first] * ratio;
-
         oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
@@ -277,7 +273,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           }
         }
         // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
-        oscDist.Scale(noms[it->first]);
+        oscDist.Scale(noms_config * ratio);
         // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
         // We'll Add the rest of the PDFs later
         oscDatasets.at(npoints + iTheta).Add(oscDist);
