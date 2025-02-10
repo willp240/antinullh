@@ -214,19 +214,15 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       // Pass double by reference here to get ratio of unoscillated to oscillated events
       double ratio = 1.0;
       dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance, ratio);
-      
+
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
       
-      double constrMeans_config = constrMeans[it->first];  
-      double constrSigmas_config = constrSigmas[it->first];  
-      double noms_config        = noms[it->first];  
-      double min_config        = mins[it->first];  
-      double max_config        = maxs[it->first];  
-      constrMeans[it->first] = constrMeans_config * ratio;
-      constrSigmas[it->first] = constrSigmas_config * ratio;
+      double noms_config = noms[it->first];  
+      constrMeans[it->first] = constrMeans[it->first] * ratio;
+      constrSigmas[it->first] = constrSigmas[it->first] * ratio;
       noms[it->first] = noms_config * ratio;
-      mins[it->first] = min_config * ratio;
-      maxs[it->first] = max_config * ratio;
+      mins[it->first] = mins[it->first] * ratio;
+      maxs[it->first] = maxs[it->first] * ratio;
       fdValues[it->first] = fdValues[it->first] *ratio;
       
       // Now loop over deltam points and make a new pdf for each
