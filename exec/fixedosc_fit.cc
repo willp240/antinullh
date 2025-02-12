@@ -185,6 +185,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
     // Build distribution of those events
     BinnedED dist;
+    BinnedED fakeDataDist;
     int num_dimensions = it->second.GetNumDimensions();
 
     if (it->first == "reactor_nubar")
@@ -199,12 +200,14 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       noms[it->first] = noms[it->first] * ratio;
       mins[it->first] = mins[it->first] * ratio;
       maxs[it->first] = maxs[it->first] * ratio;
+      fakeDataDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], fdValues["theta12"], indexDistance, ratio);
       fdValues[it->first] = fdValues[it->first] * ratio;
     }
     else
     {
       // For all other PDFs, just use Build
       dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
+      fakeDataDist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
     }
     // Add small numbers to avoid 0 probability bins
     dist.AddPadding(1E-6);
@@ -219,8 +222,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
     norm_fitting_statuses->push_back(INDIRECT);
 
-    // Now make a fake data dist for the event type
-    BinnedED fakeDataDist = dist;
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
@@ -230,11 +231,9 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       {
         double distInt = dist.Integral();
         dist = systIt->second->operator()(dist);
-        dist.Scale(distInt);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
         SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
         fakeDataDist = systIt->second->operator()(fakeDataDist);
-        fakeDataDist.Scale(distInt);
       }
     }
 
