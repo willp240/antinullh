@@ -1,7 +1,12 @@
 import os
 import argparse
 
-numpoints = 500
+deltam_min = 0
+deltam_max = 0
+theta_min = 0
+theta_max = 0
+numvalsdeltam = 0
+numvalstheta = 0
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
@@ -14,6 +19,53 @@ def check_dir(dname):
         os.makedirs(direc)
         print ("Made directory %s...." % dname)
     return dname
+
+def read_fitcfg(fit_config):
+    theta_min = None
+    theta_max = None
+    deltam_min = None
+    deltam_max = None
+
+    with open(fit_config, "r") as file:
+        lines = file.readlines()
+
+    for iline, line in enumerate(lines):
+        if line.startswith("[theta12]"):
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("min ="):
+                    theta_min = lines[jline].split("=")[1].strip()
+                    break
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("max ="):
+                    theta_max = lines[jline].split("=")[1].strip()
+                    break
+
+    for iline, line in enumerate(lines):
+        if line.startswith("[deltam21]"):
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("min ="):
+                    deltam_min = lines[jline].split("=")[1].strip()
+                    break
+            for jline in range(iline + 1, len(lines)):
+                if lines[jline].startswith("max ="):
+                    deltam_max = lines[jline].split("=")[1].strip()
+                    break
+
+    return deltam_min, deltam_max, theta_min, theta_max
+
+
+def read_osccfg(filename):
+    numvalsdeltam = None
+    numvalstheta = None
+
+    with open(filename, "r") as file:
+        for line in file:
+            if line.startswith("numvalsdm21sq"):
+                numvalsdeltam = int(line.split("=")[1].strip())
+            elif line.startswith("numvalsssqth12"):
+                numvalstheta = int(line.split("=")[1].strip())
+
+    return numvalsdeltam, numvalstheta
 
 
 def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5):
@@ -29,29 +81,17 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     condor_path = "{0}/".format(out_dir)
     exec_path = run_dir + "/bin/" + exec_name
 
-    configs_path = os.path.abspath('{0}/cfg'.format(condor_path))
+    configs_path = os.path.abspath('{0}/th{1}/cfg'.format(condor_path,theta))
     check_dir(configs_path)
 
-    # Read the file
     with open(fit_config, "r") as file:
         lines = file.readlines()
 
-    for iline, line in enumerate(lines):
-        if line.startswith("[deltam21]"):
-            for jline in range(iline + 1, len(lines)):
-                if lines[jline].startswith("min ="):
-                    deltam_min = lines[jline].split("=")[1].strip()
-                    break
-            for jline in range(iline + 1, len(lines)):
-                if lines[jline].startswith("max ="):
-                    deltam_max = lines[jline].split("=")[1].strip()
-                    break
-
     # Loop over dm values, write fit_config with dm and theta values in
-    for iFit in range(numpoints):
+    for iFit in range(numvalsdeltam):
 
-        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numpoints
-        deltam = "{:.6f}".format(deltam)
+        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numvalsdeltam
+        deltam = "{:.8f}".format(deltam)
 
         # Process the file and make updates
         for iline, line in enumerate(lines):
@@ -69,7 +109,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                         break
             # Update output_directory
             elif line.startswith("output_directory ="):
-                subdir = f"th{theta}_dm{deltam}"
+                subdir = f"th{theta}/th{theta}_dm{deltam}"
                 updated_directory = os.path.join(out_dir, subdir)
                 lines[iline] = f"output_directory = {updated_directory}\n"
                 subdir = check_dir("{0}/{1}".format(out_dir,subdir))
@@ -105,10 +145,10 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                      "cd " + str(run_dir) + "\n" + \
                      str(other_commands) + "\n"
     # now loop over dm values ie do this with different fit configs
-    for iFit in range(numpoints):
+    for iFit in range(numvalsdeltam):
 
-        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numpoints
-        deltam = "{:.6f}".format(deltam)
+        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numvalsdeltam
+        deltam = "{:.8f}".format(deltam)
 
         fit_config_base = os.path.basename(fit_config)
         base_name, ext = os.path.splitext(fit_config_base)
@@ -202,25 +242,13 @@ if __name__ == "__main__":
     if osc_config != "":
         osc_config = run_dir + "/" + args.osc_cfg
 
-    # Read the file
-    with open(fit_config, "r") as file:
-        lines = file.readlines()
-
-    for iline, line in enumerate(lines):
-        if line.startswith("[theta12]"):
-            for jline in range(iline + 1, len(lines)):
-                if lines[jline].startswith("min ="):
-                    theta_min = lines[jline].split("=")[1].strip()
-                    break
-            for jline in range(iline + 1, len(lines)):
-                if lines[jline].startswith("max ="):
-                    theta_max = lines[jline].split("=")[1].strip()
-                    break
+    deltam_min, deltam_max, theta_min, theta_max = read_fitcfg(fit_config)
+    numvalsdeltam, numvalstheta = read_osccfg(osc_config)
 
     # Loop over theta points, and do job one for each
-    for iJob in range(numpoints):
+    for iJob in range(numvalstheta):
 
-        theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numpoints
+        theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numvalstheta
         theta = "{:.2f}".format(theta)
 
         job_name = base_name + "_th{0}".format(theta)

@@ -32,7 +32,7 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/fixedosc_llhscan bin/fixedosc_fit bin/llh_scan bin/mcmc #bin/auto_corrs bin/make_plots
+all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/fixedosc_llhscan bin/fixedosc_fit bin/llh_scan bin/mcmc bin/makeFixedOscTree #bin/auto_corrs bin/make_plots
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
@@ -74,6 +74,10 @@ bin/make_plots: exec/make_plots.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/make_plots.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
+bin/makeFixedOscTree: util/makeFixedOscTree.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  util/makeFixedOscTree.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+
 $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)
 	ar rcs  $@ $^
@@ -93,5 +97,6 @@ clean:
 	rm -f bin/mcmc
 	rm -f bin/auto_corrs
 	rm -f bin/make_plots
+	rm -f bin/makeFixedOscTree
 	rm -f build/*.o
 	rm -f lib/libantinullh.a

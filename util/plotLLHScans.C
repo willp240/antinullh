@@ -59,7 +59,7 @@ void LoopHistos(TDirectory *dir, std::string outfilename)
   }
 }
 
-void PlotLLH(std::string filename)
+void plotLLHScans(std::string filename)
 {
 
   // Open file
