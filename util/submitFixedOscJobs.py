@@ -81,7 +81,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     condor_path = "{0}/".format(out_dir)
     exec_path = run_dir + "/bin/" + exec_name
 
-    configs_path = os.path.abspath('{0}/cfg'.format(condor_path))
+    configs_path = os.path.abspath('{0}/th{1}/cfg'.format(condor_path,theta))
     check_dir(configs_path)
 
     with open(fit_config, "r") as file:
@@ -109,7 +109,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                         break
             # Update output_directory
             elif line.startswith("output_directory ="):
-                subdir = f"th{theta}_dm{deltam}"
+                subdir = f"th{theta}/th{theta}_dm{deltam}"
                 updated_directory = os.path.join(out_dir, subdir)
                 lines[iline] = f"output_directory = {updated_directory}\n"
                 subdir = check_dir("{0}/{1}".format(out_dir,subdir))
