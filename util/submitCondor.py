@@ -135,6 +135,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
     parser.add_argument("-n", "--num_jobs", type=int, default=1, help="how many identical jobs would you like to run?")
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="what's the maximum runtime (in seconds, default 1 day)?")
+    parser.add_argument("-j", "--job_name", type=str, default="", help='job name')
     args = parser.parse_args()
 
     # Check if output and condor directories exist, create if they don't
@@ -149,6 +150,7 @@ if __name__ == "__main__":
     syst_config = args.syst_cfg
     osc_config = args.osc_cfg
     walltime = args.wall_time
+    job_name = args.job_name
     if fit_config != "":
         fit_config = run_dir + "/" + args.fit_cfg
     if event_config != "":
@@ -159,6 +161,9 @@ if __name__ == "__main__":
         syst_config = run_dir + "/" + args.syst_cfg
     if osc_config != "":
         osc_config = run_dir + "/" + args.osc_cfg
+
+    if job_name == "":
+        job_name = base_name
 
     # If we're making osc grids, let's do them all in parallel jobs
     if exec_name == "make_osc_grids":
@@ -180,7 +185,7 @@ if __name__ == "__main__":
             # Get the string and double values from the list
             reac_name, distance_val = values
 
-            job_name = base_name + "_index_{0}".format(int_index)
+            job_name = job_name + "_index_{0}".format(int_index)
 
             log_dir = check_dir("{0}/log/".format(out_dir))
             error_dir = check_dir("{0}/error/".format(out_dir))
@@ -194,7 +199,7 @@ if __name__ == "__main__":
         # Otherwise do N jobs
         for i in range(args.num_jobs):
 
-            job_name = base_name + "_{0}".format(i)
+            job_name = job_name + "_{0}".format(i)
 
             log_dir = check_dir("{0}/log/".format(out_dir))
             error_dir = check_dir("{0}/error/".format(out_dir))
