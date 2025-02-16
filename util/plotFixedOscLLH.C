@@ -57,7 +57,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     TCanvas *c1 = new TCanvas("c1", "LLH", 800, 600);
     c1->SetRightMargin(0.15);
     gPad->SetFrameLineWidth(2);
-    gStyle->SetOptStat(0); // Hide stats box
+    gStyle->SetOptStat(0);
 
     hLLH->GetXaxis()->SetTitle("#theta_{12}");
     hLLH->GetYaxis()->SetTitle("#Delta m^{2}_{21}, MeV");
