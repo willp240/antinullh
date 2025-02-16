@@ -17,7 +17,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
 
     // Get the TTree
     TTree *tree = nullptr;
-    file->GetObject("FitResults", tree);
+    file->GetObject("fitResults", tree);
     if (!tree)
     {
         std::cerr << "Error: Could not find TTree 'fit_tree' in file " << filename << std::endl;
