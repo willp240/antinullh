@@ -45,7 +45,7 @@ void mapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> 
 }
 
 // Function to parse an outputted txt file and extract the fit parameters
-bool ParseFitResult(const std::string &filename, std::map<std::string, double> &branchMap)
+bool parseFitResultTxt(const std::string &filename, std::map<std::string, double> &branchMap)
 {
 
     std::ifstream infile(filename);
@@ -62,18 +62,66 @@ bool ParseFitResult(const std::string &filename, std::map<std::string, double> &
         std::string key;
         double value;
 
-        // TO DO loop over params here
         if (iss >> key >> value)
         {
             branchMap[key] = value;
             if (key == "LLH:")
                 branchMap["LLH"] = value;
+            if (key == "Fit Valid:")
+                branchMap["FitValid"] = value;
         }
     }
 
     return true;
 }
 
+// Function to parse an outputted root file and extract the fit parameters
+bool parseFitResultRoot(const std::string &filename, std::map<std::string, double> &branchMap)
+{
+
+    // Open the ROOT file
+    TFile file(filename.c_str(), "READ");
+    if (file.IsZombie())
+    {
+        std::cerr << "Error: Cannot open file " << filename << std::endl;
+        return false;
+    }
+
+    // Retrieve the vectors from the file
+    std::vector<std::string> *paramNames = nullptr;
+    std::vector<double> *paramVals = nullptr;
+    std::vector<double> *paramErr = nullptr;
+
+    file.GetObject("paramNames", paramNames); // Replace with actual vector names
+    file.GetObject("paramVals", paramVals);
+    file.GetObject("paramErr", paramErr);
+
+    // Check if vectors were loaded correctly
+    if (!paramNames || !paramVals || !paramErr)
+    {
+        std::cerr << "Error: One or more vectors could not be found in the file." << std::endl;
+        return false;
+    }
+
+    if (paramNames->size() != paramVals->size())
+    {
+        std::cerr << "Error: Mismatched vector sizes." << std::endl;
+        return false;
+    }
+
+    // Fill the map
+    for (size_t i = 0; i < paramNames->size(); ++i)
+    {
+        branchMap[(*paramNames)[i]] = (*paramVals)[i];
+        if (paramErr->size() > i)
+            branchMap[(*paramNames)[i] + "_err"] = (*paramErr)[i];
+    }
+
+    // Close the file
+    file.Close();
+
+    return true;
+}
 
 void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscGridConfigFile_)
 {
@@ -85,6 +133,8 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     fitConfig = fitLoader.LoadActive();
     std::string outDir = fitConfig.GetOutDir();
     ParameterDict noms = fitConfig.GetNominals();
+    ParameterDict constrMeans = fitConfig.GetConstrMeans();
+    ParameterDict constrSigmas = fitConfig.GetConstrSigmas();
     ParameterDict mins = fitConfig.GetMinima();
     ParameterDict maxs = fitConfig.GetMaxima();
 
@@ -97,25 +147,30 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     double theta, deltam;
 
     // Create a ROOT file to store the tree
-    std::string outFilename = "fit_results.root";
+    std::string outFilename = "fit_result_tree.root";
     TFile outputFile((outDir + "/" + outFilename).c_str(), "RECREATE");
-    TTree tree("FitResults", "Fit results from text files");
+    TTree tree("fitResults", "Fit results from text files");
 
     // Make a map of branch names to values that will fill them
     std::map<std::string, double> branchMap = noms;
+
+    std::vector<std::string> newKeys;
+    for (const auto &pair : branchMap)
+        newKeys.push_back(pair.first + "_err");
+    // Now add the new entries
+    for (const auto &key : newKeys)
+        branchMap[key] = 0;
+
     branchMap["LLH"] = 0;
+    branchMap["FitValid"] = 0;
 
     // Initialise these to 0
     for (auto &[_, v] : branchMap)
         v = 0;
-    
+
     // And tell it to fill with the values from the map
     for (auto &[name, value] : branchMap)
         tree.Branch(name.c_str(), &value);
-
-    // Oscillation parameters aren't read from the output file
-    tree.Branch("theta", &theta);
-    tree.Branch("deltam", &deltam);
 
     // Loop over theta and deltam
     // Read max and mins from config
@@ -129,11 +184,21 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
             // Construct file path
             std::ostringstream directory;
             directory << outDir << "/th" << std::fixed << std::setprecision(2) << theta
+                      << "/th" << std::fixed << std::setprecision(2) << theta
                       << "_dm" << std::fixed << std::setprecision(8) << deltam;
-            std::string filePath = directory.str() + "/fit_result.txt";
-           
+
+            branchMap["theta12"] = theta;
+            branchMap["deltam21"] = deltam;
+
+            // std::string filePath = directory.str() + "/fit_result.txt";
+            //  Parse the file and fill the tree
+            // if (parseFitResultTxt(filePath, branchMap))
+            // {
+            //    tree.Fill();
+            //}
+            std::string filePath = directory.str() + "/fit_result.root";
             // Parse the file and fill the tree
-            if (ParseFitResult(filePath, branchMap))
+            if (parseFitResultRoot(filePath, branchMap))
             {
                 tree.Fill();
             }
@@ -142,12 +207,23 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     }
 
     // Write our tree and make vectors of the parameter names and asimov values
+    outputFile.cd();
     tree.Write();
     std::vector<std::string> paramNameVec;
     std::vector<double> paramVals;
     mapToVectors(branchMap, paramNameVec, paramVals);
     outputFile.WriteObject(&paramNameVec, "param_names");
     outputFile.WriteObject(&paramVals, "param_asimov_values");
+
+    std::vector<std::string> constrNameVec;
+    std::vector<double> constrMeansVals;
+    mapToVectors(constrMeans, constrNameVec, constrMeansVals);
+    outputFile.WriteObject(&constrNameVec, "constr_names");
+    outputFile.WriteObject(&constrMeansVals, "constr_mean_values");
+
+    std::vector<double> constrSigmaVals;
+    mapToVectors(constrSigmas, constrNameVec, constrSigmaVals);
+    outputFile.WriteObject(&constrSigmaVals, "constr_sigma_values");
 
     outputFile.Close();
 
