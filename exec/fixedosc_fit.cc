@@ -348,14 +348,34 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   res.Print();
   ParameterDict bestFit = res.GetBestFit();
   lh.SetParameters(bestFit);
+  bool validFit = res.GetValid();
 
   // Now save the results
   res.SaveAs(outDir + "/fit_result.txt");
   double finalLLH = lh.Evaluate();
   std::ofstream file(outDir + "/fit_result.txt", std::ios::app);
   file << "\nLLH: " << finalLLH << "\n";
+  file << "\nFit Valid: " << validFit << std::endl;
   file.close();
-  std::cout << "Saved fit result to " << outDir + "/fit_result.txt" << std::endl;
+  TFile* outFile = new TFile((outDir + "/fit_result.root").c_str(), "RECREATE");
+  DenseMatrix covMatrix = res.GetCovarianceMatrix();
+  std::vector<std::string> paramNames;
+  std::vector<double> paramVals;
+  std::vector<double> paramErr;
+  for (ParameterDict::iterator it = bestFit.begin(); it != bestFit.end(); ++it){
+    paramNames.push_back(it->first);
+    paramVals.push_back(it->second);
+    if(validFit)
+      paramErr.push_back(covMatrix.GetComponent(paramNames.size(), paramNames.size()));
+  }
+  paramNames.push_back("LLH");
+  paramVals.push_back(finalLLH);
+  paramNames.push_back("FitValid");
+  paramVals.push_back(validFit);
+  outFile->WriteObject(&paramNames, "paramNames");
+  outFile->WriteObject(&paramVals, "paramVals");
+  outFile->WriteObject(&paramErr, "paramErr");
+  std::cout << "Saved fit result to " << outDir + "/fit_result.txt and ./fit_result.root" << std::endl;
 
   // Initialise postfit distributions to same axis as data
   BinnedED postfitDist;
