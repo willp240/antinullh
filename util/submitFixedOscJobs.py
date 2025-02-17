@@ -257,7 +257,7 @@ if __name__ == "__main__":
         theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numvalstheta
         theta = "{:.2f}".format(theta)
 
-        job_name = job_name + "_th{0}".format(theta)
+        bactch_name = job_name + "_th{0}".format(theta)
 
         log_dir = check_dir("{0}/log/".format(out_dir))
         error_dir = check_dir("{0}/error/".format(out_dir))
@@ -265,4 +265,4 @@ if __name__ == "__main__":
         submit_dir = check_dir("{0}/submit/".format(out_dir))
         output_dir = check_dir("{0}/output/".format(out_dir))
 
-        pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
+        pycondor_submit(bactch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
