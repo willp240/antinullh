@@ -67,7 +67,7 @@ bool parseFitResultTxt(const std::string &filename, std::map<std::string, double
             if (key == "LLH:")
                 branchMap["LLH"] = value;
             if (key == "Fit Valid:")
-                branchMap["FitValid"] = value;
+                branchMap["fit_valid"] = value;
         }
     }
 
@@ -90,10 +90,12 @@ bool parseFitResultRoot(const std::string &filename, std::map<std::string, doubl
     std::vector<std::string> *paramNames = nullptr;
     std::vector<double> *paramVals = nullptr;
     std::vector<double> *paramErr = nullptr;
+    std::vector<double> *reacRatio = nullptr;
 
     file.GetObject("paramNames", paramNames);
     file.GetObject("paramVals", paramVals);
     file.GetObject("paramErr", paramErr);
+    file.GetObject("reactorRatio", reacRatio);
 
     // Check if vectors were loaded correctly
     if (!paramNames || !paramVals || !paramErr)
@@ -115,6 +117,8 @@ bool parseFitResultRoot(const std::string &filename, std::map<std::string, doubl
         if (paramErr->size() > i)
             branchMap[(*paramNames)[i] + "_err"] = (*paramErr)[i];
     }
+
+    branchMap["reactor_ratio"] = reacRatio->at(0);
 
     // Close the file
     file.Close();
@@ -170,7 +174,8 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         branchMap[key] = 0;
 
     branchMap["LLH"] = 0;
-    branchMap["FitValid"] = 0;
+    branchMap["fit_valid"] = 0;
+    branchMap["reactor_ratio"] = 0;
 
     // Initialise these to 0
     for (auto &[_, v] : branchMap)
