@@ -77,20 +77,24 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     TH1D *hOther;
     TH1D *hTotal;
     TH1D *hData;
-    THStack *hStack = new THStack("hStack", "Stacked;Reconstructed Energy, MeV;");
-    THStack *hGroupStack = new THStack("hGroupStack", "GroupStacked;Reconstructed Energy, MeV;");
+    THStack *hStack = new THStack("hStack", ";Reconstructed Energy, MeV;Events");
+    THStack *hGroupStack = new THStack("hGroupStack", ";Reconstructed Energy, MeV;Events");
+    std::map<std::string, TH1D *> histMap;
 
     // Map of filenames to plot labels
     std::map<std::string, std::string> labelMap;
-    labelMap["alphan_CScatter.root"] = "#alpha C Scatter ";
-    labelMap["alphan_OExcited.root"] = "#alpha O excited";
-    labelMap["alphan_PRecoil.root"] = "#alpha P Recoil";
     labelMap["data.root"] = "Data";
-    labelMap["geonu_Th.root"] = "Geo Th";
-    labelMap["geonu_U.root"] = "Geo U";
     labelMap["postfitdist.root"] = "Total MC with Systs.";
     labelMap["reactor_nubar.root"] = "Reactor #bar{#nu} ";
+    labelMap["geonu_Th.root"] = "Geo Th";
+    labelMap["geonu_U.root"] = "Geo U";
+    labelMap["alphan_PRecoil.root"] = "#alpha P Recoil";
+    labelMap["alphan_CScatter.root"] = "#alpha C Scatter ";
+    labelMap["alphan_OExcited.root"] = "#alpha O excited";
     labelMap["sideband.root"] = "Sideband";
+
+    std::vector<std::string> fileOrder{"data.root", "postfitdist.root", "reactor_nubar.root", "alphan_PRecoil.root", "alphan_CScatter.root",
+                                       "alphan_OExcited.root", "geonu_Th.root", "geonu_U.root", "sideband.root"};
 
     // Directory of best LLH fit
     std::filesystem::path dirPath(filename);
@@ -101,23 +105,15 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
               << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM
               << "/scaled_dists/";
 
-    // Declare canvas and legends
-    TCanvas *c1 = new TCanvas("c1", "Distributions", 800, 600);
-    gPad->SetGrid();
-    gStyle->SetOptStat(0);
-
-    TLegend *t1 = new TLegend(0.5, 0.5, 0.85, 0.85);
+    TLegend *t1 = new TLegend(0.5, 0.48, 0.85, 0.85);
     t1->SetLineWidth(2);
     TLegend *t2 = new TLegend(0.5, 0.5, 0.85, 0.85);
     t2->SetLineWidth(2);
 
     // Define colours for histograms
-    std::vector<int> lineColors = {kRed + 3, kRed + 2, kRed + 1, kMagenta + 2, kMagenta + 4, kBlue, kGreen + 3, kGray, kBlack};
-    std::vector<int> fillColors = {kRed - 1, kRed - 2, kRed - 9, kMagenta - 8, kMagenta - 5, kBlue - 9, kGreen - 5, kGray, kBlack};
-    int colorIndex = 0;
-
-    bool firstHist = true;
-    bool firstDraw = true;
+    std::vector<int> lineColours = {kBlack, kGray + 2, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3};
+    std::vector<int> fillColours = {kBlack, kGray + 2, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
+    int colourIndex = 0;
 
     // Go into scaled dists and loop over each file
     std::cout << directory.str() << std::endl;
@@ -126,6 +122,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
 
         std::string filePath = entry.path().string();
         std::filesystem::path pathObj(filePath);
+        std::cout << pathObj.filename() << std::endl;
 
         // Check if it's a .root file
         if (filePath.find(".root") == std::string::npos)
@@ -151,105 +148,137 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
             continue;
         }
 
-        // Set histogram properties
-        h1->SetLineColor(lineColors[colorIndex % lineColors.size()]);
-        h1->SetLineWidth(2);
-        h1->GetYaxis()->SetRangeUser(0, 1.6);
-
-        // Initialise group histograms
-        if (firstHist)
-        {
-            hData = (TH1D *)h1->Clone("hData");
-            hData->Reset();
-            hTotal = (TH1D *)h1->Clone("hTotal");
-            hTotal->Reset();
-            hReactor = (TH1D *)h1->Clone("hReactor");
-            hReactor->Reset();
-            hGeo = (TH1D *)h1->Clone("hGeo");
-            hGeo->Reset();
-            hAlpha = (TH1D *)h1->Clone("hAlpha");
-            hAlpha->Reset();
-            hOther = (TH1D *)h1->Clone("hOther");
-            hOther->Reset();
-            firstHist = false;
-        }
-
-        // If we're data or summed MC then do not add to the stack
-        if (pathObj.filename() != "data.root" && pathObj.filename() != "postfitdist.root")
-        {
-            h1->SetFillColor(fillColors[colorIndex % fillColors.size()]);
-            hStack->Add(h1);
-            t1->AddEntry(h1, labelMap[pathObj.filename()].c_str(), "f");
-        }
-        else
-        {
-            t1->AddEntry(h1, labelMap[pathObj.filename()].c_str(), "l");
-            if (firstDraw)
-            {
-                h1->Draw("HIST");
-                h1->GetYaxis()->SetRangeUser(0, 1.6);
-                firstDraw = 0;
-            }
-            else
-                h1->Draw("same HIST");
-        }
-
-        colorIndex++;
-
-        // Now add distributions to groups
-        if (pathObj.filename().string() == "data.root")
-        {
-            hData->Add(h1);
-            hData->SetLineColor(kBlack);
-        }
-        else if (pathObj.filename().string() == "postfitdist.root")
-        {
-            hTotal->Add(h1);
-            hTotal->SetLineColor(kGray + 2);
-        }
-        else if (pathObj.filename().string() == "reactor_nubar.root")
-        {
-            hReactor->Add(h1);
-            hReactor->SetLineColor(kBlue);
-            hReactor->SetFillColor(kBlue - 9);
-        }
-        else if (pathObj.filename().string() == "geonu_U.root" || pathObj.filename().string() == "geonu_Th.root")
-        {
-            hGeo->Add(h1);
-            hGeo->SetLineColor(kMagenta + 2);
-            hGeo->SetFillColor(kMagenta - 8);
-        }
-        else if (pathObj.filename().string() == "alphan_CScatter.root" || pathObj.filename().string() == "alphan_OExcited.root" || pathObj.filename().string() == "alphan_PRecoil.root")
-        {
-            hAlpha->Add(h1);
-            hAlpha->SetLineColor(kRed + 1);
-            hAlpha->SetFillColor(kRed - 9);
-        }
-        else
-        {
-            hOther->Add(h1);
-            hOther->SetLineColor(kGreen + 3);
-            hOther->SetFillColor(kGreen - 5);
-        }
+        histMap[pathObj.filename()] = h1;
     }
 
-    // Draw the legend
-    t1->SetLineWidth(2);
-    hStack->Draw("same");
-    t1->Draw();
+    // Intialise group histos
+    hData = (TH1D *)histMap["data.root"]->Clone("hData");
+    hData->Reset();
+    hTotal = (TH1D *)histMap["data.root"]->Clone("hTotal");
+    hTotal->Reset();
+    hReactor = (TH1D *)histMap["data.root"]->Clone("hReactor");
+    hReactor->Reset();
+    hGeo = (TH1D *)histMap["data.root"]->Clone("hGeo");
+    hGeo->Reset();
+    hAlpha = (TH1D *)histMap["data.root"]->Clone("hAlpha");
+    hAlpha->Reset();
+    hOther = (TH1D *)histMap["data.root"]->Clone("hOther");
+    hOther->Reset();
 
-    // Update the canvas
+    hData->SetLineColor(kBlack);
+    hData->SetLineWidth(2);
+    hTotal->SetLineColor(kGray + 2);
+    hTotal->SetLineWidth(2);
+    hReactor->SetLineColor(kBlue);
+    hReactor->SetFillColor(kBlue - 9);
+    hReactor->SetLineWidth(2);
+    hGeo->SetLineColor(kMagenta + 2);
+    hGeo->SetFillColor(kMagenta - 8);
+    hGeo->SetLineWidth(2);
+    hAlpha->SetLineColor(kRed + 1);
+    hAlpha->SetFillColor(kRed - 9);
+    hAlpha->SetLineWidth(2);
+    hOther->SetLineColor(kGreen + 3);
+    hOther->SetFillColor(kGreen - 5);
+    hOther->SetLineWidth(2);
+
+    colourIndex = 0;
+
+    // Now loop over files, getting histos, and adding to the appropriate groups
+    for (int iFile = 0; iFile < fileOrder.size(); iFile++)
+    {
+        histMap[fileOrder.at(iFile)]->SetLineColor(lineColours[colourIndex % lineColours.size()]);
+        histMap[fileOrder.at(iFile)]->SetLineWidth(2);
+        histMap[fileOrder.at(iFile)]->GetYaxis()->SetRangeUser(0, 1.6);
+
+        if (fileOrder.at(iFile) == "data.root")
+        {
+            hData->Add(histMap[fileOrder.at(iFile)]);
+            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "l");
+        }
+        else if (fileOrder.at(iFile) == "postfitdist.root")
+        {
+            hTotal->Add(histMap[fileOrder.at(iFile)]);
+            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "l");
+        }
+        else if (fileOrder.at(iFile) == "reactor_nubar.root")
+        {
+            hReactor->Add(histMap[fileOrder.at(iFile)]);
+            hStack->Add(histMap[fileOrder.at(iFile)]);
+            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
+            histMap.erase(fileOrder.at(iFile));
+        }
+        else if (fileOrder.at(iFile) == "geonu_U.root" || fileOrder.at(iFile) == "geonu_Th.root")
+        {
+            hGeo->Add(histMap[fileOrder.at(iFile)]);
+            hStack->Add(histMap[fileOrder.at(iFile)]);
+            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
+            histMap.erase(fileOrder.at(iFile));
+        }
+        else if (fileOrder.at(iFile) == "alphan_CScatter.root" || fileOrder.at(iFile) == "alphan_OExcited.root" || fileOrder.at(iFile) == "alphan_PRecoil.root")
+        {
+            hAlpha->Add(histMap[fileOrder.at(iFile)]);
+            hStack->Add(histMap[fileOrder.at(iFile)]);
+            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
+            histMap.erase(fileOrder.at(iFile));
+        }
+        else
+        {
+            hOther->Add(histMap[fileOrder.at(iFile)]);
+            hStack->Add(histMap[fileOrder.at(iFile)]);
+            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
+            histMap.erase(fileOrder.at(iFile));
+        }
+
+        colourIndex++;
+    }
+
+    colourIndex = 0;
+    // Loop over what's left in histMap in case there were any files not defined in labelMap
+    for (std::map<std::string, TH1D *>::iterator it = histMap.begin(); it != histMap.end(); ++it)
+    {
+        if (it->first == "data.root" || it->first == "postfitdist.root")
+            continue;
+
+        hOther->Add(histMap[it->first]);
+        histMap[it->first]->SetFillColor(colourIndex + 30);
+        t1->AddEntry(histMap[it->first], it->first, "f");
+        colourIndex++;
+    }
+
+    // Draw stack of all event types
+    TCanvas *c1 = new TCanvas("c1", "Stacked", 1000, 600);
+    gPad->SetGrid();
+    gStyle->SetOptStat(0);
+    c1->SetFrameLineWidth(2);
+
+    hStack->SetMaximum(1.6);
+    hStack->Draw("");
+    histMap["data.root"]->Draw("histsame");
+    histMap["postfitdist.root"]->Draw("histsame");
+    hStack->GetXaxis()->SetTitleFont(42);
+    hStack->GetYaxis()->SetTitleFont(42);
+    hStack->GetXaxis()->SetLabelFont(42);
+    hStack->GetYaxis()->SetLabelFont(42);
+    t1->SetTextFont(42);
+    t1->Draw();
     c1->Update();
+
     std::filesystem::path pathObj(filename);
     pathObj.replace_filename("dist.pdf");
     c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("dist.root");
     c1->SaveAs(pathObj.string().c_str());
 
-    // Add each group histos to stack
-    TCanvas *c2 = new TCanvas("c2", "Groups", 800, 600);
+    // Draw stack of grouped event types
+    TCanvas *c2 = new TCanvas("c2", "Groups", 1000, 600);
     gPad->SetGrid();
     gStyle->SetOptStat(0);
+    c2->SetFrameLineWidth(2);
 
     t2->AddEntry(hData, "Data", "l");
     t2->AddEntry(hTotal, "Total MC with Systs.", "l");
@@ -262,15 +291,20 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     hGroupStack->Add(hOther);
     t2->AddEntry(hOther, "Other", "f");
 
-    hGroupStack->Draw();
-    hData->Draw("same");
-    hTotal->Draw("same");
+    hGroupStack->SetMaximum(1.6);
+    hGroupStack->Draw("");
+    histMap["data.root"]->Draw("histsame");
+    histMap["postfitdist.root"]->Draw("histsame");
+    hGroupStack->GetXaxis()->SetTitleFont(42);
+    hGroupStack->GetYaxis()->SetTitleFont(42);
+    hGroupStack->GetXaxis()->SetLabelFont(42);
+    hGroupStack->GetYaxis()->SetLabelFont(42);
+    t2->SetTextFont(42);
     t2->Draw();
-
-    // Update the canvas
     c2->Update();
+
     pathObj.replace_filename("distGroup.pdf");
-    c2->SaveAs(pathObj.string().c_str());
+    c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("distGroup.root");
-    c2->SaveAs(pathObj.string().c_str());
+    c1->SaveAs(pathObj.string().c_str());
 }
