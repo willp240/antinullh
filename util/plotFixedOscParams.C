@@ -98,14 +98,13 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     }
 
     double minLLH = 1e9;
-    int bestLLHEntry = -999;
+    int bestLLHEntry = 999;
 
     // Loop over entries in the tree
     Long64_t nEntries = tree->GetEntries();
     for (Long64_t i = 0; i < nEntries; ++i)
     {
         tree->GetEntry(i);
-
         if (branchValues["LLH"] < minLLH)
         {
             minLLH = branchValues["LLH"];
@@ -141,7 +140,12 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     for (int iParam = 0; iParam < paramNames->size(); iParam++)
     {
-        std::cout << paramNames->at(iParam) << std::endl;
+        if (paramNames->at(iParam) == "reactor_nubar")
+        {
+            nomVals->at(iParam) = nomVals->at(iParam) * branchValues["reactor_ratio"];
+            constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues["reactor_ratio"];
+            constrErr->at(iParam) = constrErr->at(iParam) * branchValues["reactor_ratio"];
+        }
 
         hNom->SetBinContent(iParam + 1, nomVals->at(iParam) / nomVals->at(iParam));
         hConstr->GetXaxis()->SetBinLabel(iParam + 1, labelsVec->at(iParam).c_str());
@@ -155,7 +159,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     // Draw the histograms
     TCanvas *c1 = new TCanvas("c1", "Params", 800, 600);
-    //c1->SetBottomMargin(0.13);
+    // c1->SetBottomMargin(0.13);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -173,10 +177,22 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     hConstr->GetYaxis()->SetRangeUser(0, 2);
     hConstr->GetYaxis()->SetTitle("Relative to Nominal");
     hConstr->GetXaxis()->SetLabelOffset(0.007);
+    hConstr->SetTitle("Pre and Postfit Values Relative to Nominal");
 
-    hConstr->Draw("");
-    hPostFit->Draw("same");
+    hConstr->Draw("E1");
+    hPostFit->Draw("E1same");
 
-    // TODO: Draw legend
+    TLegend *t1 = new TLegend(0.65, 0.73, 0.85, 0.88);
+    t1->AddEntry(hConstr, "Prefit", "l");
+    t1->AddEntry(hPostFit, "Postfit", "l");
+    t1->SetLineWidth(2);
+    t1->Draw();
+
     // Save canvas
+    // Save plot as image and rootfile
+    std::filesystem::path pathObj(filename);
+    pathObj.replace_filename("params.pdf");
+    c1->SaveAs(pathObj.string().c_str());
+    pathObj.replace_filename("params.root");
+    c1->SaveAs(pathObj.string().c_str());
 }
