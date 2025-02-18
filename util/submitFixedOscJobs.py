@@ -217,6 +217,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
     parser.add_argument("-n", "--num_jobs", type=int, default=1, help="how many identical jobs would you like to run?")
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="what's the maximum runtime (in seconds, default 1 day)?")
+    parser.add_argument("-j", "--job_name", type=str, default="", help='job name')
     args = parser.parse_args()
 
     # Check if output and condor directories exist, create if they don't
@@ -231,6 +232,8 @@ if __name__ == "__main__":
     syst_config = args.syst_cfg
     osc_config = args.osc_cfg
     walltime = args.wall_time
+    job_name = args.job_name
+
     if fit_config != "":
         fit_config = run_dir + "/" + args.fit_cfg
     if event_config != "":
@@ -245,13 +248,16 @@ if __name__ == "__main__":
     deltam_min, deltam_max, theta_min, theta_max = read_fitcfg(fit_config)
     numvalsdeltam, numvalstheta = read_osccfg(osc_config)
 
+    if job_name == "":
+        job_name = base_name
+
     # Loop over theta points, and do job one for each
     for iJob in range(numvalstheta):
 
         theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numvalstheta
         theta = "{:.2f}".format(theta)
 
-        job_name = base_name + "_th{0}".format(theta)
+        bactch_name = job_name + "_th{0}".format(theta)
 
         log_dir = check_dir("{0}/log/".format(out_dir))
         error_dir = check_dir("{0}/error/".format(out_dir))
@@ -259,4 +265,4 @@ if __name__ == "__main__":
         submit_dir = check_dir("{0}/submit/".format(out_dir))
         output_dir = check_dir("{0}/output/".format(out_dir))
 
-        pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
+        pycondor_submit(bactch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
