@@ -292,21 +292,21 @@ The config files should be ones you've used to run one of the fits. If this take
 
 The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `util/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`. It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. It can be run by doing:
 
-> root -l 'util/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")`
+> root -l 'util/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")'
 
 <h4>plotFixedOscDist</h4>
 
-This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `scaled_dists` diretory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
+This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `scaled_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
-> root -l 'util/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")`
+> root -l 'util/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")'
 
 In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
 
 <h4>plotFixedOscParams</h4>
 
-This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. You can run it with:
+This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. You can run it with:
 
-> root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")`
+> root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
 
 <h3>MCMC</h3>
 
