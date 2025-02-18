@@ -43,7 +43,7 @@ This file contains utility functions, mostly related to the Oscillation Grids. T
 
 <h4>DistBuilder</h4>
 
-The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. 
+The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset.
 
 <h3>Configs (src/config)</h3>
 
@@ -272,7 +272,50 @@ In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the 
 
 `output_dir` will contain all the configs and logs for each fit, and the outputted root files will be produced in independent directories (one for each fit) inside that directory. The `output_directory` set in the `fit_config` file gets updated to be the one set as the command line argument.
  
-<h3> Postfit Analysis</h3>
+<h3>Postfit Analysis</h3>
+
+<h4>Fixed Oscillation Fits</h4>
+
+A lot of the postfit analysis will be done using scripts that reside in `util` (not to be confused with `src/util`).
+
+<h5>makeFixedOscTree</h5>
+
+The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `util/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will
+be handled by the usual Makefile). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit 
+constraints are also saved in vectors. You can run it with:
+
+> ./bin/makeFixedOscTree cfg/fit_config.ini cfg/oscgrid_config.ini
+
+The config files should be ones you've used to run one of the fits. If this takes a long time, you can submit it as a batch job using `utils/submitCondor.py`:
+
+> python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
+
+<h5>plotFixedOscLLH</h5>
+
+The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `util/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`.
+It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH.
+A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. It can be run by doing:
+
+> root -l 'util/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")`
+
+<h5>plotFixedOscDist</h5>
+
+This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions
+saved in the `scaled_dists` diretory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied).
+Also saved is a similar plot but with PDFs grouped together. Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
+
+> root -l 'util/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")`
+
+In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a 
+Latex label. It is recommended this script gets updated if the fit parameters change.
+
+<h5>plotFixedOscParams</h5>
+
+This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. You can run it with:
+
+> root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")`
+
+<h4>MCMC</h4>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is!
 
@@ -304,7 +347,7 @@ This will produce a root file, `output_tree_autoCorr.root` (if running over `out
 
 This can be useful step-size tuning and debugging.  
 
-<h2> Physics Results </h2>
+<h2>Physics Results</h2>
 
 To be added!
  
