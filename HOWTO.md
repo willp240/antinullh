@@ -242,9 +242,9 @@ In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter
 
 There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.
 
-<h3>Submitting Batch Jobs</h3>
+<h2>Submitting Batch Jobs</h2>
 
-<h4>Full fits</h4>
+<h3>Full fits</h3>
 
 For running full fits, it’s advisable to run multiple fits at once in parallel as you probably want around 1 million steps. Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think).  
 
@@ -258,7 +258,7 @@ The environment file you supply here should be whatever you use to set up ROOT, 
 
 You can run this script with any of the apps. If you're not running a fit, you probably don't need multiple simultaneous jobs so can just run with N=1. If you're running `make_osc_grid` with the submission script, it will automatically loop over every reactor core in the reactors JSON file and run `make_osc_grid` for each in parallel.
 
-<h4>Fixed Oscillation Parameters Fits</h4>
+<h3>Fixed Oscillation Parameters Fits</h3>
 
 First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
 
@@ -272,13 +272,13 @@ In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the 
 
 `output_dir` will contain all the configs and logs for each fit, and the outputted root files will be produced in independent directories (one for each fit) inside that directory. The `output_directory` set in the `fit_config` file gets updated to be the one set as the command line argument.
  
-<h3>Postfit Analysis</h3>
+<h2>Postfit Analysis</h2>
 
-<h4>Fixed Oscillation Fits</h4>
+<h3>Fixed Oscillation Fits</h3>
 
 A lot of the postfit analysis will be done using scripts that reside in `util` (not to be confused with `src/util`).
 
-<h5>makeFixedOscTree</h5>
+<h4>makeFixedOscTree</h4>
 
 The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `util/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will
 be handled by the usual Makefile). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit 
@@ -290,7 +290,7 @@ The config files should be ones you've used to run one of the fits. If this take
 
 > python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
 
-<h5>plotFixedOscLLH</h5>
+<h4>plotFixedOscLLH</h4>
 
 The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `util/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`.
 It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH.
@@ -298,7 +298,7 @@ A canvas is saved in both a `.root` and `.pdf` file, in the top level output dir
 
 > root -l 'util/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")`
 
-<h5>plotFixedOscDist</h5>
+<h4>plotFixedOscDist</h4>
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions
 saved in the `scaled_dists` diretory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied).
@@ -309,13 +309,13 @@ Also saved is a similar plot but with PDFs grouped together. Canvases are saved 
 In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a 
 Latex label. It is recommended this script gets updated if the fit parameters change.
 
-<h5>plotFixedOscParams</h5>
+<h4>plotFixedOscParams</h4>
 
 This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. You can run it with:
 
 > root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")`
 
-<h4>MCMC</h4>
+<h3>MCMC</h3>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is!
 
