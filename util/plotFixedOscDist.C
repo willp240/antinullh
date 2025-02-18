@@ -14,6 +14,7 @@
 /// histograms from scaled_dists
 /// Loop through these and plot, and also add to groups for a separate
 /// groups plot.
+///
 /// Canvases are saved to .pdf and .root
 ///
 /////////////////////////////////////////////////////////////////// */

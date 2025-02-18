@@ -4,6 +4,19 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 
+/* ///////////////////////////////////////////////////////////////////
+///
+/// Script for plotting bestfit LLH from fixed oscillation fits for
+/// grid scan of oscillation parameters.
+/// 
+/// The user inputs the root file made by makeFixedOscTree, and it 
+/// reads the oscillation parameters and LLH for each entry. These
+/// are drawn in a TH2D, along with contours.asm
+///
+/// The plot is drawn and the canvas is saved as a root and pdf file
+///
+/////////////////////////////////////////////////////////////////// */
+
 void plotFixedOscLLH(const char *filename = "fit_results.root")
 {
 
@@ -34,7 +47,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     int nEntries = tree->GetEntries();
 
     // Create a TH2D histogram
-    int nBinsX = sqrt(nEntries); // Adjust binning as needed
+    int nBinsX = sqrt(nEntries);
     int nBinsY = sqrt(nEntries);
     double minDeltam = tree->GetMinimum("deltam");
     double maxDeltam = tree->GetMaximum("deltam");

@@ -31,7 +31,26 @@
 
 using namespace antinufit;
 
-// Function to turn a map of string to double into three vectors, one of strings, one of doubles for means, one for errors.
+/* ///////////////////////////////////////////////////////////////////
+///
+/// App for making a TTree of the results of a set of fixed 
+/// fits. Each Entry in the TTree represents one of the fits, and
+/// each branch represents one of the fit parameters.
+/// First open the root file (made by makeFixedOscTree) and find the
+/// minimum LLH entry. The user supplies the fit config and 
+/// oscgrid config used to produce one (any) of the fits.
+///
+/// There is a function for reading either the txt or root files
+/// outputted by the fits. The root file is used by default as it
+/// contains more information.
+///
+/// As well as the TTree with postfit values, the prefit values and
+/// constraints are also saved in a file saved in the top directory
+/// of the fit results
+///
+/////////////////////////////////////////////////////////////////// */
+
+// Function to turn a map of string to double into two vectors, one of strings, one of doubles
 // This is useful for writing to root files
 void mapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> &namesvec, std::vector<double> &meansvec)
 {
@@ -43,7 +62,7 @@ void mapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> 
     }
 }
 
-// Function to parse an outputted txt file and extract the fit parameters
+// Function to parse an outputted txt file and extract the fit parameters to a map
 bool parseFitResultTxt(const std::string &filename, std::map<std::string, double> &branchMap)
 {
 
@@ -74,7 +93,7 @@ bool parseFitResultTxt(const std::string &filename, std::map<std::string, double
     return true;
 }
 
-// Function to parse an outputted root file and extract the fit parameters
+// Function to parse an outputted root file and extract the fit parameters to a map
 bool parseFitResultRoot(const std::string &filename, std::map<std::string, double> &branchMap)
 {
 
@@ -186,7 +205,6 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         tree.Branch(name.c_str(), &value);
 
     // Loop over theta and deltam
-    // Read max and mins from config
     for (int i = 0; i < numTheta; ++i)
     {
         theta = mins["theta12"] + i * ((maxs["theta12"] - mins["theta12"]) / numTheta);

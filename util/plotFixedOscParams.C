@@ -4,6 +4,25 @@
 #include <TCanvas.h>
 #include <TStyle.h>
 
+/* ///////////////////////////////////////////////////////////////////
+///
+/// Script for plotting post fit parameter values and prefit
+/// constraints relative to nominal values for fixed oscillation fits.
+/// 
+/// The user inputs the root file made by makeFixedOscTree, and it 
+/// first finds the entry with the lowest LLH. All the branches for
+/// this entry are read into a map, and the nominal values and
+/// constraints vectors are read in from the input file too. Those
+/// vectors are sorted into the order we want to plot (so this will 
+/// need to be updated when parameters change).
+///
+/// The plot is drawn and the canvas is saved as a root file and 
+/// pdf.
+///
+/////////////////////////////////////////////////////////////////// */
+
+/// Function to sort vectors of names, nominals, and constraints into the order we want to plot them in.
+/// Also made is a vector of Latex parameter labels (we could (should?) read these from a config)
 void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec, std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec)
 {
 
@@ -11,6 +30,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
     std::vector<double> *tempConstrMeansVec = new std::vector<double>(namesVec->size(), 0.0);
     std::vector<double> *tempConstrErrsVec = new std::vector<double>(namesVec->size(), 0.0);
 
+    // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
     std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
                                                                           "theta12",
                                                                           "reactor_nubar",
@@ -25,6 +45,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
                                                                           "birks_constant",
                                                                           "p_recoil_energy_scale"};
 
+    // Latex labels
     std::vector<std::string> *tempLabelsVec = new std::vector<std::string>{"#Delta m^{2}_{21}",
                                                                            "#theta_{12}",
                                                                            "Reactor #bar{#nu}",
@@ -39,6 +60,8 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
                                                                            "Birk's Constant",
                                                                            "#alpha PR E. Scale"};
 
+    // Now loop over the new vector (that's already in the correct order), and find the index of the same name
+    // in the old vector, and set the noms and constraints to be the ones for that index
     for (int iTempName = 0; iTempName < tempNamesVec->size(); iTempName++)
     {
         for (int iName = 0; iName < namesVec->size(); iName++)
@@ -83,24 +106,23 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     // Get the list of branches
     TObjArray *branches = tree->GetListOfBranches();
-    std::map<std::string, double> branchValues; // Map to hold branch values
+    std::map<std::string, double> branchValues;
 
     // Create a map of branch names to variables
     std::map<std::string, double *> branchPointers;
     for (int i = 0; i < branches->GetEntries(); ++i)
     {
         std::string branchName = branches->At(i)->GetName();
-        branchValues[branchName] = 0.0; // Initialise with default value
+        branchValues[branchName] = 0.0;
         branchPointers[branchName] = &branchValues[branchName];
 
-        // Set branch address
         tree->SetBranchAddress(branchName.c_str(), branchPointers[branchName]);
     }
 
     double minLLH = 1e9;
     int bestLLHEntry = 999;
 
-    // Loop over entries in the tree
+    // Loop over entries in the tree to find the lowest LLH step
     Long64_t nEntries = tree->GetEntries();
     for (Long64_t i = 0; i < nEntries; ++i)
     {
@@ -119,7 +141,6 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     std::cout << "Best theta: " << branchValues["theta12"] << std::endl;
     std::cout << "Best deltam: " << branchValues["deltam21"] << std::endl;
 
-    // read asimov means from vector (should also save constraints in makeTree)
     // Retrieve the vectors from the file: nominal, constr means, constr err, constr names
     std::vector<std::string> *paramNames = nullptr;
     std::vector<double> *nomVals = nullptr;
@@ -132,6 +153,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     file->GetObject("constr_mean_values", constrMeans);
     file->GetObject("constr_sigma_values", constrErr);
 
+    // Reorder vectors to the order we want to plot them
     sortVectors(paramNames, labelsVec, nomVals, constrMeans, constrErr);
 
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
@@ -140,6 +162,8 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     for (int iParam = 0; iParam < paramNames->size(); iParam++)
     {
+        // For reactor nubar, rate in fit config is unoscillated, but postfit value is oscillated.
+        // So we need to multiply by the ratio saved in outputted fit file
         if (paramNames->at(iParam) == "reactor_nubar")
         {
             nomVals->at(iParam) = nomVals->at(iParam) * branchValues["reactor_ratio"];
@@ -159,7 +183,6 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     // Draw the histograms
     TCanvas *c1 = new TCanvas("c1", "Params", 800, 600);
-    // c1->SetBottomMargin(0.13);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -170,6 +193,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     hConstr->SetLineWidth(2);
     hPostFit->SetLineColor(kRed);
     hPostFit->SetLineWidth(2);
+    // TODO: We'll want these when we have proper error bars
     // hPostFit->SetMarkerStyle(2);
     // hPostFit->SetMarkerSize(4);
     // hPostFit->SetMarkerColor(kRed);
@@ -188,7 +212,6 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     t1->SetLineWidth(2);
     t1->Draw();
 
-    // Save canvas
     // Save plot as image and rootfile
     std::filesystem::path pathObj(filename);
     pathObj.replace_filename("params.pdf");
