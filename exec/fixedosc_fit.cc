@@ -321,7 +321,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         std::string className = key->GetClassName();
         std::string objectName = key->GetName();
 
-        if (className == "TTree")
+        if (className == "TNtuple")
         {
           // Load up the data set
           ROOTNtuple dataToFit(dataPath, objectName.c_str());
@@ -336,6 +336,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
           Histogram loaded = DistTools::ToHist(*dataHist);
           dataDist = BinnedED("data", loaded);
           dataDist.SetObservables(pdfConfig.GetDataBranchNames());
+          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig,pdfConfig.GetDataAxisCount());
+          dataDist.SetAxes(axes);
           break;
         }
       }
