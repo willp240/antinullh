@@ -1,6 +1,7 @@
 // Antinu headers
 #include <PDFConfigLoader.hh>
 #include <DistBuilder.hh>
+#include <DistTools.h>
 #include <FitConfigLoader.hh>
 #include <EventConfigLoader.hh>
 #include <SystConfigLoader.hh>
@@ -16,6 +17,7 @@
 
 // ROOT headers
 #include <TH1D.h>
+#include <TKey.h>
 
 // c++ headers
 #include <sys/stat.h>
@@ -265,7 +267,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   } // End loop over PDFs
 
   // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
-  // compare to to calculate the llh
+  // compare the calculate the llh
   IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
   if (isFakeData)
   {
@@ -293,13 +295,52 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       dataDist = BinnedED("data", loaded);
       dataDist.SetObservables(pdfConfig.GetBranchNames());
     }
-    else
+    else // If a root file
     {
-      // Load up the data set
-      ROOTNtuple dataToFit(dataPath, "pruned");
 
-      // And bin the data inside
-      dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+      TFile *dataFile = TFile::Open(dataPath.c_str(), "READ");
+      if (!dataFile || dataFile->IsZombie())
+      {
+        std::cerr << "Error opening data file " << dataFile << std::endl;
+        throw;
+      }
+
+      // Get the list of keys in the file
+      TList *keyList = dataFile->GetListOfKeys();
+      if (!keyList)
+      {
+        std::cerr << "Error: No keys found in the datafile " << dataPath << std::endl;
+        throw;
+      }
+
+      // Loop through all objects in the file
+      TIter nextKey(keyList);
+      TKey *key;
+      while ((key = (TKey *)nextKey()))
+      {
+        std::string className = key->GetClassName();
+        std::string objectName = key->GetName();
+
+        if (className == "TNtuple")
+        {
+          // Load up the data set
+          ROOTNtuple dataToFit(dataPath, objectName.c_str());
+
+          // And bin the data inside
+          dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+          break; // Stop once we find an nTuple
+        }
+        else if (className == "TH1D")
+        {
+          TH1D *dataHist = (TH1D *)dataFile->Get(objectName.c_str());
+          Histogram loaded = DistTools::ToHist(*dataHist);
+          dataDist = BinnedED("data", loaded);
+          dataDist.SetObservables(pdfConfig.GetDataBranchNames());
+          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig,pdfConfig.GetDataAxisCount());
+          dataDist.SetAxes(axes);
+          break;
+        }
+      }
     }
   }
 
