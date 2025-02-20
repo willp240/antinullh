@@ -69,6 +69,9 @@ namespace antinufit
     double GetLivetime() const;
     void SetLivetime(double);
 
+    bool GetSaveOutputs() const;
+    void SetSaveOutputs(bool);
+
   private:
     std::string fOutDir;
     ParameterDict fConstrMeans;
@@ -92,6 +95,7 @@ namespace antinufit
     bool fAsimov;
     bool fFakeData;
     double fLivetime;
+    bool fSaveOutputs;
     std::string fDatafile;
     std::map<std::string,std::string> fConstrRatioParName;
   };

@@ -31,6 +31,7 @@ namespace antinufit
     bool asimovFlag;
     bool fakeDataFlag;
     double livetime;
+    bool saveOutputs;
     std::string datafile;
 
     ConfigLoader::Load("summary", "iterations", it);
@@ -45,6 +46,7 @@ namespace antinufit
     ConfigLoader::Load("summary", "asimov", asimovFlag);
     ConfigLoader::Load("summary", "datafile", datafile);
     ConfigLoader::Load("summary", "livetime", livetime);
+    ConfigLoader::Load("summary", "save_outputs", saveOutputs);
 
     try
     {
@@ -74,6 +76,7 @@ namespace antinufit
     ret.SetFakeData(fakeDataFlag);
     ret.SetDatafile(datafile);
     ret.SetLivetime(livetime);
+    ret.SetSaveOutputs(saveOutputs);
 
     typedef std::set<std::string> StringSet;
     StringSet toLoad;
