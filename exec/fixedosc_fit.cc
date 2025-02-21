@@ -1,6 +1,7 @@
 // Antinu headers
 #include <PDFConfigLoader.hh>
 #include <DistBuilder.hh>
+#include <DistTools.h>
 #include <FitConfigLoader.hh>
 #include <EventConfigLoader.hh>
 #include <SystConfigLoader.hh>
@@ -16,6 +17,7 @@
 
 // ROOT headers
 #include <TH1D.h>
+#include <TKey.h>
 
 // c++ headers
 #include <sys/stat.h>
@@ -161,6 +163,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
   std::vector<NormFittingStatus> *norm_fitting_statuses = new std::vector<NormFittingStatus>;
+  double reactorRatio = 1.0; // Ratio of oscillated to unoscillated number of reactor IBDs
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -197,17 +200,16 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     if (it->first == "reactor_nubar")
     {
       // Build the distribution with oscillation parameters at their nominal values
-      double ratio = 1.0;
-      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance, ratio);
+      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance, reactorRatio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-      constrMeans[it->first] = constrMeans[it->first] * ratio;
-      constrSigmas[it->first] = constrSigmas[it->first] * ratio;
-      noms[it->first] = noms[it->first] * ratio;
-      mins[it->first] = mins[it->first] * ratio;
-      maxs[it->first] = maxs[it->first] * ratio;
-      fakeDataDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], fdValues["theta12"], indexDistance, ratio);
-      fdValues[it->first] = fdValues[it->first] * ratio;
+      constrMeans[it->first] = constrMeans[it->first] * reactorRatio;
+      constrSigmas[it->first] = constrSigmas[it->first] * reactorRatio;
+      noms[it->first] = noms[it->first] * reactorRatio;
+      mins[it->first] = mins[it->first] * reactorRatio;
+      maxs[it->first] = maxs[it->first] * reactorRatio;
+      fakeDataDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], fdValues["theta12"], indexDistance, reactorRatio);
+      fdValues[it->first] = fdValues[it->first] * reactorRatio;
     }
     else
     {
@@ -301,13 +303,52 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       dataDist = BinnedED("data", loaded);
       dataDist.SetObservables(pdfConfig.GetBranchNames());
     }
-    else
+    else // If a root file
     {
-      // Load up the data set
-      ROOTNtuple dataToFit(dataPath, "pruned");
 
-      // And bin the data inside
-      dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+      TFile *dataFile = TFile::Open(dataPath.c_str(), "READ");
+      if (!dataFile || dataFile->IsZombie())
+      {
+        std::cerr << "Error opening data file " << dataFile << std::endl;
+        throw;
+      }
+
+      // Get the list of keys in the file
+      TList *keyList = dataFile->GetListOfKeys();
+      if (!keyList)
+      {
+        std::cerr << "Error: No keys found in the datafile " << dataPath << std::endl;
+        throw;
+      }
+
+      // Loop through all objects in the file
+      TIter nextKey(keyList);
+      TKey *key;
+      while ((key = (TKey *)nextKey()))
+      {
+        std::string className = key->GetClassName();
+        std::string objectName = key->GetName();
+
+        if (className == "TNtuple")
+        {
+          // Load up the data set
+          ROOTNtuple dataToFit(dataPath, objectName.c_str());
+
+          // And bin the data inside
+          dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+          break; // Stop once we find an nTuple
+        }
+        else if (className == "TH1D")
+        {
+          TH1D *dataHist = (TH1D *)dataFile->Get(objectName.c_str());
+          Histogram loaded = DistTools::ToHist(*dataHist);
+          dataDist = BinnedED("data", loaded);
+          dataDist.SetObservables(pdfConfig.GetDataBranchNames());
+          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig,pdfConfig.GetDataAxisCount());
+          dataDist.SetAxes(axes);
+          break;
+        }
+      }
     }
   }
 

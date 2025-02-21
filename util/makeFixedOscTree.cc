@@ -31,20 +31,38 @@
 
 using namespace antinufit;
 
-// Function to turn a map of string to double into two vectors, one of strings one of doubles.
-// The element number of one vector should correspond to the element number in the other.
+/* ///////////////////////////////////////////////////////////////////
+///
+/// App for making a TTree of the results of a set of fixed 
+/// fits. Each Entry in the TTree represents one of the fits, and
+/// each branch represents one of the fit parameters.
+/// First open the root file (made by makeFixedOscTree) and find the
+/// minimum LLH entry. The user supplies the fit config and 
+/// oscgrid config used to produce one (any) of the fits.
+///
+/// There is a function for reading either the txt or root files
+/// outputted by the fits. The root file is used by default as it
+/// contains more information.
+///
+/// As well as the TTree with postfit values, the prefit values and
+/// constraints are also saved in a file saved in the top directory
+/// of the fit results
+///
+/////////////////////////////////////////////////////////////////// */
+
+// Function to turn a map of string to double into two vectors, one of strings, one of doubles
 // This is useful for writing to root files
-void mapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> &stringvec, std::vector<double> &doublevec)
+void mapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> &namesvec, std::vector<double> &meansvec)
 {
 
     for (std::map<std::string, double>::iterator it = sdmap.begin(); it != sdmap.end(); ++it)
     {
-        stringvec.push_back(it->first);
-        doublevec.push_back(it->second);
+        namesvec.push_back(it->first);
+        meansvec.push_back(it->second);
     }
 }
 
-// Function to parse an outputted txt file and extract the fit parameters
+// Function to parse an outputted txt file and extract the fit parameters to a map
 bool parseFitResultTxt(const std::string &filename, std::map<std::string, double> &branchMap)
 {
 
@@ -68,14 +86,14 @@ bool parseFitResultTxt(const std::string &filename, std::map<std::string, double
             if (key == "LLH:")
                 branchMap["LLH"] = value;
             if (key == "Fit Valid:")
-                branchMap["FitValid"] = value;
+                branchMap["fit_valid"] = value;
         }
     }
 
     return true;
 }
 
-// Function to parse an outputted root file and extract the fit parameters
+// Function to parse an outputted root file and extract the fit parameters to a map
 bool parseFitResultRoot(const std::string &filename, std::map<std::string, double> &branchMap)
 {
 
@@ -91,10 +109,12 @@ bool parseFitResultRoot(const std::string &filename, std::map<std::string, doubl
     std::vector<std::string> *paramNames = nullptr;
     std::vector<double> *paramVals = nullptr;
     std::vector<double> *paramErr = nullptr;
+    std::vector<double> *reacRatio = nullptr;
 
-    file.GetObject("paramNames", paramNames); // Replace with actual vector names
+    file.GetObject("paramNames", paramNames);
     file.GetObject("paramVals", paramVals);
     file.GetObject("paramErr", paramErr);
+    file.GetObject("reactorRatio", reacRatio);
 
     // Check if vectors were loaded correctly
     if (!paramNames || !paramVals || !paramErr)
@@ -103,7 +123,7 @@ bool parseFitResultRoot(const std::string &filename, std::map<std::string, doubl
         return false;
     }
 
-    if (paramNames->size() != paramVals->size() )
+    if (paramNames->size() != paramVals->size())
     {
         std::cerr << "Error: Mismatched vector sizes." << std::endl;
         return false;
@@ -116,6 +136,8 @@ bool parseFitResultRoot(const std::string &filename, std::map<std::string, doubl
         if (paramErr->size() > i)
             branchMap[(*paramNames)[i] + "_err"] = (*paramErr)[i];
     }
+
+    branchMap["reactor_ratio"] = reacRatio->at(0);
 
     // Close the file
     file.Close();
@@ -133,8 +155,19 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     fitConfig = fitLoader.LoadActive();
     std::string outDir = fitConfig.GetOutDir();
     ParameterDict noms = fitConfig.GetNominals();
+    ParameterDict constrMeans = fitConfig.GetConstrMeans();
+    ParameterDict constrSigmas = fitConfig.GetConstrSigmas();
     ParameterDict mins = fitConfig.GetMinima();
     ParameterDict maxs = fitConfig.GetMaxima();
+
+    for (ParameterDict::iterator it = noms.begin(); it != noms.end(); ++it)
+    {
+        if (!constrMeans[it->first])
+        {
+            constrMeans[it->first] = noms[it->first];
+            constrSigmas[it->first] = -999;
+        }
+    }
 
     // Use the osc grid config to get the number of steps in each oscillation parameter
     OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
@@ -160,7 +193,8 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         branchMap[key] = 0;
 
     branchMap["LLH"] = 0;
-    branchMap["FitValid"] = 0;
+    branchMap["fit_valid"] = 0;
+    branchMap["reactor_ratio"] = 0;
 
     // Initialise these to 0
     for (auto &[_, v] : branchMap)
@@ -171,7 +205,6 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         tree.Branch(name.c_str(), &value);
 
     // Loop over theta and deltam
-    // Read max and mins from config
     for (int i = 0; i < numTheta; ++i)
     {
         theta = mins["theta12"] + i * ((maxs["theta12"] - mins["theta12"]) / numTheta);
@@ -188,12 +221,6 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
             branchMap["theta12"] = theta;
             branchMap["deltam21"] = deltam;
 
-            // std::string filePath = directory.str() + "/fit_result.txt";
-            //  Parse the file and fill the tree
-            // if (parseFitResultTxt(filePath, branchMap))
-            // {
-            //    tree.Fill();
-            //}
             std::string filePath = directory.str() + "/fit_result.root";
             // Parse the file and fill the tree
             if (parseFitResultRoot(filePath, branchMap))
@@ -209,9 +236,19 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     tree.Write();
     std::vector<std::string> paramNameVec;
     std::vector<double> paramVals;
+    branchMap = noms;
     mapToVectors(branchMap, paramNameVec, paramVals);
     outputFile.WriteObject(&paramNameVec, "param_names");
     outputFile.WriteObject(&paramVals, "param_asimov_values");
+
+    std::vector<std::string> constrNameVec;
+    std::vector<double> constrMeansVals;
+    mapToVectors(constrMeans, constrNameVec, constrMeansVals);
+    outputFile.WriteObject(&constrMeansVals, "constr_mean_values");
+
+    std::vector<double> constrSigmaVals;
+    mapToVectors(constrSigmas, constrNameVec, constrSigmaVals);
+    outputFile.WriteObject(&constrSigmaVals, "constr_sigma_values");
 
     outputFile.Close();
 
