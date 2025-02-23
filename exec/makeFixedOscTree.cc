@@ -116,13 +116,25 @@ void overwriteSaveOutputsBool(const std::string &filepath)
 
 // Function to turn a map of string to double into two vectors, one of strings, one of doubles
 // This is useful for writing to root files
-void mapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> &namesvec, std::vector<double> &meansvec)
+void doubleMapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> &keysvec, std::vector<double> &valsvec)
 {
 
     for (std::map<std::string, double>::iterator it = sdmap.begin(); it != sdmap.end(); ++it)
     {
-        namesvec.push_back(it->first);
-        meansvec.push_back(it->second);
+        keysvec.push_back(it->first);
+        valsvec.push_back(it->second);
+    }
+}
+
+// Function to turn a map of string to string into two vectors of strings
+// This is useful for writing to root files
+void stringMapToVectors(std::map<std::string, std::string> sdmap, std::vector<std::string> &keysvec, std::vector<std::string> &valsvec)
+{
+
+    for (std::map<std::string, std::string>::iterator it = sdmap.begin(); it != sdmap.end(); ++it)
+    {
+        keysvec.push_back(it->first);
+        valsvec.push_back(it->second);
     }
 }
 
@@ -225,7 +237,15 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
             double fitValid;
             iss >> dummy >> fitValid;
             branchMap["fit_valid"] = fitValid;
-            // FitValid is last line for this fit, so now let's fill
+        }
+        if (line.find("ReactorRatio:") != std::string::npos)
+        {
+            std::istringstream iss(line);
+            std::string dummy;
+            double reactorRatio;
+            iss >> dummy >> reactorRatio;
+            branchMap["reactor_ratio"] = reactorRatio;
+            // ReactorRatio is last line for this fit, so now let's fill
             tree->Fill();
         }
     }
@@ -245,6 +265,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     ParameterDict constrSigmas = fitConfig.GetConstrSigmas();
     ParameterDict mins = fitConfig.GetMinima();
     ParameterDict maxs = fitConfig.GetMaxima();
+    std::map<std::string, std::string> labels = fitConfig.GetTexLabels();
 
     for (ParameterDict::iterator it = noms.begin(); it != noms.end(); ++it)
     {
@@ -317,24 +338,29 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     std::vector<std::string> paramNameVec;
     std::vector<double> paramVals;
     branchMap = noms;
-    mapToVectors(branchMap, paramNameVec, paramVals);
+    doubleMapToVectors(branchMap, paramNameVec, paramVals);
     outputFile.WriteObject(&paramNameVec, "param_names");
     outputFile.WriteObject(&paramVals, "param_asimov_values");
 
     std::vector<std::string> constrNameVec;
     std::vector<double> constrMeansVals;
-    mapToVectors(constrMeans, constrNameVec, constrMeansVals);
+    doubleMapToVectors(constrMeans, constrNameVec, constrMeansVals);
     outputFile.WriteObject(&constrMeansVals, "constr_mean_values");
 
     std::vector<double> constrSigmaVals;
-    mapToVectors(constrSigmas, constrNameVec, constrSigmaVals);
+    doubleMapToVectors(constrSigmas, constrNameVec, constrSigmaVals);
     outputFile.WriteObject(&constrSigmaVals, "constr_sigma_values");
+
+    std::vector<std::string> labelsVals;
+    stringMapToVectors(labels, paramNameVec, labelsVals);
+    outputFile.WriteObject(&labelsVals, "tex_labels");
 
     outputFile.Close();
 
     std::cout << "TTree saved to " << outDir << "/" << outFilename << std::endl;
 
-    std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", theta: " << bestTheta << std::endl << std::endl;
+    std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", theta: " << bestTheta << std::endl
+              << std::endl;
 
     // Find fit cfg path for that fit
     std::ostringstream bestfitcfg;
