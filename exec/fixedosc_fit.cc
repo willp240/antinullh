@@ -54,15 +54,14 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
   std::cout << "save outputs " << saveOutputs << std::endl;
 
-  // Create output directories
-  struct stat st = {0};
-  if (stat(outDir.c_str(), &st) == -1)
-    mkdir(outDir.c_str(), 0700);
-
   std::string scaledDistDir = outDir + "/scaled_dists";
   std::string pdfDir = outDir + "/pdfs";
   if (saveOutputs)
   {
+    // Create output directories
+    struct stat st = {0};
+    if (stat(outDir.c_str(), &st) == -1)
+      mkdir(outDir.c_str(), 0700);
     if (stat(scaledDistDir.c_str(), &st) == -1)
       mkdir(scaledDistDir.c_str(), 0700);
     if (stat(pdfDir.c_str(), &st) == -1)
@@ -344,7 +343,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
           Histogram loaded = DistTools::ToHist(*dataHist);
           dataDist = BinnedED("data", loaded);
           dataDist.SetObservables(pdfConfig.GetDataBranchNames());
-          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig,pdfConfig.GetDataAxisCount());
+          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig, pdfConfig.GetDataAxisCount());
           dataDist.SetAxes(axes);
           break;
         }
@@ -508,9 +507,13 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
     }
   }
-  std::cout << "Fit complete for deltam = " << deltam21 << ", theta = " << theta12 << std::endl;
-  std::cout << "Best Fit LLH: " << finalLLH << std::endl;
-  std::cout << "Fit Valid: " << validFit << std::endl << std::endl << std::endl;
+  std::cout << "Fit complete for:" << std::endl;
+  std::cout << "deltam: " << deltam21 << std::endl;
+  std::cout << "theta: " << theta12 << std::endl;
+  std::cout << "LLH: " << finalLLH << std::endl;
+  std::cout << "FitValid: " << validFit << std::endl
+            << std::endl
+            << std::endl;
 }
 
 int main(int argc, char *argv[])

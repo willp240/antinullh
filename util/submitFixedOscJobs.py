@@ -112,7 +112,6 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                 subdir = f"th{theta}/th{theta}_dm{deltam}"
                 updated_directory = os.path.join(out_dir, subdir)
                 lines[iline] = f"output_directory = {updated_directory}\n"
-                subdir = check_dir("{0}/{1}".format(out_dir,subdir))
 
         fit_config_base = os.path.basename(fit_config)
         base_name, ext = os.path.splitext(fit_config_base)
