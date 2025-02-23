@@ -28,16 +28,17 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <filesystem>
 
 using namespace antinufit;
 
 /* ///////////////////////////////////////////////////////////////////
 ///
-/// App for making a TTree of the results of a set of fixed 
+/// App for making a TTree of the results of a set of fixed
 /// fits. Each Entry in the TTree represents one of the fits, and
 /// each branch represents one of the fit parameters.
 /// First open the root file (made by makeFixedOscTree) and find the
-/// minimum LLH entry. The user supplies the fit config and 
+/// minimum LLH entry. The user supplies the fit config and
 /// oscgrid config used to produce one (any) of the fits.
 ///
 /// There is a function for reading either the txt or root files
@@ -49,6 +50,69 @@ using namespace antinufit;
 /// of the fit results
 ///
 /////////////////////////////////////////////////////////////////// */
+
+// Function to overwrite the save_outputs bool in a fit config file
+void overwriteSaveOutputsBool(const std::string &filepath)
+{
+    std::ifstream file(filepath);
+    if (!file)
+    {
+        std::cerr << "Error: Could not open file " << filepath << std::endl;
+        return;
+    }
+    std::vector<std::string> lines;
+    std::string line;
+    bool inSummary = false;
+    bool foundSaveOutputs = false;
+
+    while (std::getline(file, line))
+    {
+        // Check if we are in the [summary] section
+        if (line == "[summary]")
+        {
+            inSummary = true;
+        }
+        else if (line.find("[") == 0 && line != "[summary]")
+        {
+            inSummary = false;
+        }
+
+        // Modify save_outputs if found in [summary]
+        if (inSummary && line.find("save_outputs") != std::string::npos)
+        {
+            line = "save_outputs = 1";
+            foundSaveOutputs = true;
+        }
+
+        lines.push_back(line);
+    }
+
+    file.close();
+
+    // If save_outputs was not found, add it to the summary section
+    if (!foundSaveOutputs)
+    {
+        std::vector<std::string>::iterator it = std::find(lines.begin(), lines.end(), "[summary]");
+        it++;
+        lines.insert(it, "save_outputs = 1");
+    }
+
+    // Write back to file
+    std::ofstream outFile(filepath);
+    if (!outFile)
+    {
+        std::cerr << "Error: Could not write to file " << filepath << std::endl;
+        return;
+    }
+
+    for (const std::string &l : lines)
+    {
+        outFile << l << "\n";
+    }
+
+    outFile.close();
+    std::cout << "Updated save_outputs in " << filepath << std::endl;
+}
 
 // Function to turn a map of string to double into two vectors, one of strings, one of doubles
 // This is useful for writing to root files
@@ -62,8 +126,9 @@ void mapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> 
     }
 }
 
-// Function to parse an outputted txt file and extract the fit parameters to a map
-bool parseFitResultTxt(const std::string &filename, std::map<std::string, double> &branchMap)
+// Function to parse output file from job of many fits to a map
+bool parseFitResultsTxt(const std::string &filename, std::map<std::string, double> &branchMap,
+                        TTree *tree, double *bestLLH, double *bestDeltam, double *bestTheta)
 {
 
     std::ifstream infile(filename);
@@ -73,76 +138,97 @@ bool parseFitResultTxt(const std::string &filename, std::map<std::string, double
         return false;
     }
 
+    bool inParamsSection = false;
+
     std::string line;
     while (std::getline(infile, line))
     {
-        std::istringstream iss(line);
-        std::string key;
-        double value;
-
-        if (iss >> key >> value)
+        if (line.find("Best Fit Values:") != std::string::npos)
         {
-            branchMap[key] = value;
-            if (key == "LLH:")
-                branchMap["LLH"] = value;
-            if (key == "Fit Valid:")
-                branchMap["fit_valid"] = value;
+            inParamsSection = true;
+            continue;
+        }
+
+        // If we reach an empty line, we exit the parameters section
+        if (inParamsSection && line.find("Fit complete for:") != std::string::npos)
+        {
+            inParamsSection = false;
+            continue;
+        }
+
+        // Extract parameter names and values dynamically
+        if (inParamsSection)
+        {
+            std::istringstream iss(line);
+            std::string paramName;
+            double value;
+
+            // Read entire line until the last token, which should be the parameter value
+            std::string word;
+            while (iss >> word)
+            {
+                try
+                {
+                    // Try converting the last token to a double
+                    value = std::stod(word);
+                    break;
+                }
+                catch (const std::invalid_argument &)
+                {
+                    // Not a number, append to parameter name
+                    if (!paramName.empty())
+                        paramName += " ";
+                    paramName += word;
+                }
+            }
+            if (!paramName.empty())
+            {
+                branchMap[paramName] = value;
+            }
+        }
+
+        // Explicitly read "deltam", "theta", "LLH", and "Fit Valid"
+        if (line.find("deltam") != std::string::npos)
+        {
+            std::istringstream iss(line);
+            std::string dummy;
+            double deltam;
+            iss >> dummy >> deltam;
+            branchMap["deltam21"] = deltam;
+        }
+        if (line.find("theta") != std::string::npos)
+        {
+            std::istringstream iss(line);
+            std::string dummy;
+            double theta;
+            iss >> dummy >> theta;
+            branchMap["theta12"] = theta;
+        }
+        if (line.find("LLH:") != std::string::npos)
+        {
+            std::istringstream iss(line);
+            std::string dummy;
+            double llh;
+            iss >> dummy >> llh;
+            branchMap["LLH"] = llh;
+            if (branchMap["LLH"] < *bestLLH)
+            {
+                *bestLLH = branchMap["LLH"];
+                *bestDeltam = branchMap["deltam21"];
+                *bestTheta = branchMap["theta12"];
+            }
+        }
+        if (line.find("FitValid:") != std::string::npos)
+        {
+            std::istringstream iss(line);
+            std::string dummy;
+            double fitValid;
+            iss >> dummy >> fitValid;
+            branchMap["fit_valid"] = fitValid;
+            // FitValid is last line for this fit, so now let's fill
+            tree->Fill();
         }
     }
-
-    return true;
-}
-
-// Function to parse an outputted root file and extract the fit parameters to a map
-bool parseFitResultRoot(const std::string &filename, std::map<std::string, double> &branchMap)
-{
-
-    // Open the ROOT file
-    TFile file(filename.c_str(), "READ");
-    if (file.IsZombie())
-    {
-        std::cerr << "Error: Cannot open file " << filename << std::endl;
-        return false;
-    }
-
-    // Retrieve the vectors from the file
-    std::vector<std::string> *paramNames = nullptr;
-    std::vector<double> *paramVals = nullptr;
-    std::vector<double> *paramErr = nullptr;
-    std::vector<double> *reacRatio = nullptr;
-
-    file.GetObject("paramNames", paramNames);
-    file.GetObject("paramVals", paramVals);
-    file.GetObject("paramErr", paramErr);
-    file.GetObject("reactorRatio", reacRatio);
-
-    // Check if vectors were loaded correctly
-    if (!paramNames || !paramVals || !paramErr)
-    {
-        std::cerr << "Error: One or more vectors could not be found in the file." << std::endl;
-        return false;
-    }
-
-    if (paramNames->size() != paramVals->size())
-    {
-        std::cerr << "Error: Mismatched vector sizes." << std::endl;
-        return false;
-    }
-
-    // Fill the map
-    for (size_t i = 0; i < paramNames->size(); ++i)
-    {
-        branchMap[(*paramNames)[i]] = (*paramVals)[i];
-        if (paramErr->size() > i)
-            branchMap[(*paramNames)[i] + "_err"] = (*paramErr)[i];
-    }
-
-    branchMap["reactor_ratio"] = reacRatio->at(0);
-
-    // Close the file
-    file.Close();
-
-    return true;
 }
 
 void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscGridConfigFile_)
@@ -204,31 +290,25 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     for (auto &[name, value] : branchMap)
         tree.Branch(name.c_str(), &value);
 
+    double bestLLH = 999;
+    double bestDeltam = 999;
+    double bestTheta = 999;
+
     // Loop over theta and deltam
     for (int i = 0; i < numTheta; ++i)
     {
         theta = mins["theta12"] + i * ((maxs["theta12"] - mins["theta12"]) / numTheta);
-        for (int j = 0; j < numDeltam; ++j)
-        {
-            deltam = mins["deltam21"] + j * ((maxs["deltam21"] - mins["deltam21"]) / numDeltam);
 
-            // Construct file path
-            std::ostringstream directory;
-            directory << outDir << "/th" << std::fixed << std::setprecision(2) << theta
-                      << "/th" << std::fixed << std::setprecision(2) << theta
-                      << "_dm" << std::fixed << std::setprecision(8) << deltam;
+        // Construct file path
+        std::string dirName = std::filesystem::path(outDir).filename().string();
+        std::ostringstream filePath;
+        filePath << outDir << "/output/" << dirName
+                 << "_th" << std::fixed << std::setprecision(2) << theta
+                 << ".output";
 
-            branchMap["theta12"] = theta;
-            branchMap["deltam21"] = deltam;
-
-            std::string filePath = directory.str() + "/fit_result.root";
-            // Parse the file and fill the tree
-            if (parseFitResultRoot(filePath, branchMap))
-            {
-                tree.Fill();
-            }
-        }
-        std::cout << "done " << theta << std::endl;
+        // Parse the file and fill the tree
+        parseFitResultsTxt(filePath.str(), branchMap, &tree, &bestLLH, &bestDeltam, &bestTheta);
+        std::cout << "Done " << theta << std::endl;
     }
 
     // Write our tree and make vectors of the parameter names and asimov values
@@ -253,6 +333,32 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     outputFile.Close();
 
     std::cout << "TTree saved to " << outDir << "/" << outFilename << std::endl;
+
+    std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", theta: " << bestTheta << std::endl << std::endl;
+
+    // Find fit cfg path for that fit
+    std::ostringstream bestfitcfg;
+    bestfitcfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "fit_config_"
+               << "th" << std::fixed << std::setprecision(2) << bestTheta
+               << "_dm" << std::fixed << std::setprecision(8) << bestDeltam << ".ini";
+
+    // Overwrite save_output bool in that config
+    overwriteSaveOutputsBool(bestfitcfg.str());
+
+    std::ostringstream eventcfg;
+    eventcfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "event_config.ini";
+    std::ostringstream pdfcfg;
+    pdfcfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "pdf_config.ini";
+    std::ostringstream syscfg;
+    syscfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "syst_config.ini";
+    std::ostringstream osccfg;
+    osccfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "oscgrid_config.ini";
+
+    std::ostringstream fit_command;
+    fit_command << "./bin/fixedosc_fit " << bestfitcfg.str() << " " << eventcfg.str() << " " << pdfcfg.str() << " " << syscfg.str() << " " << osccfg.str();
+
+    // Now rerun that fit
+    system(fit_command.str().c_str());
 }
 
 int main(int argc, char *argv[])
