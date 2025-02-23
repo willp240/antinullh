@@ -8,15 +8,15 @@
 ///
 /// Script for plotting post fit parameter values and prefit
 /// constraints relative to nominal values for fixed oscillation fits.
-/// 
-/// The user inputs the root file made by makeFixedOscTree, and it 
+///
+/// The user inputs the root file made by makeFixedOscTree, and it
 /// first finds the entry with the lowest LLH. All the branches for
 /// this entry are read into a map, and the nominal values and
 /// constraints vectors are read in from the input file too. Those
-/// vectors are sorted into the order we want to plot (so this will 
+/// vectors are sorted into the order we want to plot (so this will
 /// need to be updated when parameters change).
 ///
-/// The plot is drawn and the canvas is saved as a root file and 
+/// The plot is drawn and the canvas is saved as a root file and
 /// pdf.
 ///
 /////////////////////////////////////////////////////////////////// */
@@ -29,6 +29,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
     std::vector<double> *tempNomsVec = new std::vector<double>(namesVec->size(), 0.0);
     std::vector<double> *tempConstrMeansVec = new std::vector<double>(namesVec->size(), 0.0);
     std::vector<double> *tempConstrErrsVec = new std::vector<double>(namesVec->size(), 0.0);
+    std::vector<std::string> *tempLabelsVec = new std::vector<std::string>(namesVec->size(), "");
 
     // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
     std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
@@ -45,21 +46,6 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
                                                                           "birks_constant",
                                                                           "p_recoil_energy_scale"};
 
-    // Latex labels
-    std::vector<std::string> *tempLabelsVec = new std::vector<std::string>{"#Delta m^{2}_{21}",
-                                                                           "#theta_{12}",
-                                                                           "Reactor #bar{#nu}",
-                                                                           "Geo U",
-                                                                           "Geo Th",
-                                                                           "#alpha C Scatter",
-                                                                           "#alpha O excited",
-                                                                           "#alpha P Recoil",
-                                                                           "Sideband",
-                                                                           "Energy Scale",
-                                                                           "Energy Conv.",
-                                                                           "Birk's Constant",
-                                                                           "#alpha PR E. Scale"};
-
     // Now loop over the new vector (that's already in the correct order), and find the index of the same name
     // in the old vector, and set the noms and constraints to be the ones for that index
     for (int iTempName = 0; iTempName < tempNamesVec->size(); iTempName++)
@@ -71,6 +57,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
                 tempNomsVec->at(iTempName) = nomsVec->at(iName);
                 tempConstrMeansVec->at(iTempName) = constrMeansVec->at(iName);
                 tempConstrErrsVec->at(iTempName) = constrErrsVec->at(iName);
+                tempLabelsVec->at(iTempName) = labelsVec->at(iName);
                 break;
             }
         }
@@ -152,6 +139,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     file->GetObject("param_asimov_values", nomVals);
     file->GetObject("constr_mean_values", constrMeans);
     file->GetObject("constr_sigma_values", constrErr);
+    file->GetObject("tex_labels", labelsVec);
 
     // Reorder vectors to the order we want to plot them
     sortVectors(paramNames, labelsVec, nomVals, constrMeans, constrErr);
@@ -183,6 +171,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     // Draw the histograms
     TCanvas *c1 = new TCanvas("c1", "Params", 800, 600);
+    c1->SetBottomMargin(0.23);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -200,8 +189,16 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     hConstr->GetYaxis()->SetRangeUser(0, 2);
     hConstr->GetYaxis()->SetTitle("Relative to Nominal");
-    hConstr->GetXaxis()->SetLabelOffset(0.007);
-    hConstr->SetTitle("Pre and Postfit Values Relative to Nominal");
+    //hConstr->GetXaxis()->SetLabelOffset(0.007);
+    hConstr->GetXaxis()->CenterLabels(true);
+    hConstr->SetTitle("");
+    hConstr->LabelsOption("v");
+
+    hConstr->GetXaxis()->SetTitleFont(42);
+    hConstr->GetYaxis()->SetTitleFont(42);
+    hConstr->GetXaxis()->SetLabelFont(42);
+    hConstr->GetYaxis()->SetLabelFont(42);
+    hConstr->SetTitleFont(42);
 
     hConstr->Draw("E1");
     hPostFit->Draw("E1same");
@@ -210,6 +207,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     t1->AddEntry(hConstr, "Prefit", "l");
     t1->AddEntry(hPostFit, "Postfit", "l");
     t1->SetLineWidth(2);
+    t1->SetTextFont(42);
     t1->Draw();
 
     // Save plot as image and rootfile
