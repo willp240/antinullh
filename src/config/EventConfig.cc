@@ -16,18 +16,6 @@ namespace antinufit
   }
 
   std::string
-  EventConfig::GetTexLabel() const
-  {
-    return fTexLabel;
-  }
-
-  void
-  EventConfig::SetTexLabel(const std::string &s_)
-  {
-    fTexLabel = s_;
-  }
-
-  std::string
   EventConfig::GetName() const
   {
     return fName;

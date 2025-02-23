@@ -18,9 +18,6 @@ namespace antinufit
     const std::vector<std::string> &GetNtupFiles() const;
     void SetNtupFiles(const std::vector<std::string> &);
 
-    std::string GetTexLabel() const;
-    void SetTexLabel(const std::string &);
-
     std::string GetNtupBaseDir() const;
     void SetNtupBaseDir(const std::string &);
 
@@ -37,7 +34,6 @@ namespace antinufit
     std::vector<std::string> fNtupFiles;
     std::string fNtupBaseDir; // The originals
     std::string fPrunedPath;  // The pruned ouput
-    std::string fTexLabel;
     std::string fName;
     std::vector<std::string> fGroup;
     int fNumDimensions;
