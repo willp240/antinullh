@@ -39,6 +39,12 @@ namespace antinufit
     return fNbins;
   }
 
+  std::map<std::string, std::string>
+  FitConfig::GetTexLabels() const
+  {
+    return fTexLabels;
+  }
+
   int FitConfig::GetIterations() const
   {
     return fIterations;
@@ -248,7 +254,7 @@ namespace antinufit
   }
 
   void
-  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_, 
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
                           std::string label_)
   {
     fMinima[name_] = min_;

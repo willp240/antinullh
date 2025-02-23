@@ -16,6 +16,7 @@ namespace antinufit
     ParameterDict GetNBins() const;
     ParameterDict GetNominals() const;
     ParameterDict GetFakeDataVals() const;
+    std::map<std::string,std::string> GetTexLabels() const;
 
     ParameterDict GetConstrMeans() const;
     ParameterDict GetConstrSigmas() const;
