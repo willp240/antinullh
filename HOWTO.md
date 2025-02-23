@@ -87,6 +87,7 @@ This file should contain information on the parameters of the fit, and the fit i
 - `hmc_burn_in`: The number of steps rejected at the start of the Hamiltonian Markov Chain. This can be changed post analysis for most purposes
 - `sigma_scale`: Global scaling factor each step size gets multiplied by
 - `beeston_barlow`: Bool to determine if we should use the Beeston-Barlow method to account for MC stats uncertainty. If 1/True, it is used
+- `save_outputs`: Bool to determine if the output files should be written. If 1/True, they are saved. This is useful for running multiple fixed oscillation fits to avoid producing ~millions of files at once. It is currently only implemented for the `fixedosc_fit` exec (for all other execs output files will be produced regardless of this bool)
 
 <h5>Fit Parameter Tables</h5>
 
@@ -280,13 +281,15 @@ A lot of the postfit analysis will be done using scripts that reside in `util` (
 
 <h4>makeFixedOscTree</h4>
 
-The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `util/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will be handled by the usual Makefile). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit constraints are also saved in vectors. You can run it with:
+The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `exec/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will be handled by the usual Makefile). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit constraints are also saved in vectors. You can run it with:
 
 > ./bin/makeFixedOscTree cfg/fit_config.ini cfg/oscgrid_config.ini
 
 The config files should be ones you've used to run one of the fits. If this takes a long time, you can submit it as a batch job using `utils/submitCondor.py`:
 
 > python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
+
+Once the tree is made, the it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true.
 
 <h4>plotFixedOscLLH</h4>
 
