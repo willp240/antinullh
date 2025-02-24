@@ -5,43 +5,36 @@ orig_base_dir=
 pruned_ntup_dir=
 
 [reactor_nubar]
-tex_label = Reactor-$\bar{\nu}$
 ntup_files =
 groups = osc_group,3d
 dimensions = 3
 
 [geonu_U]
-tex_label = U Geo $\bar{\nu}$
 ntup_files =
 dimensions = 1
 groups = 1d
 
 [geonu_Th]
-tex_label = Th Geo $\bar{\nu}$
 ntup_files =
 dimensions = 1
 groups = 1d
 
 [alphan_PRecoil]
-tex_label = $\alpha-n$ Proton Recoil
 ntup_files =
 groups = p_recoil,1d
 dimensions = 1
 
 [alphan_CScatter]
-tex_label = $\alpha-n$ Proton Ielastic Scatter
 ntup_files =
 dimensions = 1
 groups = 1d
 
 [alphan_OExcited]
-tex_label = $\alpha-n$ Excited $^{16}$O
 ntup_files =
 dimensions = 1
 groups = 1d
 
 [sideband]
-tex_label = Sideband
 ntup_files =
 dimensions = 1
 groups = 1d

@@ -63,7 +63,6 @@ This file should contain information on the types of events you want to include 
 <h5>Event Type Tables</h5>
 
 The name of these tables should be the name of the event type.
-- `tex_label`: A latex name for the event type
 - `ntup_files`: File path for the original unpruned files, relative to `orig_base_dir`
 - `dimensions`: Number of dimensions the PDF should have
 - `groups`: The groups the PDFs are part of. Each systematic is applied to one group (or all event types)
@@ -97,6 +96,7 @@ The name of these tables should be the name of the fit parameter.
 - `max`: The maximum value the parameter is allowed to take
 - `sig`: The relative width of the Gaussian used to propose new step values (each gets scaled by summary:sigma_scale). Often referred to as the step size
 - `nbins`: Number of bins used for plotting the parameter
+- `tex_label`: A latex name used for the parameter
 - `constraint_mean`: Mean of the prior constraint on the parameter
 - `constraint_sig`: Width of the prior constraint on the parameter
 - `constraint_ratiomean`: Mean of prior constraint on ratio of this parameter to another
