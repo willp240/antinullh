@@ -45,6 +45,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
+  std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
   // Create output directories
@@ -216,15 +218,15 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance, ratio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-      
-      double noms_config = noms[it->first];  
+
+      double noms_config = noms[it->first];
       constrMeans[it->first] = constrMeans[it->first] * ratio;
       constrSigmas[it->first] = constrSigmas[it->first] * ratio;
       noms[it->first] = noms_config * ratio;
       mins[it->first] = mins[it->first] * ratio;
       maxs[it->first] = maxs[it->first] * ratio;
-      fdValues[it->first] = fdValues[it->first] *ratio;
-      
+      fdValues[it->first] = fdValues[it->first] * ratio;
+
       // Now loop over deltam points and make a new pdf for each
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
       {
@@ -424,6 +426,9 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
     lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+  for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+    lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                     constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -547,6 +552,9 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
       osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+    for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+      osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                          constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
 
     if (iDeltaM % countwidth == 0)
       std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
@@ -602,6 +610,9 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
       osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+    for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+      osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                          constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
 
     if (iTheta12 % countwidth == 0)
       std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;

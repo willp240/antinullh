@@ -101,13 +101,17 @@ The name of these tables should be the name of the fit parameter.
 - `constraint_sig`: Width of the prior constraint on the parameter
 - `constraint_ratiomean`: Mean of prior constraint on ratio of this parameter to another
 - `constraint_ratiosigma`: Width of prior constraint on ratio of this parameter to another
-- `constraint_ratioparname`: Name of other parameter the ratio constraint corresponds to. This must be another parameter defined and activated in this file. 
+- `constraint_ratioparname`: Name of other parameter the ratio constraint corresponds to. This must be another parameter defined and activated in this file.
+- `constraint_corr`: Correlation of this parameter to another
+- `constraint_corrparname`: Name of other parameter this parameter is correlated to. This must be another parameter defined and activated in this file. Both correlated parameters must have a `constraint_mean` and `constraint_sig` defined.
 - `fake_data_val`: Value to use to produce a fake dataset if `fake_data` is true in the Summary
 
 A note on HMCMC: There is currently the functionality to run some MCMC, followed by some HMCMC starting from the best fit points of the MCMC. However, this didn't give any improvement in results or efficiency over the straight MCMC. The functionality is preserved in case we ever want to use it in the future, but generally we'll just run MCMC, with a notional 1 step HMCMC ran to avoid problems with files not being created when they are expected to.
 It's likely in the future we'll just remove the functionality.
 
-A note on Ratio Constraints: There is currently functionality to have a constraint on the ratio between two parameters. This should be specified by defining the constraint for one parameter and setting `constraint_ratioparname` to the name of the other. Do not then define the constraint for the second parameter as well, else the constraint will be applied twice. It does not matter which of the two parameters you define it for. It is not currently possible to have a ratio constraint for a parameter with more than one other parameters. We could change this in the future if it is needed. 
+A note on Ratio Constraints: There is currently functionality to have a constraint on the ratio between two parameters. This should be specified by defining the constraint for one parameter and setting `constraint_ratioparname` to the name of the other. Do not then define the constraint for the second parameter as well, else the constraint will be applied twice. It does not matter which of the two parameters you define it for. It is not currently possible to have a ratio constraint for a parameter with more than one other parameters. We could change this in the future if it is needed.
+
+Similarly, for correlations, do not define the correlation for the second parameter as well or it will be applied twice. It does not matter which of the two parameters you define the correlation for. It is not currently possible for a parameter to have a correlation with more than one other parameter. This could also change in the future.
 
 <h4>PDF</h4>
 

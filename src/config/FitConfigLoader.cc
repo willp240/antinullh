@@ -94,6 +94,8 @@ namespace antinufit
     double constrRatioMean;
     double constrRatioSigma;
     std::string constrRatioParName;
+    double constrCorr;
+    std::string constrCorrParName;
     int nbins;
 
     if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
@@ -142,7 +144,16 @@ namespace antinufit
       {
         ConfigLoader::Load(name, "constraint_mean", constrMean);
         ConfigLoader::Load(name, "constraint_sigma", constrSigma);
-        ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrMean, constrSigma);
+        try
+        {
+          ConfigLoader::Load(name, "constraint_corr", constrCorr);
+          ConfigLoader::Load(name, "constraint_corrparname", constrCorrParName);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrMean, constrSigma, constrCorrParName, constrCorr);
+        }
+        catch (const ConfigFieldMissing &e_)
+        {
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrMean, constrSigma);
+        }
       }
       catch (const ConfigFieldMissing &e_)
       {
