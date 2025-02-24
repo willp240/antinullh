@@ -111,6 +111,15 @@ namespace antinufit
       ConfigLoader::Load(name, "nbins", nbins);
       ConfigLoader::Load(name, "tex_label", texLabel);
 
+      // Remove "" if it surrounds the label string from the config
+      size_t start = 0;
+      size_t end = texLabel.size() - 1;
+      if (texLabel[start] == '"' || texLabel[start] == '\'')
+        start++;
+      if (end > start && (texLabel[end] == '"' || texLabel[end] == '\''))
+        end--;
+      texLabel = texLabel.substr(start, end - start + 1);
+
       try
       {
         ConfigLoader::Load(name, "nom", nom);
@@ -144,10 +153,10 @@ namespace antinufit
           ConfigLoader::Load(name, "constraint_ratioparname", constrRatioParName);
           ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrRatioMean, constrRatioSigma, constrRatioParName);
         }
-        catch(const ConfigFieldMissing &e_)
+        catch (const ConfigFieldMissing &e_)
         {
           ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel);
-        }   
+        }
       }
     }
 

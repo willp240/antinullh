@@ -171,7 +171,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     // Draw the histograms
     TCanvas *c1 = new TCanvas("c1", "Params", 800, 600);
-    c1->SetBottomMargin(0.23);
+    c1->SetBottomMargin(0.18);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -189,10 +189,11 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     hConstr->GetYaxis()->SetRangeUser(0, 2);
     hConstr->GetYaxis()->SetTitle("Relative to Nominal");
-    //hConstr->GetXaxis()->SetLabelOffset(0.007);
-    hConstr->GetXaxis()->CenterLabels(true);
+    hConstr->GetYaxis()->SetTitleOffset(1.2);
+    hConstr->GetXaxis()->SetLabelOffset(0.007);
+    hConstr->GetXaxis()->SetTitle("Fit Parameters");
+    hConstr->GetXaxis()->SetTitleOffset(2.0);
     hConstr->SetTitle("");
-    hConstr->LabelsOption("v");
 
     hConstr->GetXaxis()->SetTitleFont(42);
     hConstr->GetYaxis()->SetTitleFont(42);
