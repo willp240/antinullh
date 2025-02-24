@@ -45,6 +45,8 @@ void llh_scan(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
+  std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
   // Create output directories
@@ -302,6 +304,9 @@ void llh_scan(const std::string &fitConfigFile_,
     lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
     lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+  for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+    lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                     constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
   // And finally bring it all together
   lh.RegisterFitComponents();
 
