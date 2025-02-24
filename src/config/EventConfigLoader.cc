@@ -19,12 +19,10 @@ namespace antinufit
     ConfigLoader::Load("summary", "orig_base_dir", baseDir);
     ConfigLoader::Load("summary", "pruned_ntup_dir", prunedDir);
 
-    std::string texLabel;
     std::vector<std::string> ntupFiles;
     int numDimensions;
     std::vector<std::string> groups;
 
-    ConfigLoader::Load(name_, "tex_label", texLabel);
     ConfigLoader::Load(name_, "ntup_files", ntupFiles);
     ConfigLoader::Load(name_, "dimensions", numDimensions);
 
@@ -42,7 +40,6 @@ namespace antinufit
 
     EventConfig retVal;
     retVal.SetNtupFiles(ntupFiles);
-    retVal.SetTexLabel(texLabel);
     retVal.SetName(name_);
     retVal.SetNtupBaseDir(baseDir);
     retVal.SetPrunedPath(prunedDir + "/" + name_ + ".root");

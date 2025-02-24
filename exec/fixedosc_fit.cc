@@ -511,7 +511,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::cout << "deltam: " << deltam21 << std::endl;
   std::cout << "theta: " << theta12 << std::endl;
   std::cout << "LLH: " << finalLLH << std::endl;
-  std::cout << "FitValid: " << validFit << std::endl
+  std::cout << "FitValid: " << validFit << std::endl;
+  std::cout << "ReactorRatio: " << reactorRatio << std::endl
             << std::endl
             << std::endl;
 }

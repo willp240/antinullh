@@ -39,6 +39,12 @@ namespace antinufit
     return fNbins;
   }
 
+  std::map<std::string, std::string>
+  FitConfig::GetTexLabels() const
+  {
+    return fTexLabels;
+  }
+
   int FitConfig::GetIterations() const
   {
     return fIterations;
@@ -238,17 +244,18 @@ namespace antinufit
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          double constrMean_, double constrSigma_)
+                          std::string label_, double constrMean_, double constrSigma_)
   {
 
     fConstrMeans[name_] = constrMean_;
     fConstrSigmas[name_] = constrSigma_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
   }
 
   void
-  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_)
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
+                          std::string label_)
   {
     fMinima[name_] = min_;
     fMaxima[name_] = max_;
@@ -256,18 +263,19 @@ namespace antinufit
     fFakeDataVals[name_] = fdvalue_;
     fSigmas[name_] = sigma_;
     fNbins[name_] = nbins_;
+    fTexLabels[name_] = label_;
   }
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_)
+                          std::string label_, double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_)
   {
 
     fConstrRatioMeans[name_] = constrRatioMean_;
     fConstrRatioSigmas[name_] = constrRatioSigma_;
     fConstrRatioParName[name_] = constrRatioParName_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
   }
 
 }

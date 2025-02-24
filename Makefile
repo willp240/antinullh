@@ -74,9 +74,9 @@ bin/make_plots: exec/make_plots.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/make_plots.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
-bin/makeFixedOscTree: util/makeFixedOscTree.cc $(LIB)
+bin/makeFixedOscTree: exec/makeFixedOscTree.cc $(LIB)
 	mkdir -p bin
-	$(CXX)  util/makeFixedOscTree.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX)  exec/makeFixedOscTree.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
 $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)

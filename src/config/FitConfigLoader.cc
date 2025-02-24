@@ -88,6 +88,7 @@ namespace antinufit
     double min;
     double max;
     double sig;
+    std::string texLabel;
     double constrMean;
     double constrSigma;
     double constrRatioMean;
@@ -108,6 +109,16 @@ namespace antinufit
       ConfigLoader::Load(name, "max", max);
       ConfigLoader::Load(name, "sig", sig);
       ConfigLoader::Load(name, "nbins", nbins);
+      ConfigLoader::Load(name, "tex_label", texLabel);
+
+      // Remove "" if it surrounds the label string from the config
+      size_t start = 0;
+      size_t end = texLabel.size() - 1;
+      if (texLabel[start] == '"' || texLabel[start] == '\'')
+        start++;
+      if (end > start && (texLabel[end] == '"' || texLabel[end] == '\''))
+        end--;
+      texLabel = texLabel.substr(start, end - start + 1);
 
       try
       {
@@ -131,7 +142,7 @@ namespace antinufit
       {
         ConfigLoader::Load(name, "constraint_mean", constrMean);
         ConfigLoader::Load(name, "constraint_sigma", constrSigma);
-        ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, constrMean, constrSigma);
+        ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrMean, constrSigma);
       }
       catch (const ConfigFieldMissing &e_)
       {
@@ -140,12 +151,12 @@ namespace antinufit
           ConfigLoader::Load(name, "constraint_ratiomean", constrRatioMean);
           ConfigLoader::Load(name, "constraint_ratiosigma", constrRatioSigma);
           ConfigLoader::Load(name, "constraint_ratioparname", constrRatioParName);
-          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, constrRatioMean, constrRatioSigma, constrRatioParName);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrRatioMean, constrRatioSigma, constrRatioParName);
         }
-        catch(const ConfigFieldMissing &e_)
+        catch (const ConfigFieldMissing &e_)
         {
-          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal);
-        }   
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel);
+        }
       }
     }
 

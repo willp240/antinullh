@@ -82,20 +82,22 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     THStack *hGroupStack = new THStack("hGroupStack", ";Reconstructed Energy, MeV;Events");
     std::map<std::string, TH1D *> histMap;
 
-    // Map of filenames to plot labels
+    // Make map of param names to plot labels
     std::map<std::string, std::string> labelMap;
-    labelMap["data.root"] = "Data";
-    labelMap["postfitdist.root"] = "Total MC with Systs.";
-    labelMap["reactor_nubar.root"] = "Reactor #bar{#nu} ";
-    labelMap["geonu_Th.root"] = "Geo Th";
-    labelMap["geonu_U.root"] = "Geo U";
-    labelMap["alphan_PRecoil.root"] = "#alpha P Recoil";
-    labelMap["alphan_CScatter.root"] = "#alpha C Scatter ";
-    labelMap["alphan_OExcited.root"] = "#alpha O excited";
-    labelMap["sideband.root"] = "Sideband";
+    std::vector<std::string> *paramNames = nullptr;
+    std::vector<std::string> *labelsVec = nullptr;
+    file->GetObject("param_names", paramNames);
+    file->GetObject("tex_labels", labelsVec);
 
-    std::vector<std::string> fileOrder{"data.root", "postfitdist.root", "reactor_nubar.root", "alphan_PRecoil.root", "alphan_CScatter.root",
-                                       "alphan_OExcited.root", "geonu_Th.root", "geonu_U.root", "sideband.root"};
+    for (int iParam = 0; iParam < paramNames->size(); iParam++)
+    {
+        labelMap[paramNames->at(iParam)] = labelsVec->at(iParam);
+    }
+    labelMap["data"] = "Data";
+    labelMap["postfitdist"] = "Total MC with Systs.";
+
+    std::vector<std::string> paramOrder{"data", "postfitdist", "reactor_nubar", "alphan_PRecoil", "alphan_CScatter",
+                                       "alphan_OExcited", "geonu_Th", "geonu_U", "sideband"};
 
     // Directory of best LLH fit
     std::filesystem::path dirPath(filename);
@@ -117,13 +119,11 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     int colourIndex = 0;
 
     // Go into scaled dists and loop over each file
-    std::cout << directory.str() << std::endl;
     for (const auto &entry : std::filesystem::directory_iterator(directory.str()))
     {
 
         std::string filePath = entry.path().string();
         std::filesystem::path pathObj(filePath);
-        std::cout << pathObj.filename() << std::endl;
 
         // Check if it's a .root file
         if (filePath.find(".root") == std::string::npos)
@@ -148,22 +148,22 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
             delete file;
             continue;
         }
-
+        pathObj.replace_extension("");
         histMap[pathObj.filename()] = h1;
     }
 
     // Intialise group histos
-    hData = (TH1D *)histMap["data.root"]->Clone("hData");
+    hData = (TH1D *)histMap["data"]->Clone("hData");
     hData->Reset();
-    hTotal = (TH1D *)histMap["data.root"]->Clone("hTotal");
+    hTotal = (TH1D *)histMap["data"]->Clone("hTotal");
     hTotal->Reset();
-    hReactor = (TH1D *)histMap["data.root"]->Clone("hReactor");
+    hReactor = (TH1D *)histMap["data"]->Clone("hReactor");
     hReactor->Reset();
-    hGeo = (TH1D *)histMap["data.root"]->Clone("hGeo");
+    hGeo = (TH1D *)histMap["data"]->Clone("hGeo");
     hGeo->Reset();
-    hAlpha = (TH1D *)histMap["data.root"]->Clone("hAlpha");
+    hAlpha = (TH1D *)histMap["data"]->Clone("hAlpha");
     hAlpha->Reset();
-    hOther = (TH1D *)histMap["data.root"]->Clone("hOther");
+    hOther = (TH1D *)histMap["data"]->Clone("hOther");
     hOther->Reset();
 
     hData->SetLineColor(kBlack);
@@ -186,53 +186,53 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     colourIndex = 0;
 
     // Now loop over files, getting histos, and adding to the appropriate groups
-    for (int iFile = 0; iFile < fileOrder.size(); iFile++)
+    for (int iFile = 0; iFile < paramOrder.size(); iFile++)
     {
-        histMap[fileOrder.at(iFile)]->SetLineColor(lineColours[colourIndex % lineColours.size()]);
-        histMap[fileOrder.at(iFile)]->SetLineWidth(2);
-        histMap[fileOrder.at(iFile)]->GetYaxis()->SetRangeUser(0, 1.6);
+        histMap[paramOrder.at(iFile)]->SetLineColor(lineColours[colourIndex % lineColours.size()]);
+        histMap[paramOrder.at(iFile)]->SetLineWidth(2);
+        histMap[paramOrder.at(iFile)]->GetYaxis()->SetRangeUser(0, 1.6);
 
-        if (fileOrder.at(iFile) == "data.root")
+        if (paramOrder.at(iFile) == "data")
         {
-            hData->Add(histMap[fileOrder.at(iFile)]);
-            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "l");
+            hData->Add(histMap[paramOrder.at(iFile)]);
+            t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "l");
         }
-        else if (fileOrder.at(iFile) == "postfitdist.root")
+        else if (paramOrder.at(iFile) == "postfitdist")
         {
-            hTotal->Add(histMap[fileOrder.at(iFile)]);
-            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "l");
+            hTotal->Add(histMap[paramOrder.at(iFile)]);
+            t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "l");
         }
-        else if (fileOrder.at(iFile) == "reactor_nubar.root")
+        else if (paramOrder.at(iFile) == "reactor_nubar")
         {
-            hReactor->Add(histMap[fileOrder.at(iFile)]);
-            hStack->Add(histMap[fileOrder.at(iFile)]);
-            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
-            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
-            histMap.erase(fileOrder.at(iFile));
+            hReactor->Add(histMap[paramOrder.at(iFile)]);
+            hStack->Add(histMap[paramOrder.at(iFile)]);
+            histMap[paramOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "f");
+            histMap.erase(paramOrder.at(iFile));
         }
-        else if (fileOrder.at(iFile) == "geonu_U.root" || fileOrder.at(iFile) == "geonu_Th.root")
+        else if (paramOrder.at(iFile) == "geonu_U" || paramOrder.at(iFile) == "geonu_Th")
         {
-            hGeo->Add(histMap[fileOrder.at(iFile)]);
-            hStack->Add(histMap[fileOrder.at(iFile)]);
-            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
-            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
-            histMap.erase(fileOrder.at(iFile));
+            hGeo->Add(histMap[paramOrder.at(iFile)]);
+            hStack->Add(histMap[paramOrder.at(iFile)]);
+            histMap[paramOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "f");
+            histMap.erase(paramOrder.at(iFile));
         }
-        else if (fileOrder.at(iFile) == "alphan_CScatter.root" || fileOrder.at(iFile) == "alphan_OExcited.root" || fileOrder.at(iFile) == "alphan_PRecoil.root")
+        else if (paramOrder.at(iFile) == "alphan_CScatter" || paramOrder.at(iFile) == "alphan_OExcited" || paramOrder.at(iFile) == "alphan_PRecoil")
         {
-            hAlpha->Add(histMap[fileOrder.at(iFile)]);
-            hStack->Add(histMap[fileOrder.at(iFile)]);
-            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
-            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
-            histMap.erase(fileOrder.at(iFile));
+            hAlpha->Add(histMap[paramOrder.at(iFile)]);
+            hStack->Add(histMap[paramOrder.at(iFile)]);
+            histMap[paramOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "f");
+            histMap.erase(paramOrder.at(iFile));
         }
         else
         {
-            hOther->Add(histMap[fileOrder.at(iFile)]);
-            hStack->Add(histMap[fileOrder.at(iFile)]);
-            histMap[fileOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
-            t1->AddEntry(histMap[fileOrder.at(iFile)], labelMap[fileOrder.at(iFile)].c_str(), "f");
-            histMap.erase(fileOrder.at(iFile));
+            hOther->Add(histMap[paramOrder.at(iFile)]);
+            hStack->Add(histMap[paramOrder.at(iFile)]);
+            histMap[paramOrder.at(iFile)]->SetFillColor(fillColours[colourIndex % fillColours.size()]);
+            t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "f");
+            histMap.erase(paramOrder.at(iFile));
         }
 
         colourIndex++;
@@ -242,12 +242,12 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     // Loop over what's left in histMap in case there were any files not defined in labelMap
     for (std::map<std::string, TH1D *>::iterator it = histMap.begin(); it != histMap.end(); ++it)
     {
-        if (it->first == "data.root" || it->first == "postfitdist.root")
+        if (it->first == "data" || it->first == "postfitdist")
             continue;
 
         hOther->Add(histMap[it->first]);
         histMap[it->first]->SetFillColor(colourIndex + 30);
-        t1->AddEntry(histMap[it->first], it->first, "f");
+        t1->AddEntry(histMap[it->first], it->first.c_str(), "f");
         colourIndex++;
     }
 
@@ -259,8 +259,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
 
     hStack->SetMaximum(1.6);
     hStack->Draw("");
-    histMap["data.root"]->Draw("histsame");
-    histMap["postfitdist.root"]->Draw("histsame");
+    histMap["data"]->Draw("histsame");
+    histMap["postfitdist"]->Draw("histsame");
     hStack->GetXaxis()->SetTitleFont(42);
     hStack->GetYaxis()->SetTitleFont(42);
     hStack->GetXaxis()->SetLabelFont(42);
@@ -294,8 +294,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
 
     hGroupStack->SetMaximum(1.6);
     hGroupStack->Draw("");
-    histMap["data.root"]->Draw("histsame");
-    histMap["postfitdist.root"]->Draw("histsame");
+    histMap["data"]->Draw("histsame");
+    histMap["postfitdist"]->Draw("histsame");
     hGroupStack->GetXaxis()->SetTitleFont(42);
     hGroupStack->GetYaxis()->SetTitleFont(42);
     hGroupStack->GetXaxis()->SetLabelFont(42);
