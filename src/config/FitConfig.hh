@@ -16,14 +16,17 @@ namespace antinufit
     ParameterDict GetNBins() const;
     ParameterDict GetNominals() const;
     ParameterDict GetFakeDataVals() const;
-    std::map<std::string,std::string> GetTexLabels() const;
+    std::map<std::string, std::string> GetTexLabels() const;
 
     ParameterDict GetConstrMeans() const;
     ParameterDict GetConstrSigmas() const;
 
     ParameterDict GetConstrRatioMeans() const;
     ParameterDict GetConstrRatioSigmas() const;
-    std::map<std::string,std::string>   GetConstrRatioParName() const;
+    std::map<std::string, std::string> GetConstrRatioParName() const;
+
+    ParameterDict GetConstrCorrs() const;
+    std::map<std::string, std::string> GetConstrCorrParName() const;
 
     int GetIterations() const;
     void SetIterations(int);
@@ -38,8 +41,10 @@ namespace antinufit
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_);
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
                       double constrMean_, double constrSigma_);
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
+                      double constrMean_, double constrSigma_, std::string constrCorrParName_, double constrCorr_);
     void AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
-                      double constrRatioMean_, double constrRatioSigma_,std::string constrRatioParName_);
+                      double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_);
 
     std::set<std::string> GetParamNames() const;
 
@@ -79,13 +84,14 @@ namespace antinufit
     ParameterDict fConstrSigmas;
     ParameterDict fConstrRatioMeans;
     ParameterDict fConstrRatioSigmas;
+    ParameterDict fConstrCorrs;
     ParameterDict fNominals;
     ParameterDict fFakeDataVals;
     ParameterDict fMinima;
     ParameterDict fMaxima;
     ParameterDict fSigmas;
     ParameterDict fNbins;
-    std::map<std::string,std::string> fTexLabels;
+    std::map<std::string, std::string> fTexLabels;
     int fIterations;
     int fBurnIn;
     int fHMCIterations;
@@ -99,7 +105,8 @@ namespace antinufit
     double fLivetime;
     bool fSaveOutputs;
     std::string fDatafile;
-    std::map<std::string,std::string> fConstrRatioParName;
+    std::map<std::string, std::string> fConstrRatioParName;
+    std::map<std::string, std::string> fConstrCorrParName;
   };
 }
 #endif
