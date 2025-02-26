@@ -305,7 +305,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     c2->Update();
 
     pathObj.replace_filename("distGroup.pdf");
-    c1->SaveAs(pathObj.string().c_str());
+    c2->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("distGroup.root");
-    c1->SaveAs(pathObj.string().c_str());
+    c2->SaveAs(pathObj.string().c_str());
 }

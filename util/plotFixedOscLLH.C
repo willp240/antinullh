@@ -40,8 +40,8 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
 
     // Define variables to hold the tree branches
     double theta, deltam, llh;
-    tree->SetBranchAddress("theta", &theta);
-    tree->SetBranchAddress("deltam", &deltam);
+    tree->SetBranchAddress("theta12", &theta);
+    tree->SetBranchAddress("deltam21", &deltam);
     tree->SetBranchAddress("LLH", &llh);
 
     int nEntries = tree->GetEntries();
@@ -49,10 +49,10 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     // Create a TH2D histogram
     int nBinsX = sqrt(nEntries);
     int nBinsY = sqrt(nEntries);
-    double minDeltam = tree->GetMinimum("deltam");
-    double maxDeltam = tree->GetMaximum("deltam");
-    double minTheta = tree->GetMinimum("theta");
-    double maxTheta = tree->GetMaximum("theta");
+    double minDeltam = tree->GetMinimum("deltam21");
+    double maxDeltam = tree->GetMaximum("deltam21");
+    double minTheta = tree->GetMinimum("theta12");
+    double maxTheta = tree->GetMaximum("theta12");
     double minLLH = tree->GetMinimum("LLH");
 
     TH2D *hLLH = new TH2D("hLLH", "#Delta LLH;#Delta m^2, MeV;#theta",
