@@ -250,7 +250,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
-      IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      if (saveOutputs)
+        IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
@@ -261,7 +262,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     else
     {
       asimov.Add(dist);
-      IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      if (saveOutputs)
+        IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
