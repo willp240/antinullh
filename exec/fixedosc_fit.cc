@@ -373,23 +373,27 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     {
       std::string name = pdfs.at(i).GetName();
       pdfs[i].Normalise();
+      // Apply bestfit systematic variables
+      for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
+      {
+        // If group is "", we apply to all groups
+        if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
+        {
+          std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+          for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+          {
+            systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+          }
+          pdfs[i] = systIt->second->operator()(pdfs[i]);
+        }
+      }
+
       pdfs[i].Scale(bestFit[name]);
       IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
       // Sum all scaled distributions to get full postfit "dataset"
       postfitDist.Add(pdfs[i]);
     }
 
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-    {
-      double distInt = postfitDist.Integral();
-      std::set<std::string> systParamNames = systMap[it->first]->GetParameterNames();
-      for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
-      {
-        systMap[it->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
-      }
-      postfitDist = systMap[it->first]->operator()(postfitDist);
-      postfitDist.Scale(distInt);
-    }
     IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
   }
   else
@@ -399,6 +403,21 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     {
       std::string name = pdfs.at(i).GetName();
       pdfs[i].Normalise();
+      // Apply bestfit systematic variables
+      for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
+      {
+        // If group is "", we apply to all groups
+        if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
+        {
+          std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+          for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+          {
+            systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+          }
+          pdfs[i] = systIt->second->operator()(pdfs[i]);
+        }
+      }
+
       pdfs[i].Scale(bestFit[name]);
 
       std::vector<std::string> keepObs;
@@ -409,19 +428,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       postfitDist.Add(pdfs[i]);
     }
 
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-    {
-      double distInt = postfitDist.Integral();
-      std::set<std::string> systParamNames = systMap[it->first]->GetParameterNames();
-      for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
-      {
-        systMap[it->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
-      }
-      postfitDist = systMap[it->first]->operator()(postfitDist);
-      postfitDist.Scale(distInt);
-
-      IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
-    }
+    IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
   }
 
   // And also save the data
