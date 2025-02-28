@@ -76,7 +76,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
 
     print (job_name)
     batch_name, _ = job_name.rsplit('_', 1)
-    out_dir_base = out_dir.split("/")[-2]
+    out_dir_base = out_dir.split("/")[-2] + "_th{0}".format(theta)
 
     # Set a condor path to be called later
     condor_path = "{0}/".format(out_dir)
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numvalstheta
         theta = "{:.2f}".format(theta)
 
-        bactch_name = job_name + "_th{0}".format(theta)
+        batch_name = job_name + "_th{0}".format(theta)
 
         log_dir = check_dir("{0}/log/".format(out_dir))
         error_dir = check_dir("{0}/error/".format(out_dir))
@@ -264,4 +264,4 @@ if __name__ == "__main__":
         submit_dir = check_dir("{0}/submit/".format(out_dir))
         output_dir = check_dir("{0}/output/".format(out_dir))
 
-        pycondor_submit(bactch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
+        pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
