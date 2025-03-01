@@ -187,8 +187,6 @@ void llh_scan(const std::string &fitConfigFile_,
     BinnedED dist;
     int num_dimensions = it->second.GetNumDimensions();
     dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
-    // Add small numbers to avoid 0 probability bins
-    dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
