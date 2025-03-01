@@ -239,8 +239,13 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         double distInt = dist.Integral();
         double norm;
         dist = systIt->second->operator()(dist, &norm);
+
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
-        SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
+        std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+        for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        {
+          systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
+        }
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
@@ -461,7 +466,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
             {
               systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
             }
-            pdfs[i] = systIt->second->operator()(pdfs[i]);
+            double norm;
+            pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
           }
         }
         pdfs[i].Scale(bestFit[name]);
@@ -490,7 +496,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
             {
               systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
             }
-            pdfs[i] = systIt->second->operator()(pdfs[i]);
+            double norm;
+            pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
           }
         }
         pdfs[i].Scale(bestFit[name]);

@@ -309,7 +309,11 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         double norm;
         dist = systIt->second->operator()(dist, &norm);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
-        SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
+        std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+        for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        {
+          systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
+        }
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
