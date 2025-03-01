@@ -223,8 +223,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     genRates.push_back(dist.Integral());
 
     // Scale for PDF and add to vector
-    if (dist.Integral())
+    if (dist.Integral() && fakeDataDist.Integral())
+    {
       dist.Normalise();
+      fakeDataDist.Normalise();
+    }
     pdfs.push_back(dist);
 
     norm_fitting_statuses->push_back(INDIRECT);
@@ -236,10 +239,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
       {
         double distInt = dist.Integral();
-        dist = systIt->second->operator()(dist);
+        double norm;
+        dist = systIt->second->operator()(dist, &norm);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
         SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
-        fakeDataDist = systIt->second->operator()(fakeDataDist);
+        fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
 
