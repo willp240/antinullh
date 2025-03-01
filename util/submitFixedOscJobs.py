@@ -76,6 +76,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
 
     print (job_name)
     batch_name, _ = job_name.rsplit('_', 1)
+    out_dir_base = out_dir.split("/")[-2] + "_th{0}".format(theta)
 
     # Set a condor path to be called later
     condor_path = "{0}/".format(out_dir)
@@ -157,7 +158,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
         out_macro_text += str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + "\n"
         print(str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + "\n")
 
-    sh_filepath = "{0}/sh/".format(condor_path) + str(job_name).replace("/", "") + '.sh'
+    sh_filepath = "{0}/sh/".format(condor_path) + str(out_dir_base).replace("/", "") + '.sh'
     if not os.path.exists(os.path.dirname(sh_filepath)):
         os.makedirs(os.path.dirname(sh_filepath))
     sh_file = open(sh_filepath, "w")
@@ -176,13 +177,13 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     n_rep = 1
     getenv = "True"
 
-    submit_filepath = os.path.join(submit_path, job_name)
+    submit_filepath = os.path.join(submit_path, out_dir_base)
     submit_filepath += ".submit"
     out_submit_text = "executable              = " + str(sh_filepath) + "\n" + \
                      "universe                 = " + str(universe) + "\n" + \
-                     "output                   = " + str(output_path) + "/" + str(job_name) + ".output\n" + \
-                     "error                    = " + str(error_path) + "/" + str(job_name) + ".error\n" + \
-                     "log                      = " + str(log_path) + "/" + str(job_name) + ".log\n" + \
+                     "output                   = " + str(output_path) + "/" + str(out_dir_base) + ".output\n" + \
+                     "error                    = " + str(error_path) + "/" + str(out_dir_base) + ".error\n" + \
+                     "log                      = " + str(log_path) + "/" + str(out_dir_base) + ".log\n" + \
                      "notification             = " + str(notification) + "\n" + \
                      "priority                 = " + str(priority) + "\n" + \
                      "getenv                   = " + str(getenv) + "\n" + \
@@ -214,7 +215,6 @@ if __name__ == "__main__":
     parser.add_argument('-p', "--pdf_cfg", type=str, default="", help='pdf config path')
     parser.add_argument('-s', "--syst_cfg", type=str, default="", help='syst config path')
     parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
-    parser.add_argument("-n", "--num_jobs", type=int, default=1, help="how many identical jobs would you like to run?")
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="what's the maximum runtime (in seconds, default 1 day)?")
     parser.add_argument("-j", "--job_name", type=str, default="", help='job name')
     args = parser.parse_args()
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numvalstheta
         theta = "{:.2f}".format(theta)
 
-        bactch_name = job_name + "_th{0}".format(theta)
+        batch_name = job_name + "_th{0}".format(theta)
 
         log_dir = check_dir("{0}/log/".format(out_dir))
         error_dir = check_dir("{0}/error/".format(out_dir))
@@ -264,4 +264,4 @@ if __name__ == "__main__":
         submit_dir = check_dir("{0}/submit/".format(out_dir))
         output_dir = check_dir("{0}/output/".format(out_dir))
 
-        pycondor_submit(bactch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
+        pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
