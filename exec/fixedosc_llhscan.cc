@@ -235,7 +235,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance, ratio);
 
         // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-        oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
         // Apply nominal systematic variables to the oscillated distribution
@@ -261,7 +260,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance, ratio);
 
-        oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
         // Apply nominal systematic variables to the oscillated distribution
@@ -286,8 +284,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       // For all other PDFs, just use Build
       dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
     }
-    // Add small numbers to avoid 0 probability bins
-    dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
