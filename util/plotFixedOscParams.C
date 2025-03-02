@@ -16,8 +16,8 @@
 /// vectors are sorted into the order we want to plot (so this will
 /// need to be updated when parameters change).
 ///
-/// The plot is drawn and the canvas is saved as a root file and
-/// pdf.
+/// The plot is drawn and the canvas is saved as pdf and a root file,
+/// along with each of the histograms.
 ///
 /////////////////////////////////////////////////////////////////// */
 
@@ -216,5 +216,10 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     pathObj.replace_filename("params.pdf");
     c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("params.root");
-    c1->SaveAs(pathObj.string().c_str());
+    TFile* outfile = new TFile(pathObj.string().c_str(), "RECREATE");
+    outfile->cd();
+    hNom->Write("nominal");
+    hConstr->Write("constraints");
+    hPostFit->Write("postfit");
+    c1->Write("c1");
 }

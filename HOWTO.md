@@ -311,9 +311,15 @@ In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U
 
 <h4>plotFixedOscParams</h4>
 
-This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. You can run it with:
+This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. The constraint, nominal, and postfit histograms are also saved in the root file. You can run it with:
 
 > root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
+
+<h4>compareFixedOscParams</h4>
+
+This script opens the outputted root file from `plotFixedOscParams` for two different fits, and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
+
+> root -l 'util/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
 
 <h3>MCMC</h3>
 
