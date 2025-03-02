@@ -8,8 +8,8 @@
 ///
 /// Script for plotting bestfit LLH from fixed oscillation fits for
 /// grid scan of oscillation parameters.
-/// 
-/// The user inputs the root file made by makeFixedOscTree, and it 
+///
+/// The user inputs the root file made by makeFixedOscTree, and it
 /// reads the oscillation parameters and LLH for each entry. These
 /// are drawn in a TH2D, along with contours.asm
 ///
@@ -77,6 +77,14 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     hLLH->GetYaxis()->SetTitleOffset(1.2);
     hLLH->GetZaxis()->SetTitle("2#Deltaln(L)");
     hLLH->SetTitle("");
+
+    hLLH->GetXaxis()->SetTitleFont(42);
+    hLLH->GetYaxis()->SetTitleFont(42);
+    hLLH->GetZaxis()->SetTitleFont(42);
+    hLLH->GetXaxis()->SetLabelFont(42);
+    hLLH->GetYaxis()->SetLabelFont(42);
+    hLLH->GetZaxis()->SetLabelFont(42);
+    hLLH->SetTitleFont(42);
 
     double contours[1];
     contours[0] = 2.295748928898636;

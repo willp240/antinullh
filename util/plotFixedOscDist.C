@@ -76,7 +76,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     TH1D *hGeo;
     TH1D *hAlpha;
     TH1D *hOther;
-    TH1D *hTotal;
     TH1D *hData;
     THStack *hStack = new THStack("hStack", ";Reconstructed Energy, MeV;Events");
     THStack *hGroupStack = new THStack("hGroupStack", ";Reconstructed Energy, MeV;Events");
@@ -94,9 +93,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
         labelMap[paramNames->at(iParam)] = labelsVec->at(iParam);
     }
     labelMap["data"] = "Data";
-    labelMap["postfitdist"] = "Total MC with Systs.";
 
-    std::vector<std::string> paramOrder{"data", "postfitdist", "reactor_nubar", "alphan_PRecoil", "alphan_CScatter",
+    std::vector<std::string> paramOrder{"data", "reactor_nubar", "alphan_PRecoil", "alphan_CScatter",
                                        "alphan_OExcited", "geonu_Th", "geonu_U", "sideband"};
 
     // Directory of best LLH fit
@@ -114,8 +112,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     t2->SetLineWidth(2);
 
     // Define colours for histograms
-    std::vector<int> lineColours = {kBlack, kGray + 2, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3};
-    std::vector<int> fillColours = {kBlack, kGray + 2, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
+    std::vector<int> lineColours = {kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3};
+    std::vector<int> fillColours = {kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
     int colourIndex = 0;
 
     // Go into scaled dists and loop over each file
@@ -155,8 +153,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     // Intialise group histos
     hData = (TH1D *)histMap["data"]->Clone("hData");
     hData->Reset();
-    hTotal = (TH1D *)histMap["data"]->Clone("hTotal");
-    hTotal->Reset();
     hReactor = (TH1D *)histMap["data"]->Clone("hReactor");
     hReactor->Reset();
     hGeo = (TH1D *)histMap["data"]->Clone("hGeo");
@@ -168,8 +164,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
 
     hData->SetLineColor(kBlack);
     hData->SetLineWidth(2);
-    hTotal->SetLineColor(kGray + 2);
-    hTotal->SetLineWidth(2);
     hReactor->SetLineColor(kBlue);
     hReactor->SetFillColor(kBlue - 9);
     hReactor->SetLineWidth(2);
@@ -195,11 +189,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
         if (paramOrder.at(iFile) == "data")
         {
             hData->Add(histMap[paramOrder.at(iFile)]);
-            t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "l");
-        }
-        else if (paramOrder.at(iFile) == "postfitdist")
-        {
-            hTotal->Add(histMap[paramOrder.at(iFile)]);
             t1->AddEntry(histMap[paramOrder.at(iFile)], labelMap[paramOrder.at(iFile)].c_str(), "l");
         }
         else if (paramOrder.at(iFile) == "reactor_nubar")
@@ -260,7 +249,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     hStack->SetMaximum(1.6);
     hStack->Draw("");
     histMap["data"]->Draw("histsame");
-    histMap["postfitdist"]->Draw("histsame");
     hStack->GetXaxis()->SetTitleFont(42);
     hStack->GetYaxis()->SetTitleFont(42);
     hStack->GetXaxis()->SetLabelFont(42);
@@ -282,7 +270,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     c2->SetFrameLineWidth(2);
 
     t2->AddEntry(hData, "Data", "l");
-    t2->AddEntry(hTotal, "Total MC with Systs.", "l");
     hGroupStack->Add(hReactor);
     t2->AddEntry(hReactor, "Reactor #bar{#nu}", "f");
     hGroupStack->Add(hAlpha);
@@ -295,7 +282,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     hGroupStack->SetMaximum(1.6);
     hGroupStack->Draw("");
     histMap["data"]->Draw("histsame");
-    histMap["postfitdist"]->Draw("histsame");
     hGroupStack->GetXaxis()->SetTitleFont(42);
     hGroupStack->GetYaxis()->SetTitleFont(42);
     hGroupStack->GetXaxis()->SetLabelFont(42);
