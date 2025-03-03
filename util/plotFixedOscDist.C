@@ -77,6 +77,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     TH1D *hAlpha;
     TH1D *hOther;
     TH1D *hData;
+    TH1D *hMC;
     THStack *hStack = new THStack("hStack", ";Reconstructed Energy, MeV;Events");
     THStack *hGroupStack = new THStack("hGroupStack", ";Reconstructed Energy, MeV;Events");
     std::map<std::string, TH1D *> histMap;
@@ -95,7 +96,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     labelMap["data"] = "Data";
 
     std::vector<std::string> paramOrder{"data", "reactor_nubar", "alphan_PRecoil", "alphan_CScatter",
-                                       "alphan_OExcited", "geonu_Th", "geonu_U", "sideband"};
+                                        "alphan_OExcited", "geonu_Th", "geonu_U", "sideband"};
 
     // Directory of best LLH fit
     std::filesystem::path dirPath(filename);
@@ -153,6 +154,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     // Intialise group histos
     hData = (TH1D *)histMap["data"]->Clone("hData");
     hData->Reset();
+    hMC = (TH1D *)histMap["postfitdist"]->Clone("hMC");
     hReactor = (TH1D *)histMap["data"]->Clone("hReactor");
     hReactor->Reset();
     hGeo = (TH1D *)histMap["data"]->Clone("hGeo");
@@ -245,16 +247,58 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     gPad->SetGrid();
     gStyle->SetOptStat(0);
     c1->SetFrameLineWidth(2);
+    double uppermin = 0.3;
+    TPad *lower = new TPad("lower", "pad", 0, 0, 1, uppermin);
+    TPad *upper = new TPad("upper", "pad", 0, uppermin, 1, 1);
+    upper->SetBottomMargin(0.04);
+    lower->SetTopMargin(0.06);
+    lower->SetBottomMargin(0.4);
+    upper->SetFrameLineWidth(2);
+    lower->SetFrameLineWidth(2);
+    upper->SetGrid();
+    lower->SetGrid();
+    upper->Draw();
+    lower->Draw();
+    c1->cd();
 
+    upper->cd();
     hStack->SetMaximum(1.6);
     hStack->Draw("");
     histMap["data"]->Draw("histsame");
+    hStack->GetXaxis()->SetLabelOffset(1.2);
     hStack->GetXaxis()->SetTitleFont(42);
     hStack->GetYaxis()->SetTitleFont(42);
     hStack->GetXaxis()->SetLabelFont(42);
     hStack->GetYaxis()->SetLabelFont(42);
+    hStack->GetXaxis()->SetLabelSize(0.06);
+    hStack->GetYaxis()->SetLabelSize(0.06);
+    hStack->GetXaxis()->SetTitleSize(0.06);
+    hStack->GetYaxis()->SetTitleSize(0.06);
+    hStack->GetYaxis()->SetTitleOffset(0.8);
     t1->SetTextFont(42);
     t1->Draw();
+    c1->Update();
+
+    lower->cd();
+    hMC->Divide(histMap["data"]);
+    hMC->GetYaxis()->SetRangeUser(0.9, 1.1);
+    hMC->GetXaxis()->SetTitleFont(42);
+    hMC->GetYaxis()->SetTitleFont(42);
+    hMC->GetXaxis()->SetLabelFont(42);
+    hMC->GetYaxis()->SetLabelFont(42);
+    hMC->GetXaxis()->SetLabelSize(0.14);
+    hMC->GetYaxis()->SetLabelSize(0.14);
+    hMC->GetXaxis()->SetTitleSize(0.14);
+    hMC->GetYaxis()->SetTitleSize(0.14);
+    hMC->GetYaxis()->SetTitle("MC/Data");
+    hMC->GetYaxis()->SetTitleOffset(0.33);
+    hMC->GetYaxis()->SetNdivisions(404);
+    hMC->GetYaxis()->SetTickLength(0.05);
+    hMC->GetXaxis()->SetTickLength(0.07);
+    hMC->GetYaxis()->ChangeLabel(2, -1, -1, -1, -1, -1, " ");
+    hMC->GetYaxis()->ChangeLabel(4, -1, -1, -1, -1, -1, " ");
+    hMC->SetLineWidth(2);
+    hMC->Draw();
     c1->Update();
 
     std::filesystem::path pathObj(filename);
@@ -268,6 +312,18 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     gPad->SetGrid();
     gStyle->SetOptStat(0);
     c2->SetFrameLineWidth(2);
+    TPad *lower2 = new TPad("lower2", "pad", 0, 0, 1, uppermin);
+    TPad *upper2 = new TPad("upper2", "pad", 0, uppermin, 1, 1);
+    upper2->SetBottomMargin(0.04);
+    lower2->SetTopMargin(0.06);
+    lower2->SetBottomMargin(0.4);
+    upper2->SetFrameLineWidth(2);
+    lower2->SetFrameLineWidth(2);
+    upper2->SetGrid();
+    lower2->SetGrid();
+    upper2->Draw();
+    lower2->Draw();
+    c2->cd();
 
     t2->AddEntry(hData, "Data", "l");
     hGroupStack->Add(hReactor);
@@ -279,16 +335,26 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     hGroupStack->Add(hOther);
     t2->AddEntry(hOther, "Other", "f");
 
+    upper2->cd();
     hGroupStack->SetMaximum(1.6);
     hGroupStack->Draw("");
     histMap["data"]->Draw("histsame");
+    hGroupStack->GetXaxis()->SetLabelOffset(1.2);
     hGroupStack->GetXaxis()->SetTitleFont(42);
     hGroupStack->GetYaxis()->SetTitleFont(42);
     hGroupStack->GetXaxis()->SetLabelFont(42);
     hGroupStack->GetYaxis()->SetLabelFont(42);
+    hGroupStack->GetXaxis()->SetLabelSize(0.06);
+    hGroupStack->GetYaxis()->SetLabelSize(0.06);
+    hGroupStack->GetXaxis()->SetTitleSize(0.06);
+    hGroupStack->GetYaxis()->SetTitleSize(0.06);
+    hGroupStack->GetYaxis()->SetTitleOffset(0.8);
     t2->SetTextFont(42);
     t2->Draw();
     c2->Update();
+
+    lower2->cd();
+    hMC->Draw();
 
     pathObj.replace_filename("distGroup.pdf");
     c2->SaveAs(pathObj.string().c_str());
