@@ -303,7 +303,9 @@ The next thing to do is to plot the best fit LLH as a function of the oscillatio
 
 <h4>plotFixedOscDist</h4>
 
-This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `scaled_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
+This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `scaled_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
+
+Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
 > root -l 'util/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")'
 
