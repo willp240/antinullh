@@ -18,6 +18,7 @@
 // ROOT headers
 #include <TH1D.h>
 #include <TKey.h>
+#include <TMatrixD.h>
 
 // c++ headers
 #include <sys/stat.h>
@@ -136,6 +137,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   // If so ignore that parameter
   ParameterDict::iterator it = noms.begin();
   size_t numParams = noms.size();
+  std::cout << std::endl;
   for (int iParam = 0; iParam < numParams; iParam++)
   {
     bool iterate = true;
@@ -156,6 +158,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     if (iterate)
       it++;
   }
+  std::cout << std::endl;
 
   // Create the individual PDFs and Asimov components (could these be maps not vectors?)
   std::vector<BinnedED> pdfs;
@@ -278,6 +281,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       }
     }
   } // End loop over PDFs
+  std::cout << std::endl;
 
   // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
   // compare to to calculate the llh
@@ -289,6 +293,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata.root", "fakedata");
     }
   }
+  std::cout << std::endl;
 
   // Now let's load up the data
   BinnedED dataDist;
@@ -396,7 +401,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
   // Now do a fit!
   Minuit min;
-  min.SetMethod("Simplex");
+  min.SetMethod("Migrad");
   min.SetMaxCalls(10000000);
   min.SetMinima(mins);
   min.SetMaxima(maxs);
@@ -424,12 +429,15 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     std::vector<std::string> paramNames;
     std::vector<double> paramVals;
     std::vector<double> paramErr;
+    TMatrixD covTMatrixD(bestFit.size(), bestFit.size());
     for (ParameterDict::iterator it = bestFit.begin(); it != bestFit.end(); ++it)
     {
       paramNames.push_back(it->first);
       paramVals.push_back(it->second);
-      if (validFit)
-        paramErr.push_back(covMatrix.GetComponent(paramNames.size(), paramNames.size()));
+      if (validFit){
+        paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size()-1, paramNames.size()-1)));
+        covTMatrixD[paramNames.size()-1][paramNames.size()-1] = covMatrix.GetComponent(paramNames.size()-1, paramNames.size()-1);
+      } 
     }
     paramNames.push_back("LLH");
     paramVals.push_back(finalLLH);
@@ -438,7 +446,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     outFile->WriteObject(&paramNames, "paramNames");
     outFile->WriteObject(&paramVals, "paramVals");
     outFile->WriteObject(&paramErr, "paramErr");
-    std::cout << "Saved fit result to " << outDir + "/fit_result.txt and ./fit_result.root" << std::endl;
+    outFile->WriteObject(&covTMatrixD, "covMatrix");
+    std::cout << "Saved fit result to " << outDir + "/fit_result.txt and " << outDir << "r/fit_result.root" << std::endl;
 
     // Initialise postfit distributions to same axis as data
     BinnedED postfitDist;
