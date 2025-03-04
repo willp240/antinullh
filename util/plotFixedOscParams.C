@@ -181,7 +181,6 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         hConstr->SetBinError(iParam + 1, constrErr->at(iParam) / nomVals->at(iParam));
         hPostFit->SetBinContent(iParam + 1, branchValues[paramNames->at(iParam)] / nomVals->at(iParam));
         hPostFit->SetBinError(iParam + 1, paramErr->at(iParam) / nomVals->at(iParam));
-        std::cout << paramNames->at(iParam) << " " << branchValues[paramNames->at(iParam)] << " " << paramErr->at(iParam) << std::endl;
     }
 
     // Draw the histograms
