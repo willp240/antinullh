@@ -21,7 +21,7 @@ beeston_barlow = 0
 nom = 27.9
 min = 0
 max = 100
-sig = 10
+sig = 2.23
 nbins = 100
 tex_label = "Reactor #bar{#nu}"
 constraint_mean = 51.33
@@ -31,7 +31,7 @@ constraint_sigma = 2.23
 nom = 5.36
 min = 0
 max = 100
-sig = 10
+sig = 5.36
 nbins = 100
 tex_label = "U Geo #bar{#nu}"
 constraint_ratiomean = 3.7
@@ -42,35 +42,35 @@ constraint_ratioparname = geonu_Th
 nom = 1.44
 min = 0
 max = 100
-sig = 10
+sig = 1.44
 nbins = 100
 tex_label = "Th Geo #bar{#nu}"
 
 [alphan_PRecoil]
-nom = 0.86
+nom = 15.62
 min = 0
 max = 100
-sig = 10
+sig = 4.69
 nbins = 100
 tex_label = "#alpha-n P Recoil"
 constraint_mean = 15.62
 constraint_sigma = 4.69
 
 [alphan_CScatter]
-nom = 0.028
+nom = 0.4
 min = 0
 max = 100
-sig = 10
+sig = 0.12
 nbins = 100
 tex_label = "#alpha-n C Scatter"
 constraint_mean = 0.4
 constraint_sigma = 0.12
 
 [alphan_OExcited]
-nom = 0.12
+nom = 1.58
 min = 0
 max = 100
-sig = 10
+sig = 1.58
 nbins = 100
 tex_label = "#alpha-n O Excited"
 constraint_mean = 1.58
@@ -80,7 +80,7 @@ constraint_sigma = 1.58
 nom = 1.7
 min = 0
 max = 5
-sig = 1.
+sig = 1.7
 nbins = 100
 tex_label = "Sideband"
 constraint_mean = 1.7
@@ -97,10 +97,10 @@ constraint_mean = 1.00
 constraint_sigma = 0.018
 
 [energy_conv]
-nom = 0.0
-sig = 0.1
-min = 0
-max = 10
+nom = 0.045
+sig = 0.045
+min = 0.03
+max = 0.06
 nbins = 100
 tex_label = "Energy Conv."
 
@@ -116,9 +116,9 @@ constraint_sigma = 0.004
 
 [p_recoil_energy_scale]
 nom = 1.0
-sig = 0.03
-min = 0.0
-max = 2.0
+sig = 0.1
+min = 0.9
+max = 1.1
 nbins = 100
 tex_label = "E. Scale #alpha-n PR"
 constraint_mean = 1.00
@@ -132,7 +132,6 @@ sig = 6.55
 max = 89.99
 fake_data_val = 33.65
 tex_label = "#theta_{12}"
-
 
 [deltam21]
 nom = 0.0000753
