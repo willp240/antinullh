@@ -145,7 +145,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     std::filesystem::path filePath(filename);
     std::filesystem::path fileDir = filePath.parent_path();
     std::ostringstream fitFileName;
-    std::cout << filename << " " << fileDir << std::endl;
+
     fitFileName << fileDir.string() << "/th" << std::fixed << std::setprecision(2) << branchValues["theta12"] << "/th"
                 << std::fixed << std::setprecision(2) << branchValues["theta12"] << "_dm"
                 << std::fixed << std::setprecision(8) << branchValues["deltam21"] << "/fit_result.root";
@@ -161,8 +161,6 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hPostFit = new TH1D("hPostFit", "Postfit Values Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
-
-    std::cout << paramNames->size() << std::endl;
 
     for (int iParam = 0; iParam < paramNames->size(); iParam++)
     {
