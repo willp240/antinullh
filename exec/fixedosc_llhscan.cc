@@ -158,6 +158,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       paramIt++;
   }
 
+  PrintParams(noms, mins, maxs, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName);
+
   // Create the individual PDFs and Asimov components
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
@@ -421,14 +423,24 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
   lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
+
   // And constraints
-  for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-    lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+  std::vector<std::string> corrPairs;
   for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+  {
     lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
                      constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
+    corrPairs.push_back(constrCorrParName.at(it->first));
+  }
+  for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
+  {
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+      lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  }
+  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -547,14 +559,19 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     }
     osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
 
-    // And set any constraints
-    for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-      osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+    // And constraints
+    std::vector<std::string> corrPairs;
     for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
       osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
                           constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
+    for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
+    {
+      // Only add single parameter constraint if correlation hasn't already been applied
+      if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+        osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    }
+    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
     if (iDeltaM % countwidth == 0)
       std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
@@ -606,14 +623,18 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
 
     // And set any constraints
-    for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-      osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+    std::vector<std::string> corrPairs;
     for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
       osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
                           constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
-
+    for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
+    {
+      // Only add single parameter constraint if correlation hasn't already been applied
+      if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+        osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    }
+    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
     if (iTheta12 % countwidth == 0)
       std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;
 

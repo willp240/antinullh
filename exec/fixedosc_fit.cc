@@ -7,6 +7,7 @@
 #include <SystConfigLoader.hh>
 #include <SystFactory.hh>
 #include <OscGridConfigLoader.hh>
+#include <Utilities.hh>
 
 // OXO headers
 #include <ROOTNtuple.h>
@@ -159,6 +160,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       it++;
   }
   std::cout << std::endl;
+  PrintParams(noms, mins, maxs, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName);
 
   // Create the individual PDFs and Asimov components (could these be maps not vectors?)
   std::vector<BinnedED> pdfs;
@@ -377,14 +379,23 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
   lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
+
   // And constraints
-  for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-    lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+  std::vector<std::string> corrPairs;
   for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+  {
     lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
                      constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
+    corrPairs.push_back(constrCorrParName.at(it->first));
+  }
+  for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
+  {
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+      lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  }
+  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
+    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
   // And finally bring it all together
   lh.RegisterFitComponents();
@@ -434,10 +445,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     {
       paramNames.push_back(it->first);
       paramVals.push_back(it->second);
-      if (validFit){
-        paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size()-1, paramNames.size()-1)));
-        covTMatrixD[paramNames.size()-1][paramNames.size()-1] = covMatrix.GetComponent(paramNames.size()-1, paramNames.size()-1);
-      } 
+      if (validFit)
+      {
+        paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1)));
+        covTMatrixD[paramNames.size() - 1][paramNames.size() - 1] = covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1);
+      }
     }
     paramNames.push_back("LLH");
     paramVals.push_back(finalLLH);
