@@ -134,6 +134,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     std::vector<double> *constrMeans = nullptr;
     std::vector<double> *constrErr = nullptr;
     std::vector<std::string> *labelsVec = nullptr;
+    std::vector<double> *paramErr = nullptr;
 
     file->GetObject("param_names", paramNames);
     file->GetObject("param_asimov_values", nomVals);
@@ -141,12 +142,27 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     file->GetObject("constr_sigma_values", constrErr);
     file->GetObject("tex_labels", labelsVec);
 
+    std::filesystem::path filePath(filename);
+    std::filesystem::path fileDir = filePath.parent_path();
+    std::ostringstream fitFileName;
+    std::cout << filename << " " << fileDir << std::endl;
+    fitFileName << fileDir.string() << "/th" << std::fixed << std::setprecision(2) << branchValues["theta12"] << "/th"
+                << std::fixed << std::setprecision(2) << branchValues["theta12"] << "_dm"
+                << std::fixed << std::setprecision(8) << branchValues["deltam21"] << "/fit_result.root";
+
+    TFile *fitFile = new TFile(fitFileName.str().c_str(), "OPEN");
+    fitFile->GetObject("paramErr", paramErr);
+    paramErr->insert(paramErr->begin(), 0.18);
+    paramErr->insert(paramErr->begin(), 7E-8);
+
     // Reorder vectors to the order we want to plot them
     sortVectors(paramNames, labelsVec, nomVals, constrMeans, constrErr);
 
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hPostFit = new TH1D("hPostFit", "Postfit Values Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
+
+    std::cout << paramNames->size() << std::endl;
 
     for (int iParam = 0; iParam < paramNames->size(); iParam++)
     {
@@ -164,9 +180,8 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         hConstr->SetBinContent(iParam + 1, constrMeans->at(iParam) / nomVals->at(iParam));
         hConstr->SetBinError(iParam + 1, constrErr->at(iParam) / nomVals->at(iParam));
         hPostFit->SetBinContent(iParam + 1, branchValues[paramNames->at(iParam)] / nomVals->at(iParam));
-        // hPostFit->SetBinError(iParam + 1, branchValues[paramNames->at(iParam) + "_err"] / nomVals->at(iParam));
-        // TODO: If fit valid is 0, we get 0 bars and the plot goes wacky. Just set to a value now to get a marker, but we should fix this
-        hPostFit->SetBinError(iParam + 1, 0.1);
+        hPostFit->SetBinError(iParam + 1, paramErr->at(iParam) / nomVals->at(iParam));
+        std::cout << paramNames->at(iParam) << " " << branchValues[paramNames->at(iParam)] << " " << paramErr->at(iParam) << std::endl;
     }
 
     // Draw the histograms
@@ -182,10 +197,6 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     hConstr->SetLineWidth(2);
     hPostFit->SetLineColor(kRed);
     hPostFit->SetLineWidth(2);
-    // TODO: We'll want these when we have proper error bars
-    // hPostFit->SetMarkerStyle(2);
-    // hPostFit->SetMarkerSize(4);
-    // hPostFit->SetMarkerColor(kRed);
 
     hConstr->GetYaxis()->SetRangeUser(0, 2);
     hConstr->GetYaxis()->SetTitle("Relative to Nominal");
@@ -216,7 +227,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     pathObj.replace_filename("params.pdf");
     c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("params.root");
-    TFile* outfile = new TFile(pathObj.string().c_str(), "RECREATE");
+    TFile *outfile = new TFile(pathObj.string().c_str(), "RECREATE");
     outfile->cd();
     hNom->Write("nominal");
     hConstr->Write("constraints");
