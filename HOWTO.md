@@ -297,7 +297,11 @@ Once the tree is made, the it finds the fit that had the best LLH, and reruns th
 
 <h4>plotFixedOscLLH</h4>
 
-The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `util/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`. It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. It can be run by doing:
+The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `util/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`. It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. 
+
+Also plotted are profile LLHs for both $\Delta m^2_{21}$ and $\theta_{12}$. Each are saved as `.pdf` file and also in the same root file as the 2D plot. The $1\sigma$ bounds are calculated and saved in that root file. These can then be used by `plotFixedOscParams` as the oscillation parameter postfit uncertainties.
+
+It can be run by doing:
 
 > root -l 'util/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")'
 
