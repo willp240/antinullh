@@ -142,18 +142,62 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     file->GetObject("constr_sigma_values", constrErr);
     file->GetObject("tex_labels", labelsVec);
 
+    // Open the llh plots file if it exists to get the oscillation uncertainties
     std::filesystem::path filePath(filename);
     std::filesystem::path fileDir = filePath.parent_path();
+    std::ostringstream llhFileName;
+
+    llhFileName << fileDir.string() << "/LLH.root";
+
+    TFile *llhFile = new TFile(llhFileName.str().c_str(), "READ");
+    double thLowErr = -999;
+    double thHighErr = -999;
+    double dmLowErr = -999;
+    double dmHighErr = -999;
+
+    if (!llhFile || llhFile->IsZombie())
+    {
+        std::cerr << "Error: Could not open file " << llhFileName.str()
+                  << ". Defaulting to grid space oscillation parameter errors" << std::endl;
+        thLowErr = 0.18;
+        thHighErr = 0.18;
+        dmLowErr = 7E-8;
+        dmHighErr = 7E-8;
+    }
+    else
+    {
+
+        std::map<std::string, double> *dmSigmas = llhFile->Get<std::map<std::string, double>>("dmSigmas");
+        std::map<std::string, double> *thSigmas = llhFile->Get<std::map<std::string, double>>("thSigmas");
+
+        if (!dmSigmas || !thSigmas)
+        {
+            std::cerr << "Error: Could not find maps in file " << llhFileName.str()
+                      << ". Defaulting to grid space oscillation parameter errors" << std::endl;
+            thLowErr = 0.18;
+            thHighErr = 0.18;
+            dmLowErr = 7E-8;
+            dmHighErr = 7E-8;
+        }
+        else
+        {
+            thLowErr = abs((*thSigmas)["left"] - (*thSigmas)["bestfit"]);
+            thHighErr = abs((*thSigmas)["right"] - (*thSigmas)["bestfit"]);
+            dmLowErr = abs((*dmSigmas)["left"] - (*dmSigmas)["bestfit"]);
+            dmHighErr = abs((*dmSigmas)["right"] - (*dmSigmas)["bestfit"]);
+        }
+    }
+
     std::ostringstream fitFileName;
 
     fitFileName << fileDir.string() << "/th" << std::fixed << std::setprecision(2) << branchValues["theta12"] << "/th"
                 << std::fixed << std::setprecision(2) << branchValues["theta12"] << "_dm"
                 << std::fixed << std::setprecision(8) << branchValues["deltam21"] << "/fit_result.root";
 
-    TFile *fitFile = new TFile(fitFileName.str().c_str(), "OPEN");
+    TFile *fitFile = new TFile(fitFileName.str().c_str(), "READ");
     fitFile->GetObject("paramErr", paramErr);
-    paramErr->insert(paramErr->begin(), 0.18);
-    paramErr->insert(paramErr->begin(), 7E-8);
+    paramErr->insert(paramErr->begin(), std::max(thLowErr, thHighErr));
+    paramErr->insert(paramErr->begin(), std::max(dmLowErr, dmHighErr));
 
     // Reorder vectors to the order we want to plot them
     sortVectors(paramNames, labelsVec, nomVals, constrMeans, constrErr);
