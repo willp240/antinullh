@@ -317,7 +317,9 @@ In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U
 
 <h4>plotFixedOscParams</h4>
 
-This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. The constraint, nominal, and postfit histograms are also saved in the root file. You can run it with:
+This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. The constraint, nominal, and postfit histograms are also saved in the root file. If `plotFixedOscLLH` has already been run, it will look for the outputted `LLH.root` file to find the oscillation parameter uncertainties. Otherwise, it will use the grid spacing.
+
+You can run it with:
 
 > root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
 
