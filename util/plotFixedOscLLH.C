@@ -6,6 +6,27 @@
 #include <TStyle.h>
 #include <iostream>
 
+/* ///////////////////////////////////////////////////////////////////
+///
+/// Script for plotting bestfit LLH from fixed oscillation fits for
+/// grid scan of oscillation parameters.
+///
+/// The user inputs the root file made by makeFixedOscTree, and it
+/// reads the oscillation parameters and LLH for each entry. These
+/// are drawn in a TH2D, along with contours.
+///
+/// Profile LLH are calculated and plotted for each axis, and the
+/// assymetric 1 sigma bounds are calculated and saved in the
+/// outputted root file.
+///
+/// The plots are drawn and the canvases are saved as a root and
+/// pdf files
+///
+/////////////////////////////////////////////////////////////////// */
+
+// Function that takes in a TH2D, and returns a pair of TH1Ds. Each is a profile of the two axis of the TH2D
+// It loops through the bins on one axis. For each bin, it loops through all the bins on the other axis,
+// finding the minimum LLH for that row. This is then repeated for the other axis
 std::pair<TH1D *, TH1D *> GetMinProfiles(TH2D *hist2D)
 {
 
@@ -17,8 +38,6 @@ std::pair<TH1D *, TH1D *> GetMinProfiles(TH2D *hist2D)
     // Create a TH1D histogram to store the minimum Y value for each X bin
     TH1D *minProfileX = new TH1D("minProfileX", "minProfileX", nBinsX, hist2D->GetXaxis()->GetXmin(), hist2D->GetXaxis()->GetXmax());
     TH1D *minProfileY = new TH1D("minProfileY", "minProfileY", nBinsX, hist2D->GetYaxis()->GetXmin(), hist2D->GetYaxis()->GetXmax());
-    std::cout << hist2D->GetXaxis()->GetXmin() << " " << hist2D->GetXaxis()->GetXmax() << std::endl;
-    std::cout << hist2D->GetYaxis()->GetXmin() << " " << hist2D->GetYaxis()->GetXmax() << std::endl;
 
     for (int i = 1; i <= nBinsX; i++)
     {
@@ -78,36 +97,35 @@ std::pair<TH1D *, TH1D *> GetMinProfiles(TH2D *hist2D)
     return Profile;
 }
 
-std::map<std::string, double> extractXForMinYAndYDiff_1sigma(TH1D *hist1D)
+// Function that takes in a TH1D, and returns the best LLH and assymetric errors. It first finds the bin that has lowest profiled LLH,
+// and counts out from there to find where LLH changes by more than 1.0 on each side
+std::map<std::string, double> calc1Sigma(TH1D *hist1D)
 {
-    std::cout << "inside " << std::endl;
 
-    double minY = std::numeric_limits<double>::max(); // hist1D->GetMinimum();
+    // Here Y refers to the LLH axis, X refers to the parameter axis
+    double minY = std::numeric_limits<double>::max();
     int min_index = -1;
 
-    double minX = -1; // hist1D->GetBinCenter(hist1D->GetMinimumBin());
+    double minX = -1;
     std::map<std::string, double> x_map;
+
     // Get the number of bins in the histogram
     int nBins = hist1D->GetNbinsX();
 
     for (int i = 1; i < nBins; ++i)
-    { // Bins start at 1 in ROOT
+    {
         double yValue = hist1D->GetBinContent(i);
-        //std::cout << i << " " << yValue << " " << minY << " " << min_index << std::endl;
-        // std::cout<<hist1D->GetBinCenter(i)<<" "<<yValue<<std::endl;
         if (yValue < minY)
         {
             minY = yValue;
             min_index = i; // Store the bin index of the minimum
         }
     }
-    minX = hist1D->GetBinCenter(min_index);
-    std::cout << "minY " << minY << std::endl;
-    std::cout << "min_index " << min_index << std::endl;
-    std::cout << "minX " << minX << std::endl;
-    x_map["nom"] = minX;
 
-    // Find Right boundary: looping from min_index to the end
+    minX = hist1D->GetBinCenter(min_index);
+    x_map["bestfit"] = minX;
+
+    // Find right boundary: looping from min_index to the end
     for (int i = min_index + 1; i < nBins; i++)
     {
         double yCurrent = hist1D->GetBinContent(i);
@@ -133,24 +151,10 @@ std::map<std::string, double> extractXForMinYAndYDiff_1sigma(TH1D *hist1D)
             x_map["left"] = xCurrent;
         }
     }
-    std::cout << x_map["right"] << " " << x_map["left"] << std::endl;
 
     // Return the minimum X value and the pairs of X values where Y - Ymin = 1
     return x_map;
 }
-
-/* ///////////////////////////////////////////////////////////////////
-///
-/// Script for plotting bestfit LLH from fixed oscillation fits for
-/// grid scan of oscillation parameters.
-///
-/// The user inputs the root file made by makeFixedOscTree, and it
-/// reads the oscillation parameters and LLH for each entry. These
-/// are drawn in a TH2D, along with contours.asm
-///
-/// The plot is drawn and the canvas is saved as a root and pdf file
-///
-/////////////////////////////////////////////////////////////////// */
 
 void plotFixedOscLLH(const char *filename = "fit_results.root")
 {
@@ -201,8 +205,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
         hLLH->Fill(theta, deltam, 2 * (llh - minLLH));
     }
 
-    // Draw the histogram
-
+    // Draw the 2D histogram
     TCanvas *c1 = new TCanvas("c1", "LLH", 800, 600);
     c1->SetRightMargin(0.15);
     gPad->SetFrameLineWidth(2);
@@ -234,9 +237,13 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     std::filesystem::path pathObj(filename);
     pathObj.replace_filename("LLH2D.pdf");
     c1->SaveAs(pathObj.string().c_str());
-    pathObj.replace_filename("LLH2D.root");
-    c1->SaveAs(pathObj.string().c_str());
+    pathObj.replace_filename("LLH.root");
+    TFile *outfile = new TFile(pathObj.string().c_str(), "RECREATE");
+    outfile->cd();
+    c1->Write("c1");
+    hLLH->Write("hLLH");
 
+    // Now we're going to make the profile LLH plots
     std::pair<TH1D *, TH1D *> Profile = GetMinProfiles(hLLH);
 
     // Profile LLH of theta
@@ -253,35 +260,35 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     Profile.first->GetYaxis()->SetTitleOffset(1.2);
     Profile.first->SetTitle("");
 
-    std::map<std::string, double> DelTheta_XVal = extractXForMinYAndYDiff_1sigma(Profile.first);
-    std::cout << DelTheta_XVal["nom"] << " " << DelTheta_XVal["left"] << " " << DelTheta_XVal["right"] << std::endl;
-    double yMin1 = 0;
-    double yMax1 = Profile.first->GetMaximum();
-    double yMaxCanvas1 = yMax1 * 1.2;
-    Profile.first->SetMaximum(yMaxCanvas1);
-    TLine *leftLine1 = new TLine(DelTheta_XVal["left"], yMin1, DelTheta_XVal["left"], yMaxCanvas1);
-    TLine *rightLine1 = new TLine(DelTheta_XVal["right"], yMin1, DelTheta_XVal["right"], yMaxCanvas1);
-    leftLine1->SetLineColor(kBlue);
-    leftLine1->SetLineStyle(2);
-    leftLine1->SetLineWidth(2);
-    rightLine1->SetLineColor(kBlue);
-    rightLine1->SetLineStyle(2);
-    rightLine1->SetLineWidth(2);
+    std::map<std::string, double> thSigmas = calc1Sigma(Profile.first);
+    double yMin = 0;
+    double yMax = Profile.first->GetMaximum();
+    double yMaxCanvas = yMax * 1.2;
+    Profile.first->SetMaximum(yMaxCanvas);
+    TLine *leftLine = new TLine(thSigmas["left"], yMin, thSigmas["left"], yMaxCanvas);
+    TLine *rightLine = new TLine(thSigmas["right"], yMin, thSigmas["right"], yMaxCanvas);
+    leftLine->SetLineColor(kBlue);
+    leftLine->SetLineStyle(2);
+    leftLine->SetLineWidth(2);
+    rightLine->SetLineColor(kBlue);
+    rightLine->SetLineStyle(2);
+    rightLine->SetLineWidth(2);
 
-    leftLine1->Draw("same");
-    rightLine1->Draw("same");
-    TLatex latex1;
-    latex1.SetTextSize(0.035); // Adjust text size
-    latex1.SetTextFont(42);
-    latex1.SetTextColor(kBlack);
-    double left_sigma1 = DelTheta_XVal["nom"] - DelTheta_XVal["left"];
-    double right_sigma1 = DelTheta_XVal["right"] - DelTheta_XVal["nom"];
-    latex1.DrawLatex(DelTheta_XVal["right"] - 30, yMaxCanvas1 * 0.9, Form("#theta_{12} = %.2f#circ ^{+%.2f}_{-%.2f}", DelTheta_XVal["nom"], right_sigma1, left_sigma1));
-    
+    leftLine->Draw("same");
+    rightLine->Draw("same");
+    TLatex latex;
+    latex.SetTextSize(0.035);
+    latex.SetTextFont(42);
+    latex.SetTextColor(kBlack);
+    double left_sigma = thSigmas["bestfit"] - thSigmas["left"];
+    double right_sigma = thSigmas["right"] - thSigmas["bestfit"];
+    latex.DrawLatex(thSigmas["right"] - 30, yMaxCanvas * 0.9, Form("#theta_{12} = %.2f#circ ^{+%.2f}_{-%.2f}", thSigmas["bestfit"], right_sigma, left_sigma));
+
     pathObj.replace_filename("theta12LLHDiff.pdf");
     c2->SaveAs(pathObj.string().c_str());
-    pathObj.replace_filename("theta12LLHDiff.root");
-    c2->SaveAs(pathObj.string().c_str());
+    outfile->cd();
+    c2->Write("c2");
+    Profile.first->Write("hTheta");
 
     // Profile LLH on deltaM
     TCanvas *c3 = new TCanvas("c3", "DeltaM LLH", 800, 600);
@@ -297,13 +304,13 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     Profile.second->GetYaxis()->SetTitleOffset(1.2);
     Profile.second->SetTitle("");
 
-    std::map<std::string, double> DelM_XVal = extractXForMinYAndYDiff_1sigma(Profile.second);
-    double yMin = 0;
-    double yMax = Profile.second->GetMaximum();
-    double yMaxCanvas = yMax * 1.2;
+    std::map<std::string, double> dmSigmas = calc1Sigma(Profile.second);
+    yMin = 0;
+    yMax = Profile.second->GetMaximum();
+    yMaxCanvas = yMax * 1.2;
     Profile.second->SetMaximum(yMaxCanvas);
-    TLine *leftLine = new TLine(DelM_XVal["left"], yMin, DelM_XVal["left"], yMaxCanvas);
-    TLine *rightLine = new TLine(DelM_XVal["right"], yMin, DelM_XVal["right"], yMaxCanvas);
+    leftLine = new TLine(dmSigmas["left"], yMin, dmSigmas["left"], yMaxCanvas);
+    rightLine = new TLine(dmSigmas["right"], yMin, dmSigmas["right"], yMaxCanvas);
     leftLine->SetLineColor(kBlue);
     leftLine->SetLineStyle(2);
     leftLine->SetLineWidth(2);
@@ -313,17 +320,20 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
 
     leftLine->Draw("same");
     rightLine->Draw("same");
-    TLatex latex;
-    latex.SetTextSize(0.035); // Adjust text size
+    latex.SetTextSize(0.035);
     latex.SetTextFont(42);
     latex.SetTextColor(kBlack);
-    double left_sigma = DelM_XVal["nom"] - DelM_XVal["left"];
-    double right_sigma = DelM_XVal["right"] - DelM_XVal["nom"];
-    latex.DrawLatex(DelM_XVal["left"] - 0.000033, yMaxCanvas * 0.9, Form("#Deltam^{2}_{21} = %.3f^{+%.3f}_{-%.3f}#times10^{-5} eV^{2}", DelM_XVal["nom"] * 1E5, right_sigma * 1E5, left_sigma * 1E5));
-    pathObj.replace_filename("delM12LLHDiff.pdf");
-    c3->SaveAs(pathObj.string().c_str());
-    pathObj.replace_filename("delM12LLHDiff.root");
-    c3->SaveAs(pathObj.string().c_str());
+    left_sigma = dmSigmas["bestfit"] - dmSigmas["left"];
+    right_sigma = dmSigmas["right"] - dmSigmas["bestfit"];
+    latex.DrawLatex(dmSigmas["left"] - 0.000033, yMaxCanvas * 0.9, Form("#Deltam^{2}_{21} = %.3f^{+%.3f}_{-%.3f}#times10^{-5} eV^{2}", dmSigmas["bestfit"] * 1E5, right_sigma * 1E5, left_sigma * 1E5));
 
-    file->Close();
+    pathObj.replace_filename("deltam21LLHDiff.pdf");
+    c3->SaveAs(pathObj.string().c_str());
+    outfile->cd();
+    c3->Write("c3");
+    Profile.second->Write("hDeltam");
+
+    outfile->WriteObject(&dmSigmas, "dmSigmas");
+    outfile->WriteObject(&thSigmas, "thSigmas");
+
 }
