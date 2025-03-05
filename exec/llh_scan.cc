@@ -45,6 +45,8 @@ void llh_scan(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
+  std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
   // Create output directories
@@ -148,6 +150,8 @@ void llh_scan(const std::string &fitConfigFile_,
       it++;
   }
 
+  PrintParams(noms, mins, maxs, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName);
+
   // Create the individual PDFs and Asimov components
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
@@ -185,8 +189,6 @@ void llh_scan(const std::string &fitConfigFile_,
     BinnedED dist;
     int num_dimensions = it->second.GetNumDimensions();
     dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
-    // Add small numbers to avoid 0 probability bins
-    dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
@@ -211,7 +213,11 @@ void llh_scan(const std::string &fitConfigFile_,
       {
         dist = systIt->second->operator()(dist, &norm);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
-        SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
+        std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+        for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        {
+          systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
+        }
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
@@ -297,11 +303,24 @@ void llh_scan(const std::string &fitConfigFile_,
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
   lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
+
   // And constraints
+  std::vector<std::string> corrPairs;
+  for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+  {
+    lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                     constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
+    corrPairs.push_back(constrCorrParName.at(it->first));
+  }
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-    lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  {
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+      lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  }
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
     lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+
   // And finally bring it all together
   lh.RegisterFitComponents();
 

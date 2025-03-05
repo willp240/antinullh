@@ -43,7 +43,7 @@ This file contains utility functions, mostly related to the Oscillation Grids. T
 
 <h4>DistBuilder</h4>
 
-The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. 
+The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset.
 
 <h3>Configs (src/config)</h3>
 
@@ -63,7 +63,6 @@ This file should contain information on the types of events you want to include 
 <h5>Event Type Tables</h5>
 
 The name of these tables should be the name of the event type.
-- `tex_label`: A latex name for the event type
 - `ntup_files`: File path for the original unpruned files, relative to `orig_base_dir`
 - `dimensions`: Number of dimensions the PDF should have
 - `groups`: The groups the PDFs are part of. Each systematic is applied to one group (or all event types)
@@ -87,6 +86,7 @@ This file should contain information on the parameters of the fit, and the fit i
 - `hmc_burn_in`: The number of steps rejected at the start of the Hamiltonian Markov Chain. This can be changed post analysis for most purposes
 - `sigma_scale`: Global scaling factor each step size gets multiplied by
 - `beeston_barlow`: Bool to determine if we should use the Beeston-Barlow method to account for MC stats uncertainty. If 1/True, it is used
+- `save_outputs`: Bool to determine if the output files should be written. If 1/True, they are saved. This is useful for running multiple fixed oscillation fits to avoid producing ~millions of files at once. It is currently only implemented for the `fixedosc_fit` exec (for all other execs output files will be produced regardless of this bool)
 
 <h5>Fit Parameter Tables</h5>
 
@@ -96,17 +96,22 @@ The name of these tables should be the name of the fit parameter.
 - `max`: The maximum value the parameter is allowed to take
 - `sig`: The relative width of the Gaussian used to propose new step values (each gets scaled by summary:sigma_scale). Often referred to as the step size
 - `nbins`: Number of bins used for plotting the parameter
+- `tex_label`: A latex name used for the parameter
 - `constraint_mean`: Mean of the prior constraint on the parameter
 - `constraint_sig`: Width of the prior constraint on the parameter
 - `constraint_ratiomean`: Mean of prior constraint on ratio of this parameter to another
 - `constraint_ratiosigma`: Width of prior constraint on ratio of this parameter to another
-- `constraint_ratioparname`: Name of other parameter the ratio constraint corresponds to. This must be another parameter defined and activated in this file. 
+- `constraint_ratioparname`: Name of other parameter the ratio constraint corresponds to. This must be another parameter defined and activated in this file.
+- `constraint_corr`: Correlation of this parameter to another
+- `constraint_corrparname`: Name of other parameter this parameter is correlated to. This must be another parameter defined and activated in this file. Both correlated parameters must have a `constraint_mean` and `constraint_sig` defined.
 - `fake_data_val`: Value to use to produce a fake dataset if `fake_data` is true in the Summary
 
 A note on HMCMC: There is currently the functionality to run some MCMC, followed by some HMCMC starting from the best fit points of the MCMC. However, this didn't give any improvement in results or efficiency over the straight MCMC. The functionality is preserved in case we ever want to use it in the future, but generally we'll just run MCMC, with a notional 1 step HMCMC ran to avoid problems with files not being created when they are expected to.
 It's likely in the future we'll just remove the functionality.
 
-A note on Ratio Constraints: There is currently functionality to have a constraint on the ratio between two parameters. This should be specified by defining the constraint for one parameter and setting `constraint_ratioparname` to the name of the other. Do not then define the constraint for the second parameter as well, else the constraint will be applied twice. It does not matter which of the two parameters you define it for. It is not currently possible to have a ratio constraint for a parameter with more than one other parameters. We could change this in the future if it is needed. 
+A note on Ratio Constraints: There is currently functionality to have a constraint on the ratio between two parameters. This should be specified by defining the constraint for one parameter and setting `constraint_ratioparname` to the name of the other. Do not then define the constraint for the second parameter as well, else the constraint will be applied twice. It does not matter which of the two parameters you define it for. It is not currently possible to have a ratio constraint for a parameter with more than one other parameters. We could change this in the future if it is needed.
+
+Similarly, for correlations, do not define the correlation for the second parameter as well or it will be applied twice. It does not matter which of the two parameters you define the correlation for. It is not currently possible for a parameter to have a correlation with more than one other parameter. This could also change in the future.
 
 <h4>PDF</h4>
 
@@ -242,9 +247,9 @@ In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter
 
 There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.
 
-<h3>Submitting Batch Jobs</h3>
+<h2>Submitting Batch Jobs</h2>
 
-<h4>Full fits</h4>
+<h3>Full fits</h3>
 
 For running full fits, it’s advisable to run multiple fits at once in parallel as you probably want around 1 million steps. Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think).  
 
@@ -258,7 +263,7 @@ The environment file you supply here should be whatever you use to set up ROOT, 
 
 You can run this script with any of the apps. If you're not running a fit, you probably don't need multiple simultaneous jobs so can just run with N=1. If you're running `make_osc_grid` with the submission script, it will automatically loop over every reactor core in the reactors JSON file and run `make_osc_grid` for each in parallel.
 
-<h4>Fixed Oscillation Parameters Fits</h4>
+<h3>Fixed Oscillation Parameters Fits</h3>
 
 First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
 
@@ -272,7 +277,53 @@ In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the 
 
 `output_dir` will contain all the configs and logs for each fit, and the outputted root files will be produced in independent directories (one for each fit) inside that directory. The `output_directory` set in the `fit_config` file gets updated to be the one set as the command line argument.
  
-<h3> Postfit Analysis</h3>
+<h2>Postfit Analysis</h2>
+
+<h3>Fixed Oscillation Fits</h3>
+
+A lot of the postfit analysis will be done using scripts that reside in `util` (not to be confused with `src/util`).
+
+<h4>makeFixedOscTree</h4>
+
+The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `exec/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will be handled by the usual Makefile). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit constraints are also saved in vectors. You can run it with:
+
+> ./bin/makeFixedOscTree cfg/fit_config.ini cfg/oscgrid_config.ini
+
+The config files should be ones you've used to run one of the fits. If this takes a long time, you can submit it as a batch job using `utils/submitCondor.py`:
+
+> python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
+
+Once the tree is made, the it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true.
+
+<h4>plotFixedOscLLH</h4>
+
+The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `util/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`. It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. It can be run by doing:
+
+> root -l 'util/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")'
+
+<h4>plotFixedOscDist</h4>
+
+This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `scaled_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
+
+Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
+
+> root -l 'util/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")'
+
+In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
+
+<h4>plotFixedOscParams</h4>
+
+This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. The constraint, nominal, and postfit histograms are also saved in the root file. You can run it with:
+
+> root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
+
+<h4>compareFixedOscParams</h4>
+
+This script opens the outputted root file from `plotFixedOscParams` for two different fits, and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
+
+> root -l 'util/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
+
+<h3>MCMC</h3>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is!
 
@@ -304,7 +355,7 @@ This will produce a root file, `output_tree_autoCorr.root` (if running over `out
 
 This can be useful step-size tuning and debugging.  
 
-<h2> Physics Results </h2>
+<h2>Physics Results</h2>
 
 To be added!
  

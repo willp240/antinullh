@@ -45,6 +45,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
+  std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
   // Create output directories
@@ -156,6 +158,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       paramIt++;
   }
 
+  PrintParams(noms, mins, maxs, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName);
+
   // Create the individual PDFs and Asimov components
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
@@ -216,15 +220,15 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance, ratio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-      
-      double noms_config = noms[it->first];  
+
+      double noms_config = noms[it->first];
       constrMeans[it->first] = constrMeans[it->first] * ratio;
       constrSigmas[it->first] = constrSigmas[it->first] * ratio;
       noms[it->first] = noms_config * ratio;
       mins[it->first] = mins[it->first] * ratio;
       maxs[it->first] = maxs[it->first] * ratio;
-      fdValues[it->first] = fdValues[it->first] *ratio;
-      
+      fdValues[it->first] = fdValues[it->first] * ratio;
+
       // Now loop over deltam points and make a new pdf for each
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
       {
@@ -233,7 +237,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance, ratio);
 
         // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-        oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
         // Apply nominal systematic variables to the oscillated distribution
@@ -259,7 +262,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
         BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance, ratio);
 
-        oscDist.AddPadding(1E-6);
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
         // Apply nominal systematic variables to the oscillated distribution
@@ -284,8 +286,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       // For all other PDFs, just use Build
       dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
     }
-    // Add small numbers to avoid 0 probability bins
-    dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
@@ -311,7 +311,11 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         double norm;
         dist = systIt->second->operator()(dist, &norm);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
-        SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
+        std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+        for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        {
+          systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
+        }
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
@@ -419,11 +423,24 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
   lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
+
   // And constraints
+  std::vector<std::string> corrPairs;
+  for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+  {
+    lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                     constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
+    corrPairs.push_back(constrCorrParName.at(it->first));
+  }
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-    lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  {
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+      lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  }
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
     lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
+
   // And finally bring it all together
   lh.RegisterFitComponents();
 
@@ -542,9 +559,17 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     }
     osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
 
-    // And set any constraints
+    // And constraints
+    std::vector<std::string> corrPairs;
+    for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+      osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                          constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-      osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    {
+      // Only add single parameter constraint if correlation hasn't already been applied
+      if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+        osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    }
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
       osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
@@ -598,11 +623,18 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
 
     // And set any constraints
+    std::vector<std::string> corrPairs;
+    for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+      osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                          constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-      osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    {
+      // Only add single parameter constraint if correlation hasn't already been applied
+      if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+        osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+    }
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
       osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
-
     if (iTheta12 % countwidth == 0)
       std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;
 

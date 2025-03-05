@@ -39,6 +39,12 @@ namespace antinufit
     return fNbins;
   }
 
+  std::map<std::string, std::string>
+  FitConfig::GetTexLabels() const
+  {
+    return fTexLabels;
+  }
+
   int FitConfig::GetIterations() const
   {
     return fIterations;
@@ -207,6 +213,7 @@ namespace antinufit
   {
     return fConstrSigmas;
   }
+
   ParameterDict
   FitConfig::GetConstrRatioMeans() const
   {
@@ -218,25 +225,51 @@ namespace antinufit
   {
     return fConstrRatioSigmas;
   }
-  std::map<std::string,std::string> 
+
+  std::map<std::string, std::string>
   FitConfig::GetConstrRatioParName() const
   {
     return fConstrRatioParName;
   }
 
+  ParameterDict
+  FitConfig::GetConstrCorrs() const
+  {
+    return fConstrCorrs;
+  }
+
+  std::map<std::string, std::string>
+  FitConfig::GetConstrCorrParName() const
+  {
+    return fConstrCorrParName;
+  }
+
+  bool
+  FitConfig::GetSaveOutputs() const
+  {
+    return fSaveOutputs;
+  }
+
+  void
+  FitConfig::SetSaveOutputs(bool b_)
+  {
+    fSaveOutputs = b_;
+  }
+
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          double constrMean_, double constrSigma_)
+                          std::string label_, double constrMean_, double constrSigma_)
   {
 
     fConstrMeans[name_] = constrMean_;
     fConstrSigmas[name_] = constrSigma_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
   }
 
   void
-  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_)
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
+                          std::string label_)
   {
     fMinima[name_] = min_;
     fMaxima[name_] = max_;
@@ -244,18 +277,31 @@ namespace antinufit
     fFakeDataVals[name_] = fdvalue_;
     fSigmas[name_] = sigma_;
     fNbins[name_] = nbins_;
+    fTexLabels[name_] = label_;
   }
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          double constrRatioMean_, double constrRatioSigma_,std::string constrRatioParName_)
+                          std::string label_, double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_)
   {
 
-    fConstrRatioMeans[name_]    = constrRatioMean_;
-    fConstrRatioSigmas[name_]   = constrRatioSigma_;
-    fConstrRatioParName[name_]  = constrRatioParName_;
+    fConstrRatioMeans[name_] = constrRatioMean_;
+    fConstrRatioSigmas[name_] = constrRatioSigma_;
+    fConstrRatioParName[name_] = constrRatioParName_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
   }
 
+  void
+  FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
+                          std::string label_, double constrMean_, double constrSigma_, std::string constrCorrParName_, double constrCorr_)
+  {
+
+    fConstrMeans[name_] = constrMean_;
+    fConstrSigmas[name_] = constrSigma_;
+    fConstrCorrParName[name_] = constrCorrParName_;
+    fConstrCorrs[name_] = constrCorr_;
+
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
+  }
 }

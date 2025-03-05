@@ -1,11 +1,13 @@
 // Antinu headers
 #include <PDFConfigLoader.hh>
 #include <DistBuilder.hh>
+#include <DistTools.h>
 #include <FitConfigLoader.hh>
 #include <EventConfigLoader.hh>
 #include <SystConfigLoader.hh>
 #include <SystFactory.hh>
 #include <OscGridConfigLoader.hh>
+#include <Utilities.hh>
 
 // OXO headers
 #include <ROOTNtuple.h>
@@ -16,6 +18,8 @@
 
 // ROOT headers
 #include <TH1D.h>
+#include <TKey.h>
+#include <TMatrixD.h>
 
 // c++ headers
 #include <sys/stat.h>
@@ -37,6 +41,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   bool isAsimov = fitConfig.GetAsimov();
   bool isFakeData = fitConfig.GetFakeData();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
+  bool saveOutputs = fitConfig.GetSaveOutputs();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
   ParameterDict constrSigmas = fitConfig.GetConstrSigmas();
@@ -47,19 +52,23 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
+  std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
-
-  // Create output directories
-  struct stat st = {0};
-  if (stat(outDir.c_str(), &st) == -1)
-    mkdir(outDir.c_str(), 0700);
 
   std::string scaledDistDir = outDir + "/scaled_dists";
   std::string pdfDir = outDir + "/pdfs";
-  if (stat(scaledDistDir.c_str(), &st) == -1)
-    mkdir(scaledDistDir.c_str(), 0700);
-  if (stat(pdfDir.c_str(), &st) == -1)
-    mkdir(pdfDir.c_str(), 0700);
+  if (saveOutputs)
+  {
+    // Create output directories
+    struct stat st = {0};
+    if (stat(outDir.c_str(), &st) == -1)
+      mkdir(outDir.c_str(), 0700);
+    if (stat(scaledDistDir.c_str(), &st) == -1)
+      mkdir(scaledDistDir.c_str(), 0700);
+    if (stat(pdfDir.c_str(), &st) == -1)
+      mkdir(pdfDir.c_str(), 0700);
+  }
 
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
@@ -129,6 +138,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   // If so ignore that parameter
   ParameterDict::iterator it = noms.begin();
   size_t numParams = noms.size();
+  std::cout << std::endl;
   for (int iParam = 0; iParam < numParams; iParam++)
   {
     bool iterate = true;
@@ -149,12 +159,15 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     if (iterate)
       it++;
   }
+  std::cout << std::endl;
+  PrintParams(noms, mins, maxs, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName);
 
   // Create the individual PDFs and Asimov components (could these be maps not vectors?)
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
   std::vector<std::vector<std::string>> pdfGroups;
   std::vector<NormFittingStatus> *norm_fitting_statuses = new std::vector<NormFittingStatus>;
+  double reactorRatio = 1.0; // Ratio of oscillated to unoscillated number of reactor IBDs
 
   // Create the empty full dist
   BinnedED asimov = BinnedED("asimov", systAxes);
@@ -191,17 +204,16 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     if (it->first == "reactor_nubar")
     {
       // Build the distribution with oscillation parameters at their nominal values
-      double ratio = 1.0;
-      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance, ratio);
+      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance, reactorRatio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-      constrMeans[it->first] = constrMeans[it->first] * ratio;
-      constrSigmas[it->first] = constrSigmas[it->first] * ratio;
-      noms[it->first] = noms[it->first] * ratio;
-      mins[it->first] = mins[it->first] * ratio;
-      maxs[it->first] = maxs[it->first] * ratio;
-      fakeDataDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], fdValues["theta12"], indexDistance, ratio);
-      fdValues[it->first] = fdValues[it->first] * ratio;
+      constrMeans[it->first] = constrMeans[it->first] * reactorRatio;
+      constrSigmas[it->first] = constrSigmas[it->first] * reactorRatio;
+      noms[it->first] = noms[it->first] * reactorRatio;
+      mins[it->first] = mins[it->first] * reactorRatio;
+      maxs[it->first] = maxs[it->first] * reactorRatio;
+      fakeDataDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], fdValues["theta12"], indexDistance, reactorRatio);
+      fdValues[it->first] = fdValues[it->first] * reactorRatio;
     }
     else
     {
@@ -209,19 +221,19 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
       fakeDataDist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
     }
-    // Add small numbers to avoid 0 probability bins
-    dist.AddPadding(1E-6);
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
 
     // Scale for PDF and add to vector
-    if (dist.Integral())
+    if (dist.Integral() && fakeDataDist.Integral())
+    {
       dist.Normalise();
+      fakeDataDist.Normalise();
+    }
     pdfs.push_back(dist);
 
     norm_fitting_statuses->push_back(INDIRECT);
-
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
@@ -230,10 +242,16 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
       {
         double distInt = dist.Integral();
-        dist = systIt->second->operator()(dist);
+        double norm;
+        dist = systIt->second->operator()(dist, &norm);
+
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
-        SystFactory::UpdateSystParamVals(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, systIt->second);
-        fakeDataDist = systIt->second->operator()(fakeDataDist);
+        std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+        for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        {
+          systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
+        }
+        fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
 
@@ -244,7 +262,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
-      IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      if (saveOutputs)
+        IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
@@ -255,7 +274,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     else
     {
       asimov.Add(dist);
-      IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      if (saveOutputs)
+        IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
@@ -263,14 +283,19 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       }
     }
   } // End loop over PDFs
+  std::cout << std::endl;
 
   // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
   // compare to to calculate the llh
-  IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
-  if (isFakeData)
+  if (saveOutputs)
   {
-    IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata.root", "fakedata");
+    IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
+    if (isFakeData)
+    {
+      IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata.root", "fakedata");
+    }
   }
+  std::cout << std::endl;
 
   // Now let's load up the data
   BinnedED dataDist;
@@ -293,13 +318,52 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       dataDist = BinnedED("data", loaded);
       dataDist.SetObservables(pdfConfig.GetBranchNames());
     }
-    else
+    else // If a root file
     {
-      // Load up the data set
-      ROOTNtuple dataToFit(dataPath, "pruned");
 
-      // And bin the data inside
-      dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+      TFile *dataFile = TFile::Open(dataPath.c_str(), "READ");
+      if (!dataFile || dataFile->IsZombie())
+      {
+        std::cerr << "Error opening data file " << dataFile << std::endl;
+        throw;
+      }
+
+      // Get the list of keys in the file
+      TList *keyList = dataFile->GetListOfKeys();
+      if (!keyList)
+      {
+        std::cerr << "Error: No keys found in the datafile " << dataPath << std::endl;
+        throw;
+      }
+
+      // Loop through all objects in the file
+      TIter nextKey(keyList);
+      TKey *key;
+      while ((key = (TKey *)nextKey()))
+      {
+        std::string className = key->GetClassName();
+        std::string objectName = key->GetName();
+
+        if (className == "TNtuple")
+        {
+          // Load up the data set
+          ROOTNtuple dataToFit(dataPath, objectName.c_str());
+
+          // And bin the data inside
+          dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+          break; // Stop once we find an nTuple
+        }
+        else if (className == "TH1D")
+        {
+          TH1D *dataHist = (TH1D *)dataFile->Get(objectName.c_str());
+          Histogram loaded = DistTools::ToHist(*dataHist);
+          dataDist = BinnedED("data", loaded);
+          dataDist.SetObservables(pdfConfig.GetDataBranchNames());
+          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig, pdfConfig.GetDataAxisCount());
+          dataDist.SetAxes(axes);
+          break;
+        }
+      }
     }
   }
 
@@ -315,9 +379,21 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     lh.AddSystematic(it->second, systGroup[it->first]);
   // Add our pdfs
   lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
+
   // And constraints
+  std::vector<std::string> corrPairs;
+  for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+  {
+    lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
+                     constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
+    corrPairs.push_back(constrCorrParName.at(it->first));
+  }
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-    lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  {
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+      lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+  }
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
     lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
 
@@ -336,7 +412,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
   // Now do a fit!
   Minuit min;
-  min.SetMethod("Simplex");
+  min.SetMethod("Migrad");
   min.SetMaxCalls(10000000);
   min.SetMinima(mins);
   min.SetMaxima(maxs);
@@ -349,114 +425,136 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   ParameterDict bestFit = res.GetBestFit();
   lh.SetParameters(bestFit);
   bool validFit = res.GetValid();
+  double finalLLH = lh.Evaluate();
 
   // Now save the results
-  res.SaveAs(outDir + "/fit_result.txt");
-  double finalLLH = lh.Evaluate();
-  std::ofstream file(outDir + "/fit_result.txt", std::ios::app);
-  file << "\nLLH: " << finalLLH << "\n";
-  file << "\nFit Valid: " << validFit << std::endl;
-  file.close();
-  TFile* outFile = new TFile((outDir + "/fit_result.root").c_str(), "RECREATE");
-  DenseMatrix covMatrix = res.GetCovarianceMatrix();
-  std::vector<std::string> paramNames;
-  std::vector<double> paramVals;
-  std::vector<double> paramErr;
-  for (ParameterDict::iterator it = bestFit.begin(); it != bestFit.end(); ++it){
-    paramNames.push_back(it->first);
-    paramVals.push_back(it->second);
-    if(validFit)
-      paramErr.push_back(covMatrix.GetComponent(paramNames.size(), paramNames.size()));
-  }
-  paramNames.push_back("LLH");
-  paramVals.push_back(finalLLH);
-  paramNames.push_back("FitValid");
-  paramVals.push_back(validFit);
-  outFile->WriteObject(&paramNames, "paramNames");
-  outFile->WriteObject(&paramVals, "paramVals");
-  outFile->WriteObject(&paramErr, "paramErr");
-  std::cout << "Saved fit result to " << outDir + "/fit_result.txt and ./fit_result.root" << std::endl;
-
-  // Initialise postfit distributions to same axis as data
-  BinnedED postfitDist;
-  postfitDist = dataDist;
-  postfitDist.Empty();
-
-  // Scale the distributions to the correct heights. They are named the same as their fit parameters
-  std::cout << "Saving scaled histograms and data to \n\t" << scaledDistDir << std::endl;
-
-  if (dataDist.GetHistogram().GetNDims() < 3)
+  if (saveOutputs)
   {
-    ParameterDict bestFit = res.GetBestFit();
-    for (size_t i = 0; i < pdfs.size(); i++)
+    res.SaveAs(outDir + "/fit_result.txt");
+    std::ofstream file(outDir + "/fit_result.txt", std::ios::app);
+    file << "\nLLH: " << finalLLH << "\n";
+    file << "\nFit Valid: " << validFit << std::endl;
+    file.close();
+    TFile *outFile = new TFile((outDir + "/fit_result.root").c_str(), "RECREATE");
+    DenseMatrix covMatrix = res.GetCovarianceMatrix();
+    std::vector<std::string> paramNames;
+    std::vector<double> paramVals;
+    std::vector<double> paramErr;
+    TMatrixD covTMatrixD(bestFit.size(), bestFit.size());
+    for (ParameterDict::iterator it = bestFit.begin(); it != bestFit.end(); ++it)
     {
-      std::string name = pdfs.at(i).GetName();
-      pdfs[i].Normalise();
-      pdfs[i].Scale(bestFit[name]);
-      IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
-      // Sum all scaled distributions to get full postfit "dataset"
-      postfitDist.Add(pdfs[i]);
-    }
-
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-    {
-      double distInt = postfitDist.Integral();
-      std::set<std::string> systParamNames = systMap[it->first]->GetParameterNames();
-      for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+      paramNames.push_back(it->first);
+      paramVals.push_back(it->second);
+      if (validFit)
       {
-        systMap[it->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+        paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1)));
+        covTMatrixD[paramNames.size() - 1][paramNames.size() - 1] = covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1);
       }
-      postfitDist = systMap[it->first]->operator()(postfitDist);
-      postfitDist.Scale(distInt);
     }
-    IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
-  }
-  else
-  {
-    ParameterDict bestFit = res.GetBestFit();
-    for (size_t i = 0; i < pdfs.size(); i++)
-    {
-      std::string name = pdfs.at(i).GetName();
-      pdfs[i].Normalise();
-      pdfs[i].Scale(bestFit[name]);
+    paramNames.push_back("LLH");
+    paramVals.push_back(finalLLH);
+    paramNames.push_back("FitValid");
+    paramVals.push_back(validFit);
+    outFile->WriteObject(&paramNames, "paramNames");
+    outFile->WriteObject(&paramVals, "paramVals");
+    outFile->WriteObject(&paramErr, "paramErr");
+    outFile->WriteObject(&covTMatrixD, "covMatrix");
+    std::cout << "Saved fit result to " << outDir + "/fit_result.txt and " << outDir << "r/fit_result.root" << std::endl;
 
-      std::vector<std::string> keepObs;
-      keepObs.push_back("energy");
-      pdfs[i] = pdfs[i].Marginalise(keepObs);
-      IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
-      // Sum all scaled distributions to get full postfit "dataset"
-      postfitDist.Add(pdfs[i]);
-    }
+    // Initialise postfit distributions to same axis as data
+    BinnedED postfitDist;
+    postfitDist = dataDist;
+    postfitDist.Empty();
 
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
+    // Scale the distributions to the correct heights. They are named the same as their fit parameters
+    std::cout << "Saving scaled histograms and data to \n\t" << scaledDistDir << std::endl;
+
+    if (dataDist.GetHistogram().GetNDims() < 3)
     {
-      double distInt = postfitDist.Integral();
-      std::set<std::string> systParamNames = systMap[it->first]->GetParameterNames();
-      for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+      ParameterDict bestFit = res.GetBestFit();
+      for (size_t i = 0; i < pdfs.size(); i++)
       {
-        systMap[it->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+        std::string name = pdfs.at(i).GetName();
+        pdfs[i].Normalise();
+        // Apply bestfit systematic variables
+        for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
+        {
+          // If group is "", we apply to all groups
+          if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
+          {
+            std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+            for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+            {
+              systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+            }
+            double norm;
+            pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
+          }
+        }
+        pdfs[i].Scale(bestFit[name]);
+        IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+        // Sum all scaled distributions to get full postfit "dataset"
+        postfitDist.Add(pdfs[i]);
       }
-      postfitDist = systMap[it->first]->operator()(postfitDist);
-      postfitDist.Scale(distInt);
 
       IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
     }
-  }
+    else
+    {
+      ParameterDict bestFit = res.GetBestFit();
+      for (size_t i = 0; i < pdfs.size(); i++)
+      {
+        std::string name = pdfs.at(i).GetName();
+        pdfs[i].Normalise();
+        // Apply bestfit systematic variables
+        for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
+        {
+          // If group is "", we apply to all groups
+          if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
+          {
+            std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+            for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+            {
+              systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+            }
+            double norm;
+            pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
+          }
+        }
+        pdfs[i].Scale(bestFit[name]);
 
-  // And also save the data
-  if (dataDist.GetHistogram().GetNDims() < 3)
-  {
-    IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
-  }
-  else
-  {
-    std::vector<std::string> keepObs;
-    keepObs.push_back("energy");
-    dataDist = dataDist.Marginalise(keepObs);
-    IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
-  }
+        std::vector<std::string> keepObs;
+        keepObs.push_back("energy");
+        pdfs[i] = pdfs[i].Marginalise(keepObs);
+        IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+        // Sum all scaled distributions to get full postfit "dataset"
+        postfitDist.Add(pdfs[i]);
+      }
 
-  std::cout << "Fit complete" << std::endl;
+      IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
+    }
+
+    // And also save the data
+    if (dataDist.GetHistogram().GetNDims() < 3)
+    {
+      IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+    }
+    else
+    {
+      std::vector<std::string> keepObs;
+      keepObs.push_back("energy");
+      dataDist = dataDist.Marginalise(keepObs);
+      IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+    }
+  }
+  std::cout << "Fit complete for:" << std::endl;
+  std::cout << "deltam: " << deltam21 << std::endl;
+  std::cout << "theta: " << theta12 << std::endl;
+  std::cout << "LLH: " << finalLLH << std::endl;
+  std::cout << "FitValid: " << validFit << std::endl;
+  std::cout << "ReactorRatio: " << reactorRatio << std::endl
+            << std::endl
+            << std::endl;
 }
 
 int main(int argc, char *argv[])

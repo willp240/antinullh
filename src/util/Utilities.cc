@@ -151,4 +151,143 @@ namespace antinufit
         }
         return tokens;
     }
+
+    void PrintParams(ParameterDict mins, ParameterDict maxs, ParameterDict noms, ParameterDict constrMeans, ParameterDict constrSigmas,
+                     ParameterDict constrRatioMeans, ParameterDict constrRatioSigmas, std::map<std::string, std::string> constrRatioParName,
+                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName)
+    {
+
+        std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
+                                                                              "theta12",
+                                                                              "reactor_nubar",
+                                                                              "geonu_U",
+                                                                              "geonu_Th",
+                                                                              "alphan_CScatter",
+                                                                              "alphan_OExcited",
+                                                                              "alphan_PRecoil",
+                                                                              "sideband",
+                                                                              "energy_scale",
+                                                                              "energy_conv",
+                                                                              "birks_constant",
+                                                                              "p_recoil_energy_scale"};
+
+        for (std::map<std::string, double>::iterator it = noms.begin(); it != noms.end(); it++)
+        {
+            if (std::find(tempNamesVec->begin(), tempNamesVec->end(), it->first) != tempNamesVec->end())
+                continue;
+            tempNamesVec->push_back(it->first);
+        }
+
+        std::cout << std::endl;
+        std::cout << "************** Fit Parameters **************" << std::endl;
+        std::cout << " -------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        std::cout << "| ";
+        std::cout << std::left << std::setw(25) << "Name";
+        std::cout << "| ";
+        std::cout << std::left << std::setw(15) << "Nominal";
+        std::cout << "| ";
+        std::cout << std::left << std::setw(15) << "Minimum";
+        std::cout << "| ";
+        std::cout << std::left << std::setw(15) << "Maximum";
+        std::cout << "| ";
+        std::cout << std::left << std::setw(20) << "Constraint Mean";
+        std::cout << "| ";
+        std::cout << std::left << std::setw(20) << "Constraint Sigma";
+        std::cout << "| " << std::endl;
+        std::cout << " =========================================================================================================================" << std::endl;
+        for (int iParam = 0; iParam < tempNamesVec->size(); iParam++)
+        {
+
+            if (!noms[tempNamesVec->at(iParam)])
+                continue;
+
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << tempNamesVec->at(iParam);
+            std::cout << "| ";
+            std::cout << std::left << std::setw(15) << noms[tempNamesVec->at(iParam)];
+            std::cout << "| ";
+            std::cout << std::left << std::setw(15) << mins[tempNamesVec->at(iParam)];
+            std::cout << "| ";
+            std::cout << std::left << std::setw(15) << maxs[tempNamesVec->at(iParam)];
+            std::cout << "| ";
+            if (constrMeans[tempNamesVec->at(iParam)])
+            {
+                std::cout << std::left << std::setw(20) << constrMeans[tempNamesVec->at(iParam)];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrSigmas[tempNamesVec->at(iParam)];
+                std::cout << "| ";
+            }
+            else
+            {
+                std::cout << std::left << std::setw(20) << "" << "| ";
+                std::cout << std::left << std::setw(20) << "" << "| ";
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << " -------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        if (constrRatioMeans.size() > 0)
+        {
+            std::cout << std::endl;
+            std::cout << "************** Ratio Constraints **************" << std::endl;
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Mean";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Sigma";
+            std::cout << "| " << std::endl;
+            std::cout << " =================================================================================================" << std::endl;
+
+            for (std::map<std::string, double>::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); it++)
+            {
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << it->first;
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << constrRatioParName[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrRatioMeans[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrRatioSigmas[it->first];
+                std::cout << "| ";
+            }
+            std::cout << std::endl;
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+        }
+
+        if (constrCorrs.size() > 0)
+        {
+            std::cout << std::endl;
+            std::cout << "************** Correlations **************" << std::endl;
+            std::cout << " ---------------------------------------------------------------------------" << std::endl;
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Correlation";
+            std::cout << "| ";
+            std::cout << std::endl;
+            std::cout << " ===========================================================================" << std::endl;
+
+            for (std::map<std::string, double>::iterator it = constrCorrs.begin(); it != constrCorrs.end(); it++)
+            {
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << it->first;
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << constrCorrParName[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrCorrs[it->first];
+                std::cout << "| ";
+            }
+            std::cout << std::endl;
+            std::cout << " ---------------------------------------------------------------------------" << std::endl;
+        }
+
+        std::cout << std::endl;
+        return;
+    }
 }
