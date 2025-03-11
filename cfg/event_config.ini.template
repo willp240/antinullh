@@ -1,13 +1,13 @@
 [summary]
-active=reactor_nubar,geonu_U,geonu_Th,alphan_PRecoil,alphan_CScatter,alphan_OExcited
+active=reactor_nubar,geonu_U,geonu_Th,alphan_PRecoil,alphan_CScatter,alphan_OExcited,sideband
 inactive=
 orig_base_dir=
 pruned_ntup_dir=
 
 [reactor_nubar]
 ntup_files =
-groups = osc_group,3d
-dimensions = 3
+dimensions = 1
+groups = 1d
 
 [geonu_U]
 ntup_files =
