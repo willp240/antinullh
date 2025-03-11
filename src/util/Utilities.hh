@@ -7,6 +7,9 @@
 #include <nlohmann/json.hpp>
 #include <iostream>
 
+// OXO headers
+#include <ParameterDict.h>
+
 // ROOT headers
 #include <TVector3.h>
 
@@ -20,5 +23,7 @@ namespace antinufit
   std::vector<double> LinSpace(double, double, size_t);
   std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double>, double);
   std::vector<std::string> SplitString(const std::string &, char);
+  void PrintParams(ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict,
+                   std::map<std::string, std::string>, ParameterDict, std::map<std::string, std::string>);
 }
 #endif
