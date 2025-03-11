@@ -1,5 +1,5 @@
 [summary]
-active=energy_scale,,energy_conv,,p_recoil_energy_scale,energy_nonlin
+active=energy_scale,energy_conv,p_recoil_energy_scale,energy_nonlin
 
 [energy_scale]
 dist_obs=energy
