@@ -1,8 +1,12 @@
+// ROOT Headers
 #include <TFile.h>
 #include <TTree.h>
 #include <TH2D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
+
+// c++ Headers
+#include <sys/stat.h>
 
 /* ///////////////////////////////////////////////////////////////////
 ///
@@ -147,7 +151,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     std::filesystem::path fileDir = filePath.parent_path();
     std::ostringstream llhFileName;
 
-    llhFileName << fileDir.string() << "/LLH.root";
+    llhFileName << fileDir.string() << "/plots/LLH.root";
 
     TFile *llhFile = new TFile(llhFileName.str().c_str(), "READ");
     double thLowErr = -999;
@@ -264,7 +268,11 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     t1->Draw();
 
     // Save plot as image and rootfile
+    struct stat st = {0};
     std::filesystem::path pathObj(filename);
+    pathObj.replace_filename("plots/");
+    if (stat(pathObj.string().c_str(), &st) == -1)
+        mkdir(pathObj.string().c_str(), 0700);
     pathObj.replace_filename("params.pdf");
     c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("params.root");
