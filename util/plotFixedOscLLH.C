@@ -1,10 +1,14 @@
+// ROOT Headers
 #include <TFile.h>
 #include <TTree.h>
 #include <TH2D.h>
 #include <TH1D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
+
+// c++ Headers
 #include <iostream>
+#include <sys/stat.h>
 
 /* ///////////////////////////////////////////////////////////////////
 ///
@@ -234,7 +238,11 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     hLLH->SetLineColor(kRed);
 
     // Save plot as image and rootfile
+    struct stat st = {0};
     std::filesystem::path pathObj(filename);
+    pathObj.replace_filename("plots/");
+    if (stat(pathObj.string().c_str(), &st) == -1)
+        mkdir(pathObj.string().c_str(), 0700);
     pathObj.replace_filename("LLH2D.pdf");
     c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("LLH.root");
