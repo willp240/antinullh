@@ -72,13 +72,6 @@ void compareFixedOscParams(std::string filename1, std::string label1, std::strin
     hPostFit2->SetLineColor(kBlack);
     hPostFit2->SetLineWidth(2);
     hPostFit2->SetLineStyle(2);
-    // TODO: We'll want these when we have proper error bars
-    // hPostFit1->SetMarkerStyle(2);
-    // hPostFit1->SetMarkerSize(4);
-    // hPostFit1->SetMarkerColor(kRed);
-    // hPostFit2->SetMarkerStyle(2);
-    // hPostFit2->SetMarkerSize(4);
-    // hPostFit2->SetMarkerColor(kBlack);
 
     hConstr1->GetYaxis()->SetRangeUser(0, 2);
     hConstr1->GetYaxis()->SetTitle("Relative to Nominal");
@@ -98,7 +91,7 @@ void compareFixedOscParams(std::string filename1, std::string label1, std::strin
     hPostFit1->Draw("E1same");
     hPostFit2->Draw("E1same");
 
-    TLegend *t1 = new TLegend(0.65, 0.7, 0.88, 0.88);
+    TLegend *t1 = new TLegend(0.6, 0.65, 0.88, 0.88);
     t1->AddEntry(hConstr1, "Prefit", "l");
     t1->AddEntry(hPostFit1, ("Postfit " + label1).c_str(), "l");
     t1->AddEntry(hPostFit2, ("Postfit " + label2).c_str(), "l");
