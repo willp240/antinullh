@@ -68,7 +68,7 @@ def read_osccfg(filename):
     return numvalsdeltam, numvalstheta
 
 
-def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5):
+def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, mem, theta, sleep_time = 1, priority = 5):
     '''
     submit a job to condor, write a sh file to source environment and execute command
     then write a submit file to be run by condor_submit
@@ -188,6 +188,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
                      "priority                 = " + str(priority) + "\n" + \
                      "getenv                   = " + str(getenv) + "\n" + \
                      "allowed_execute_duration = " + str(walltime) + " \n" + \
+                     "request_memory           = " + str(mem) + " \n" + \
                      "queue "+str(n_rep)+"\n"
 
     # Check and create output path
@@ -216,6 +217,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', "--syst_cfg", type=str, default="", help='syst config path')
     parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="what's the maximum runtime (in seconds, default 1 day)?")
+    parser.add_argument("-m", "--mem", type=float, default=300, help="what's the maximum memory (in MB, default 300 MB)?")
     parser.add_argument("-j", "--job_name", type=str, default="", help='job name')
     args = parser.parse_args()
 
@@ -231,6 +233,7 @@ if __name__ == "__main__":
     syst_config = args.syst_cfg
     osc_config = args.osc_cfg
     walltime = args.wall_time
+    mem = args.mem
     job_name = args.job_name
 
     if fit_config != "":
@@ -264,4 +267,4 @@ if __name__ == "__main__":
         submit_dir = check_dir("{0}/submit/".format(out_dir))
         output_dir = check_dir("{0}/output/".format(out_dir))
 
-        pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, theta, sleep_time = 1, priority = 5)
+        pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, mem, theta, sleep_time = 1, priority = 5)
