@@ -449,6 +449,7 @@ void mcmc(const std::string &fitConfigFile_,
     {
       double distInt = postfitDist.Integral();
       systMap[it->first]->SetParameter(it->first, bestFit[it->first]);
+      systMap[it->first]->Construct();
       postfitDist = systMap[it->first]->operator()(postfitDist);
       postfitDist.Scale(distInt);
     }
@@ -475,6 +476,7 @@ void mcmc(const std::string &fitConfigFile_,
     {
       double distInt = postfitDist.Integral();
       systMap[it->first]->SetParameter(it->first, bestFit[it->first]);
+      systMap[it->first]->Construct();
       postfitDist = systMap[it->first]->operator()(postfitDist);
       postfitDist.Scale(distInt);
     }
