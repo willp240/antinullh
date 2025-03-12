@@ -316,6 +316,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         {
           systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
         }
+        systIt->second->Construct();
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }

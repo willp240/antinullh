@@ -251,6 +251,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         {
           systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
         }
+        systIt->second->Construct();
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
@@ -488,6 +489,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
               systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
             }
             double norm;
+            systIt->second->Construct();
             pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
           }
         }
@@ -518,6 +520,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
               systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
             }
             double norm;
+            systIt->second->Construct();
             pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
           }
         }
