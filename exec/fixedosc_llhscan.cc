@@ -413,7 +413,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
-  lh.SetBuffer("energy", 1, 14);
+  lh.SetBuffer("energy", 1, 20);
   // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
@@ -540,7 +540,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
-    osclh.SetBuffer("energy", 1, 14);
+    osclh.SetBuffer("energy", 1, 20);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 
@@ -603,7 +603,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
     BinnedNLLH osclh;
-    osclh.SetBuffer("energy", 1, 14);
+    osclh.SetBuffer("energy", 1, 20);
     // Add our 'data'
     osclh.SetDataDist(dataDist);
 

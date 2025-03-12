@@ -369,7 +369,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
-  lh.SetBuffer("energy", 1, 14);
+  lh.SetBuffer("energy", 1, 20);
   // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
