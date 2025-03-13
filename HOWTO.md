@@ -163,9 +163,9 @@ This file should contain information about the oscillation grids you want to use
 - `mindm21sq`: The minimum $\Delta m^{2}_{21}$ value of the grid
 - `maxdm21sq`: The maximum $\Delta m^{2}_{21}$ value of the grid
 - `numvalsdm21sq`: The number of grid points on the $\Delta m^{2}_{21}$  axis
-- `minssqth12`: The minimum sin $^2 \theta_{12}$ value of the grid
-- `maxssqth12`: The maximum sin $^2 \theta_{12}$ value of the grid
-- `numvalsssqth12`: The number of grid points on the sin $^2 \theta_{12}$ axis
+- `minssqth12`: The minimum $\text{sin}^2 \theta_{12}$ value of the grid
+- `maxssqth12`: The maximum $\text{sin}^2 \theta_{12}$ value of the grid
+- `numvalsssqth12`: The number of grid points on the $\text{sin}^2 \theta_{12}$ axis
 
 <h2>Apps</h2>
 
