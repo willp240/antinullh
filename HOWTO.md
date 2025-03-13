@@ -163,9 +163,9 @@ This file should contain information about the oscillation grids you want to use
 - `mindm21sq`: The minimum $\Delta m^{2}_{21}$ value of the grid
 - `maxdm21sq`: The maximum $\Delta m^{2}_{21}$ value of the grid
 - `numvalsdm21sq`: The number of grid points on the $\Delta m^{2}_{21}$  axis
-- `minssqth12`: The minimum sin$^2 \theta_{12}$ value of the grid
-- `maxssqth12`: The maximum sin$^2 \theta_{12}$value of the grid
-- `numvalsssqth12`: The number of grid points on the sin$^2 \theta_{12}$ axis
+- `minssqth12`: The minimum sin $^2 \theta_{12}$ value of the grid
+- `maxssqth12`: The maximum sin $^2 \theta_{12}$ value of the grid
+- `numvalsssqth12`: The number of grid points on the sin $^2 \theta_{12}$ axis
 
 <h2>Apps</h2>
 
@@ -223,6 +223,8 @@ To run the LLH scan:
 
 > ./bin/llh_scan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
+Both LLH scan apps will also produce several subdirectories inside the `output_directory` set in the `fit_config`. `unscaled_pdfs` will contain each of the unscaled (normalised) PDFs without any systematics applied. `asimov_dists` will contain each of the PDFs scaled to their nominal rates with nominal systematics applied. If you're running with `fake_data = 1` in the `fit_config`, `fakedata_dists` will contain each of the PDFs scaled to their fake data value rate with systematics applied at their fake data values.
+
 <h3>Running a Fit</h3>
 
 Now the time has come to run a fit. When we float the oscillation parameters, we need extra dimensions for the reactors PDF to contain the true neutrino energy and the reactor core it came from. As there are 483 cores, if we have 140 bins in each energy dimension, we end up with over 9 million bins! This means marginalising down to 1D to compare to data takes a lot of time. There are few ideas to get around this, but first let's run individual fits where we don't vary the oscillation parameters (so everything remains 1D and fast), and do this at all points in a grid of oscillation parameter values. We can do this for one point with:
@@ -231,9 +233,13 @@ Now the time has come to run a fit. When we float the oscillation parameters, we
 
 The value of the oscillation parameters should be set in the `fit` config file. This performs a `Minuit` fit, with the oscillation parameters fixed at those values. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced.
 
-In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case, all other parameters are marginalised over.
+`fit_results.txt` contains each parameter value for the maximum LLH point.
 
-`fit_results.txt` contains each parameter value for the maximum LLH point. `scaled_dists` contains the PDFs for each event type, scaled by the event type parameter value at the best fit point. Also saved is the sum of these, with each systematic’s best fit value applied.
+There will also be several subdirectories produced inside the `output_directory` set in the `fit_config`. `unscaled_pdfs` will contain each of the unscaled (normalised) PDFs without any systematics applied. `asimov_dists` will contain each of the PDFs scaled to their nominal rates with nominal systematics applied. If you're running with `fake_data = 1` in the `fit_config`, `fakedata_dists` will contain each of the PDFs scaled to their fake data value rate with systematics applied at their fake data values.
+
+`postfit_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain, with each systematic’s value at the maximum LLH step applied. Also saved is the sum of these.
+
+In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case, all other parameters are marginalised over.
 
 If you want to run a full fit where everything is floated at once, there is an app to run some Markov Chain Monte Carlo. First you want to make sure everything in your fit config is looking sensible. The min and max values, and sigmas for each event type are fairly well tuned, so it's advised you leave these alone unless you know what you're doing. Certainly, for your first fit testing out the code I would leave it as is. If you have good reason to change them, you probably don't need to be reading this guide! You can run a full fit by:
 
@@ -241,9 +247,13 @@ If you want to run a full fit where everything is floated at once, there is an a
 
 This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories, some of which are the same as for `fixedosc_fit`.
 
-In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps are automatically not included.
+`auto_correlations.txt` contains how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few thousand steps (there is a separate `autocorrelations` app you can use to run over the outputted tree and get more information). `fit_results.txt` contains each parameter value for the maximum LLH step.
 
-`auto_correlations.txt` contains how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few thousand steps (there is a separate `autocorrelations` app you can use to run over the outputted tree and get more information). `fit_results.txt` contains each parameter value for the maximum LLH step. `scaled_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain. Also saved is the sum of these, with each systematic’s value at the maximum LLH step applied.
+There will also be several subdirectories produced inside the `output_directory` set in the `fit_config`. `unscaled_pdfs` will contain each of the unscaled (normalised) PDFs without any systematics applied. `asimov_dists` will contain each of the PDFs scaled to their nominal rates with nominal systematics applied. If you're running with `fake_data = 1` in the `fit_config`, `fakedata_dists` will contain each of the PDFs scaled to their fake data value rate with systematics applied at their fake data values.
+
+`postfit_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain, with each systematic’s value at the maximum LLH step applied. Also saved is the sum of these.
+
+In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps are automatically not included.
 
 There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.
 
