@@ -15,7 +15,7 @@
 /// First open the root file (made by makeFixedOscTree) and find the
 /// minimum LLH entry.
 /// Then go into the corresponding fit directory and load up the
-/// histograms from scaled_dists
+/// histograms from postfit_dists
 /// Loop through these and plot, and also add to groups for a separate
 /// groups plot.
 ///
@@ -109,7 +109,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     directory << dirPath.string() << "/th" << std::fixed << std::setprecision(2) << bestTheta
               << "/th" << std::fixed << std::setprecision(2) << bestTheta
               << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM
-              << "/scaled_dists/";
+              << "/postfit_dists/";
 
     TLegend *t1 = new TLegend(0.5, 0.48, 0.85, 0.85);
     t1->SetLineWidth(2);
