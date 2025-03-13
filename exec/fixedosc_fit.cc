@@ -56,18 +56,24 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
-  std::string scaledDistDir = outDir + "/scaled_dists";
-  std::string pdfDir = outDir + "/pdfs";
+  std::string pdfDir = outDir + "/unscaled_pdfs";
+  std::string asimovDistDir = outDir + "/asimov_dists";
+  std::string fakedataDistDir = outDir + "/fakedata_dists";
+  std::string postfitDistDir = outDir + "/postfit_dists";
   if (saveOutputs)
   {
     // Create output directories
     struct stat st = {0};
     if (stat(outDir.c_str(), &st) == -1)
       mkdir(outDir.c_str(), 0700);
-    if (stat(scaledDistDir.c_str(), &st) == -1)
-      mkdir(scaledDistDir.c_str(), 0700);
     if (stat(pdfDir.c_str(), &st) == -1)
       mkdir(pdfDir.c_str(), 0700);
+    if (stat(asimovDistDir.c_str(), &st) == -1)
+      mkdir(asimovDistDir.c_str(), 0700);
+    if (stat(fakedataDistDir.c_str(), &st) == -1)
+      mkdir(fakedataDistDir.c_str(), 0700);
+    if (stat(postfitDistDir.c_str(), &st) == -1)
+      mkdir(postfitDistDir.c_str(), 0700);
   }
 
   // Load up all the event types we want to contribute
@@ -199,6 +205,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     // Build distribution of those events
     BinnedED dist;
     BinnedED fakeDataDist;
+    BinnedED unscaledPDF;
     int num_dimensions = it->second.GetNumDimensions();
 
     if (it->first == "reactor_nubar")
@@ -232,6 +239,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       fakeDataDist.Normalise();
     }
     pdfs.push_back(dist);
+    unscaledPDF = dist;
 
     norm_fitting_statuses->push_back(INDIRECT);
 
@@ -241,7 +249,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       // If group is "", we apply to all groups
       if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
       {
-        double distInt = dist.Integral();
         double norm;
         dist = systIt->second->operator()(dist, &norm);
 
@@ -263,24 +270,33 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
-      if (saveOutputs)
-        IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      BinnedED marginalisedPDF = unscaledPDF.Marginalise(dataObs);
+      if (saveOutputs){
+        IO::SaveHistogram(marginalised.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
+        IO::SaveHistogram(marginalisedPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName()); 
+      }
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
         BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
         fakeDataset.Add(marginalisedFakeData);
+        if (saveOutputs)
+          IO::SaveHistogram(marginalisedFakeData.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
       }
     }
     else
     {
       asimov.Add(dist);
-      if (saveOutputs)
-        IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      if (saveOutputs){
+        IO::SaveHistogram(dist.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
+        IO::SaveHistogram(unscaledPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
+      }
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
         fakeDataset.Add(fakeDataDist);
+        if (saveOutputs)
+          IO::SaveHistogram(fakeDataDist.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
       }
     }
   } // End loop over PDFs
@@ -468,7 +484,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     postfitDist.Empty();
 
     // Scale the distributions to the correct heights. They are named the same as their fit parameters
-    std::cout << "Saving scaled histograms and data to \n\t" << scaledDistDir << std::endl;
+    std::cout << "Saving scaled histograms and data to \n\t" << postfitDistDir << std::endl;
 
     if (dataDist.GetHistogram().GetNDims() < 3)
     {
@@ -494,12 +510,12 @@ void fixedosc_fit(const std::string &fitConfigFile_,
           }
         }
         pdfs[i].Scale(bestFit[name]);
-        IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+        IO::SaveHistogram(pdfs[i].GetHistogram(), postfitDistDir + "/" + name + ".root");
         // Sum all scaled distributions to get full postfit "dataset"
         postfitDist.Add(pdfs[i]);
       }
 
-      IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
+      IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist.root");
     }
     else
     {
@@ -529,25 +545,25 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         std::vector<std::string> keepObs;
         keepObs.push_back("energy");
         pdfs[i] = pdfs[i].Marginalise(keepObs);
-        IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+        IO::SaveHistogram(pdfs[i].GetHistogram(), postfitDistDir + "/" + name + ".root");
         // Sum all scaled distributions to get full postfit "dataset"
         postfitDist.Add(pdfs[i]);
       }
 
-      IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
+      IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist.root");
     }
 
     // And also save the data
     if (dataDist.GetHistogram().GetNDims() < 3)
     {
-      IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+      IO::SaveHistogram(dataDist.GetHistogram(), outDir + "/" + "data.root");
     }
     else
     {
       std::vector<std::string> keepObs;
       keepObs.push_back("energy");
       dataDist = dataDist.Marginalise(keepObs);
-      IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+      IO::SaveHistogram(dataDist.GetHistogram(), outDir + "/" + "data.root");
     }
   }
   std::cout << "Fit complete for:" << std::endl;
