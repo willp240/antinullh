@@ -317,7 +317,7 @@ It can be run by doing:
 
 <h4>plotFixedOscDist</h4>
 
-This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `scaled_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
+This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
 
 Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
@@ -345,7 +345,7 @@ NOTE: This section is a bit out of date because the code hasn't been brought in 
 
 Now you’re fit has run, the real fun starts! For each individual chain, you’ll have a number of files and subdirectories. In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps, as set in the fit config, are automatically not included.  
 
-`config_log.txt` and `config_log_hmc.txt` save the configs used (these are almost certainly the same as each other). These are also saved in the `cfg` directory if running the python submission script in `util` (see below). `auto_correlations.txt` calculates how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few hundred. `fit_results.txt` contains each parameter value for the maximum LLH step. `scaled_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain. Also saved is the sum of these, with each systematic’s value at the maximum LLH step applied.  
+`config_log.txt` and `config_log_hmc.txt` save the configs used (these are almost certainly the same as each other). These are also saved in the `cfg` directory if running the python submission script in `util` (see below). `auto_correlations.txt` calculates how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few hundred. `fit_results.txt` contains each parameter value for the maximum LLH step. `postfit_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain. Also saved is the sum of these, with each systematic’s value at the maximum LLH step applied.  
 
 There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.  
 
@@ -355,7 +355,7 @@ There’s an app for making useful plots from the combined tree. This can be run
 
 > ./bin/make_plots output_tree.root asimov_dataset.root scaled_postfit_dist.root fit_config_file.cfg correlations traces
 
-`output_tree.root` is either a single outputted file or the `hadded` combination. `asimov_dataset.root` is the ‘true’ Asimov dataset to get the Asimov rates to compare to. `scaled_postfit_dist.root` is the sum of the PDFs scaled by the maximum LLH step values. If you’ve `hadded` chains, you can find the chain with the highest LLH step (so you know which `scaled_dist` to use) using `util/findMaxStep.C`:  
+`output_tree.root` is either a single outputted file or the `hadded` combination. `asimov_dataset.root` is the ‘true’ Asimov dataset to get the Asimov rates to compare to. `scaled_postfit_dist.root` is the sum of the PDFs scaled by the maximum LLH step values. If you’ve `hadded` chains, you can find the chain with the highest LLH step (so you know which `postfit_dists` to use) using `util/findMaxStep.C`:  
 
 > root -l -b -q 'findMaxStep.C("dataset_directory_name", "fit_name", number_of_chains )'
 
