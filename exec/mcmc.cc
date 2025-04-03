@@ -323,7 +323,7 @@ void mcmc(const std::string &fitConfigFile_,
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
   {
     // Only add single parameter constraint if correlation hasn't already been applied
-    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+    if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
       lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
   }
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
