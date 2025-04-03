@@ -159,7 +159,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   }
 
   PrintParams(noms, mins, maxs, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName);
- 
+
   // Create the individual PDFs and Asimov components
   std::vector<BinnedED> pdfs;
   std::vector<int> genRates;
