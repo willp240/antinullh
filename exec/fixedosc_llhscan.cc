@@ -330,8 +330,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
-    dist.Scale(noms[it->first]);
-    fakeDataDist.Scale(fdValues[it->first]);
 
     // Now scale the Asimov component by expected count, and also save pdf as a histo
     dist.Scale(noms[it->first]);
