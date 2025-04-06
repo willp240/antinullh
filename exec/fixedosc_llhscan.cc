@@ -49,14 +49,19 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
 
+  std::string pdfDir = outDir + "/unscaled_pdfs";
+  std::string asimovDistDir = outDir + "/asimov_dists";
+  std::string fakedataDistDir = outDir + "/fakedata_dists";
   // Create output directories
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
     mkdir(outDir.c_str(), 0700);
-
-  std::string pdfDir = outDir + "/pdfs";
   if (stat(pdfDir.c_str(), &st) == -1)
     mkdir(pdfDir.c_str(), 0700);
+  if (stat(asimovDistDir.c_str(), &st) == -1)
+    mkdir(asimovDistDir.c_str(), 0700);
+  if (stat(fakedataDistDir.c_str(), &st) == -1)
+    mkdir(fakedataDistDir.c_str(), 0700);
 
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
@@ -207,6 +212,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
     // Build distribution of those events
     BinnedED dist;
+    BinnedED fakeDataDist;
+    BinnedED unscaledPDF;
     int num_dimensions = it->second.GetNumDimensions();
 
     // If it's the reactor PDF, two things are different from the others. Firstly we use the BuildOscillatedDist rather than just Build.
@@ -287,19 +294,22 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
     }
 
+    // Now make a fake data dist for the event type
+    fakeDataDist = dist;
+
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
 
     // Scale for PDF and add to vector
-    if (dist.Integral())
+    if (dist.Integral() && fakeDataDist.Integral())
+    {
       dist.Normalise();
+      fakeDataDist.Normalise();
+    }
     pdfs.push_back(dist);
+    unscaledPDF = dist;
 
     norm_fitting_statuses->push_back(INDIRECT);
-
-    // Now make a fake data dist for the event type
-    BinnedED fakeDataDist = dist;
-    double distInt = dist.Integral();
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
@@ -320,8 +330,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
     }
-    dist.Scale(distInt);
-    fakeDataDist.Scale(distInt);
 
     // Now scale the Asimov component by expected count, and also save pdf as a histo
     dist.Scale(noms[it->first]);
@@ -330,19 +338,23 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
-      IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      BinnedED marginalisedPDF = unscaledPDF.Marginalise(dataObs);
+      IO::SaveHistogram(marginalised.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
+      IO::SaveHistogram(marginalisedPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
 
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
         BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
         fakeDataset.Add(marginalisedFakeData);
+        IO::SaveHistogram(marginalisedFakeData.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
       }
     }
     else
     {
       asimov.Add(dist);
-      IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      IO::SaveHistogram(dist.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
+      IO::SaveHistogram(unscaledPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
       // For the non-reactor PDFs, add to the oscillated asimovs too!
       if (it->first != "reactor_nubar")
       {
@@ -355,6 +367,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       if (isFakeData)
       {
         fakeDataset.Add(fakeDataDist);
+        IO::SaveHistogram(fakeDataDist.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
       }
     }
   } // End loop over PDFs
@@ -436,7 +449,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
   {
     // Only add single parameter constraint if correlation hasn't already been applied
-    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+    if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
       lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
   }
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
@@ -568,7 +581,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     {
       // Only add single parameter constraint if correlation hasn't already been applied
-      if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+      if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
         osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
     }
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
@@ -631,7 +644,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
     {
       // Only add single parameter constraint if correlation hasn't already been applied
-      if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+      if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
         osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
     }
     for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)

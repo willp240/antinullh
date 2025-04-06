@@ -15,7 +15,7 @@
 /// First open the root file (made by makeFixedOscTree) and find the
 /// minimum LLH entry.
 /// Then go into the corresponding fit directory and load up the
-/// histograms from scaled_dists
+/// histograms from postfit_dists
 /// Loop through these and plot, and also add to groups for a separate
 /// groups plot.
 ///
@@ -109,7 +109,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     directory << dirPath.string() << "/th" << std::fixed << std::setprecision(2) << bestTheta
               << "/th" << std::fixed << std::setprecision(2) << bestTheta
               << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM
-              << "/scaled_dists/";
+              << "/postfit_dists/";
 
     TLegend *t1 = new TLegend(0.5, 0.48, 0.85, 0.85);
     t1->SetLineWidth(2);
@@ -121,11 +121,23 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     std::vector<int> fillColours = {kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
     int colourIndex = 0;
 
-    // Go into scaled dists and loop over each file
+    std::vector<std::filesystem::path> postfit_files;
+
+    // Add files from the postfit_dists directory
     for (const auto &entry : std::filesystem::directory_iterator(directory.str()))
     {
+        postfit_files.push_back(entry.path());
+    }
 
-        std::string filePath = entry.path().string();
+    // Add data files
+    std::filesystem::path parent = std::filesystem::path(directory.str() + "/../");
+    postfit_files.push_back(parent / "data.root");
+
+    // Go into scaled dists and loop over each file
+    for (const auto &entry : postfit_files)
+    {
+
+        std::string filePath = entry.string();
         std::filesystem::path pathObj(filePath);
 
         // Check if it's a .root file

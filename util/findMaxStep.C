@@ -2,7 +2,7 @@
 #include <TTree.h>
 
 // Script to loop over a bunch of parallel MCMC trees and find which file contained
-// the step with the highest LLH. Useful for getting the correct scaled_dist file 
+// the step with the highest LLH. Useful for getting the correct postfit_dists file 
 // to input to make_plots
 
 // dataset_dir is level above the fit_dir

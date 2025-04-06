@@ -56,23 +56,25 @@ void mcmc(const std::string &fitConfigFile_,
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
   double sigmaScale = fitConfig.GetSigmaScale();
 
+  std::string pdfDir = outDir + "/unscaled_pdfs";
+  std::string asimovDistDir = outDir + "/asimov_dists";
+  std::string fakedataDistDir = outDir + "/fakedata_dists";
+  std::string postfitDistDir = outDir + "/postfit_dists";
+  std::string projDir1D = outDir + "/1dlhproj";
+  std::string projDir2D = outDir + "/2dlhproj";
+
   // Create output directories
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
     mkdir(outDir.c_str(), 0700);
-
-  std::string projDir1D = outDir + "/1dlhproj";
-  std::string projDir2D = outDir + "/2dlhproj";
-  std::string scaledDistDir = outDir + "/scaled_dists";
-  std::string pdfDir = outDir + "/pdfs";
-  if (stat(projDir1D.c_str(), &st) == -1)
-    mkdir(projDir1D.c_str(), 0700);
-  if (stat(projDir2D.c_str(), &st) == -1)
-    mkdir(projDir2D.c_str(), 0700);
-  if (stat(scaledDistDir.c_str(), &st) == -1)
-    mkdir(scaledDistDir.c_str(), 0700);
   if (stat(pdfDir.c_str(), &st) == -1)
     mkdir(pdfDir.c_str(), 0700);
+  if (stat(asimovDistDir.c_str(), &st) == -1)
+    mkdir(asimovDistDir.c_str(), 0700);
+  if (stat(fakedataDistDir.c_str(), &st) == -1)
+    mkdir(fakedataDistDir.c_str(), 0700);
+  if (stat(postfitDistDir.c_str(), &st) == -1)
+    mkdir(postfitDistDir.c_str(), 0700);
 
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
@@ -205,6 +207,8 @@ void mcmc(const std::string &fitConfigFile_,
 
     // Build distribution of those events
     BinnedED dist;
+    BinnedED fakeDataDist;
+    BinnedED unscaledPDF;
     int num_dimensions = it->second.GetNumDimensions();
     dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
 
@@ -212,13 +216,18 @@ void mcmc(const std::string &fitConfigFile_,
     genRates.push_back(dist.Integral());
 
     // Scale for PDF and add to vector
-    if (dist.Integral())
+    if (dist.Integral() && fakeDataDist.Integral())
+    {
       dist.Normalise();
+      fakeDataDist.Normalise();
+    }
     pdfs.push_back(dist);
+    unscaledPDF = dist;
+
     norm_fitting_statuses->push_back(INDIRECT);
 
-    // Now make a fake data dist for the event type
-    BinnedED fakeDataDist = dist;
+    // Now make fake data dist for the event type
+    fakeDataDist = dist;
 
     // Apply nominal systematic variables
     for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
@@ -239,23 +248,29 @@ void mcmc(const std::string &fitConfigFile_,
     {
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
-      IO::SaveHistogram(marginalised.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      BinnedED marginalisedPDF = unscaledPDF.Marginalise(dataObs);
+      IO::SaveHistogram(marginalised.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
+      IO::SaveHistogram(marginalisedPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
 
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
         BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
         fakeDataset.Add(marginalisedFakeData);
+        IO::SaveHistogram(marginalisedFakeData.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
       }
     }
     else
     {
       asimov.Add(dist);
-      IO::SaveHistogram(dist.GetHistogram(), pdfDir + "/" + it->first + ".root", dist.GetName());
+      IO::SaveHistogram(dist.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
+      IO::SaveHistogram(unscaledPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
+
       // Also scale fake data dist by fake data value
       if (isFakeData)
       {
         fakeDataset.Add(fakeDataDist);
+        IO::SaveHistogram(fakeDataDist.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
       }
     }
   }
@@ -323,7 +338,7 @@ void mcmc(const std::string &fitConfigFile_,
   for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
   {
     // Only add single parameter constraint if correlation hasn't already been applied
-    if (!constrCorrs[it->first] && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
+    if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
       lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
   }
   for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
@@ -430,7 +445,7 @@ void mcmc(const std::string &fitConfigFile_,
   postfitDist.Empty();
 
   // Scale the distributions to the correct heights. They are named the same as their fit parameters
-  std::cout << "Saving scaled histograms and data to \n\t" << scaledDistDir << std::endl;
+  std::cout << "Saving scaled histograms and data to \n\t" << postfitDistDir << std::endl;
 
   if (dataDist.GetHistogram().GetNDims() < 3)
   {
@@ -439,21 +454,28 @@ void mcmc(const std::string &fitConfigFile_,
     {
       std::string name = pdfs.at(i).GetName();
       pdfs[i].Normalise();
+      for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
+      {
+        // If group is "", we apply to all groups
+        if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
+        {
+          std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+          for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+          {
+            systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+          }
+          double norm;
+          systIt->second->Construct();
+          pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
+        }
+      }
       pdfs[i].Scale(bestFit[name]);
-      IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+      IO::SaveHistogram(pdfs[i].GetHistogram(), postfitDistDir + "/" + name + ".root");
       // Sum all scaled distributions to get full postfit "dataset"
       postfitDist.Add(pdfs[i]);
     }
 
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-    {
-      double distInt = postfitDist.Integral();
-      systMap[it->first]->SetParameter(it->first, bestFit[it->first]);
-      systMap[it->first]->Construct();
-      postfitDist = systMap[it->first]->operator()(postfitDist);
-      postfitDist.Scale(distInt);
-    }
-    IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
+    IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist.root");
   }
   else
   {
@@ -462,38 +484,46 @@ void mcmc(const std::string &fitConfigFile_,
     {
       std::string name = pdfs.at(i).GetName();
       pdfs[i].Normalise();
+      // Apply bestfit systematic variables
+      for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
+      {
+        // If group is "", we apply to all groups
+        if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
+        {
+          std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
+          for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+          {
+            systMap[systIt->first]->SetParameter(*itSystParam, bestFit[*itSystParam]);
+          }
+          double norm;
+          systIt->second->Construct();
+          pdfs[i] = systIt->second->operator()(pdfs[i], &norm);
+        }
+      }
       pdfs[i].Scale(bestFit[name]);
 
       std::vector<std::string> keepObs;
       keepObs.push_back("energy");
       pdfs[i] = pdfs[i].Marginalise(keepObs);
-      IO::SaveHistogram(pdfs[i].GetHistogram(), scaledDistDir + "/" + name + ".root");
+      IO::SaveHistogram(pdfs[i].GetHistogram(), postfitDistDir + "/" + name + ".root");
       // Sum all scaled distributions to get full postfit "dataset"
       postfitDist.Add(pdfs[i]);
     }
 
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-    {
-      double distInt = postfitDist.Integral();
-      systMap[it->first]->SetParameter(it->first, bestFit[it->first]);
-      systMap[it->first]->Construct();
-      postfitDist = systMap[it->first]->operator()(postfitDist);
-      postfitDist.Scale(distInt);
-    }
-    IO::SaveHistogram(postfitDist.GetHistogram(), scaledDistDir + "/postfitdist.root");
+    IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist.root");
   }
 
   // And also save the data
   if (dataDist.GetHistogram().GetNDims() < 3)
   {
-    IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+    IO::SaveHistogram(dataDist.GetHistogram(), outDir + "/" + "data.root");
   }
   else
   {
     std::vector<std::string> keepObs;
     keepObs.push_back("energy");
     dataDist = dataDist.Marginalise(keepObs);
-    IO::SaveHistogram(dataDist.GetHistogram(), scaledDistDir + "/" + "data.root");
+    IO::SaveHistogram(dataDist.GetHistogram(), outDir + "/" + "data.root");
   }
 
   // Save autocorrelations
