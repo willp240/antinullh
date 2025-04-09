@@ -4,36 +4,46 @@
 #include <TH2D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
+#include <TMatrixT.h>
 
 // c++ Headers
 #include <sys/stat.h>
+#include <unordered_map>
 
 /* ///////////////////////////////////////////////////////////////////
 ///
 /// Script for plotting post fit parameter values and prefit
-/// constraints relative to nominal values for fixed oscillation fits.
+/// constraints relative to nominal values for fixed oscillation fits,
+/// as well as the postfit covariance matrix.
 ///
 /// The user inputs the root file made by makeFixedOscTree, and it
 /// first finds the entry with the lowest LLH. All the branches for
 /// this entry are read into a map, and the nominal values and
 /// constraints vectors are read in from the input file too. Those
 /// vectors are sorted into the order we want to plot (so this will
-/// need to be updated when parameters change).
+/// need to be updated when parameters change). The covariance matrix
+/// is loaded and the entries rearranged to the order we want to plot
+/// them in, and the correlations are calculated and plotted. 
 ///
-/// The plot is drawn and the canvas is saved as pdf and a root file,
+/// The plots are drawn and the canvases are saved as pdf and root files,
 /// along with each of the histograms.
 ///
 /////////////////////////////////////////////////////////////////// */
 
 /// Function to sort vectors of names, nominals, and constraints into the order we want to plot them in.
-/// Also made is a vector of Latex parameter labels (we could (should?) read these from a config)
-void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec, std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec)
+void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec,
+                 std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec, TMatrixT<double> *&covMatrix)
 {
 
-    std::vector<double> *tempNomsVec = new std::vector<double>(namesVec->size(), 0.0);
-    std::vector<double> *tempConstrMeansVec = new std::vector<double>(namesVec->size(), 0.0);
-    std::vector<double> *tempConstrErrsVec = new std::vector<double>(namesVec->size(), 0.0);
-    std::vector<std::string> *tempLabelsVec = new std::vector<std::string>(namesVec->size(), "");
+    int nParams = namesVec->size();
+
+    std::vector<double> *tempNomsVec = new std::vector<double>(nParams, 0.0);
+    std::vector<double> *tempConstrMeansVec = new std::vector<double>(nParams, 0.0);
+    std::vector<double> *tempConstrErrsVec = new std::vector<double>(nParams, 0.0);
+    std::vector<std::string> *tempLabelsVec = new std::vector<std::string>(nParams, "");
+    // For the fixed osc fits, the matrix won't have theta12 and deltam
+    TMatrixT<double> *tempCovMatrix = new TMatrixT<double>(nParams - 2, nParams - 2);
+    std::vector<std::string> *matrixNamesVec = new std::vector<std::string>(namesVec->begin(), namesVec->end());
 
     // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
     std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
@@ -49,21 +59,54 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
                                                                           "energy_conv",
                                                                           "birks_constant",
                                                                           "p_recoil_energy_scale"};
+    std::vector<std::string> *tempMatrixNamesVec = new std::vector<std::string>(tempNamesVec->begin() + 2, tempNamesVec->end());
+
+    // Map original parameter names to their new indices
+    std::unordered_map<std::string, int> nameToOldIndex;
+    for (int iParam = 0; iParam < nParams; ++iParam)
+    {
+        nameToOldIndex[namesVec->at(iParam)] = iParam;
+    }
 
     // Now loop over the new vector (that's already in the correct order), and find the index of the same name
     // in the old vector, and set the noms and constraints to be the ones for that index
-    for (int iTempName = 0; iTempName < tempNamesVec->size(); iTempName++)
+    for (int iParam = 0; iParam < nParams; ++iParam)
     {
-        for (int iName = 0; iName < namesVec->size(); iName++)
+        int iOriginal = nameToOldIndex[tempNamesVec->at(iParam)];
+
+        tempNomsVec->at(iParam) = nomsVec->at(iOriginal);
+        tempConstrMeansVec->at(iParam) = constrMeansVec->at(iOriginal);
+        tempConstrErrsVec->at(iParam) = constrErrsVec->at(iOriginal);
+        tempLabelsVec->at(iParam) = labelsVec->at(iOriginal);
+    }
+
+    // And redo this for the matrix indices which will be different (no theta or deltam)
+    for (int iParam = 0; iParam < matrixNamesVec->size(); ++iParam)
+    {
+        // Erase the deltam and theta entries from the matrix name vector to get the right order for those later
+        if (matrixNamesVec->at(iParam) == "deltam21" || matrixNamesVec->at(iParam) == "theta12")
         {
-            if (tempNamesVec->at(iTempName) == namesVec->at(iName))
-            {
-                tempNomsVec->at(iTempName) = nomsVec->at(iName);
-                tempConstrMeansVec->at(iTempName) = constrMeansVec->at(iName);
-                tempConstrErrsVec->at(iTempName) = constrErrsVec->at(iName);
-                tempLabelsVec->at(iTempName) = labelsVec->at(iName);
-                break;
-            }
+            matrixNamesVec->erase(matrixNamesVec->begin() + iParam) - 1;
+            iParam--;
+        }
+    }
+
+    int nMatrixParams = matrixNamesVec->size();
+
+    // Map original parameter names to their new indices
+    std::unordered_map<std::string, int> nameToOldMatrixIndex;
+    for (int iParam = 0; iParam < nMatrixParams; ++iParam)
+    {
+        nameToOldMatrixIndex[matrixNamesVec->at(iParam)] = iParam;
+    }
+
+    for (int iParam = 0; iParam < nMatrixParams; ++iParam)
+    {
+        for (int jParam = 0; jParam < nMatrixParams; ++jParam)
+        {
+            int iOriginal = nameToOldMatrixIndex[tempMatrixNamesVec->at(iParam)];
+            int jOriginal = nameToOldMatrixIndex[tempMatrixNamesVec->at(jParam)];
+            (*tempCovMatrix)(iParam, jParam) = (*covMatrix)(iOriginal, jOriginal);
         }
     }
 
@@ -72,6 +115,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
     nomsVec = tempNomsVec;
     constrMeansVec = tempConstrMeansVec;
     constrErrsVec = tempConstrErrsVec;
+    covMatrix = tempCovMatrix;
 }
 
 void plotFixedOscParams(const char *filename = "fit_results.root")
@@ -139,12 +183,14 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     std::vector<double> *constrErr = nullptr;
     std::vector<std::string> *labelsVec = nullptr;
     std::vector<double> *paramErr = nullptr;
+    TMatrixT<double> *covMatrix = nullptr;
 
     file->GetObject("param_names", paramNames);
     file->GetObject("param_asimov_values", nomVals);
     file->GetObject("constr_mean_values", constrMeans);
     file->GetObject("constr_sigma_values", constrErr);
     file->GetObject("tex_labels", labelsVec);
+    file->GetObject("covMatrix", covMatrix);
 
     // Open the llh plots file if it exists to get the oscillation uncertainties
     std::filesystem::path filePath(filename);
@@ -204,7 +250,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     paramErr->insert(paramErr->begin(), std::max(dmLowErr, dmHighErr));
 
     // Reorder vectors to the order we want to plot them
-    sortVectors(paramNames, labelsVec, nomVals, constrMeans, constrErr);
+    sortVectors(paramNames, labelsVec, nomVals, constrMeans, constrErr, covMatrix);
 
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
@@ -282,4 +328,59 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     hConstr->Write("constraints");
     hPostFit->Write("postfit");
     c1->Write("c1");
+
+    // Now plot the correlation matrix
+    int nParams = covMatrix->GetNrows();
+    TH2D *hCorrMatrix = new TH2D("hCorrMatrix", "Correlation Matrix", nParams, 0, nParams, nParams, 0, nParams);
+
+    for (int i = 0; i < nParams; ++i)
+    {
+        for (int j = 0; j < nParams; ++j)
+        {
+            hCorrMatrix->SetBinContent(i + 1, j + 1, (*covMatrix)(i, j) / (sqrt((*covMatrix)(i, i)) * sqrt((*covMatrix)(j, j))));
+        }
+    }
+
+    // Set axis labels
+    for (int i = 0; i < nParams; ++i)
+    {
+        hCorrMatrix->GetXaxis()->SetBinLabel(i + 1, labelsVec->at(i + 2).c_str());
+        hCorrMatrix->GetYaxis()->SetBinLabel(i + 1, labelsVec->at(i + 2).c_str());
+    }
+
+    // Define a nice red to blue palette
+    const Int_t NRGBs = 5;
+    const Int_t NCont = 255;
+
+    // White in the middle, darker red and blue at ends
+    Double_t stops[NRGBs] = {0.00, 0.25, 0.50, 0.75, 1.00};
+    Double_t red[NRGBs] = {0.00, 0.25, 1.00, 1.00, 0.50};
+    Double_t green[NRGBs] = {0.00, 0.25, 1.00, 0.25, 0.00};
+    Double_t blue[NRGBs] = {0.50, 1.00, 1.00, 0.25, 0.00};
+
+    TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
+    gStyle->SetNumberContours(NCont);
+
+    // And make the plot
+    TCanvas *c2 = new TCanvas("c2", "Correlations", 800, 600);
+    c1->SetBottomMargin(0.18);
+    c2->SetRightMargin(0.15);
+    c2->SetLeftMargin(0.15);
+    gPad->SetFrameLineWidth(2);
+    gStyle->SetOptStat(0);
+    gPad->SetGrid(1);
+
+    hCorrMatrix->GetXaxis()->SetLabelOffset(0.007);
+    hCorrMatrix->GetXaxis()->SetLabelFont(42);
+    hCorrMatrix->GetYaxis()->SetLabelFont(42);
+    hCorrMatrix->GetZaxis()->SetLabelFont(42);
+    hCorrMatrix->GetZaxis()->SetRangeUser(-1, 1);
+    hCorrMatrix->SetTitle("");
+    hCorrMatrix->Draw("colz"); 
+
+    outfile->cd();
+    hCorrMatrix->Write("correlations");
+    c2->Write("c2");
+    pathObj.replace_filename("correlations.pdf");
+    c2->SaveAs(pathObj.string().c_str());
 }
