@@ -271,9 +271,10 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       BinnedED marginalised = dist.Marginalise(dataObs);
       asimov.Add(marginalised);
       BinnedED marginalisedPDF = unscaledPDF.Marginalise(dataObs);
-      if (saveOutputs){
+      if (saveOutputs)
+      {
         IO::SaveHistogram(marginalised.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
-        IO::SaveHistogram(marginalisedPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName()); 
+        IO::SaveHistogram(marginalisedPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
       }
       // Also scale fake data dist by fake data value
       if (isFakeData)
@@ -287,7 +288,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     else
     {
       asimov.Add(dist);
-      if (saveOutputs){
+      if (saveOutputs)
+      {
         IO::SaveHistogram(dist.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
         IO::SaveHistogram(unscaledPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
       }
@@ -465,7 +467,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       if (validFit)
       {
         paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1)));
-        covTMatrixD[paramNames.size() - 1][paramNames.size() - 1] = covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1);
+        for (int iParam = 0; iParam < paramNames.size(); iParam++)
+        {
+          covTMatrixD[paramNames.size() - 1][iParam] = covMatrix.GetComponent(paramNames.size() - 1, iParam);
+          covTMatrixD[iParam][paramNames.size() - 1] = covMatrix.GetComponent(iParam, paramNames.size() - 1);
+        }
       }
     }
     paramNames.push_back("LLH");
@@ -476,7 +482,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     outFile->WriteObject(&paramVals, "paramVals");
     outFile->WriteObject(&paramErr, "paramErr");
     outFile->WriteObject(&covTMatrixD, "covMatrix");
-    std::cout << "Saved fit result to " << outDir + "/fit_result.txt and " << outDir << "r/fit_result.root" << std::endl;
+    std::cout << "Saved fit result to " << outDir + "/fit_result.txt and " << outDir << "/fit_result.root" << std::endl;
 
     // Initialise postfit distributions to same axis as data
     BinnedED postfitDist;
