@@ -355,8 +355,6 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     stringMapToVectors(labels, paramNameVec, labelsVals);
     outputFile.WriteObject(&labelsVals, "tex_labels");
 
-    outputFile.Close();
-
     std::cout << "TTree saved to " << outDir << "/" << outFilename << std::endl;
 
     std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", theta: " << bestTheta << std::endl
@@ -385,6 +383,32 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
 
     // Now rerun that fit
     system(fit_command.str().c_str());
+
+    std::ostringstream fitfilename;
+    fitfilename << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/th" << std::fixed << std::setprecision(2)
+                << bestTheta << "_dm" << std::fixed << std::setprecision(8) << bestDeltam << "/fit_result.root";
+
+    // Open the ROOT file
+    TFile *fitfile = TFile::Open(fitfilename.str().c_str(), "READ");
+    if (!fitfile || fitfile->IsZombie())
+    {
+        std::cerr << "Error: Could not open file " << fitfilename.str() << std::endl;
+        return;
+    }
+
+    // Get the TMatrixT
+    TMatrixT<double> *covMatrix = nullptr;
+    fitfile->GetObject("covMatrix", covMatrix);
+    if (!covMatrix)
+    {
+        std::cerr << "Error: Could not find TMatrixT 'covMatrix' in file " << fitfilename.str() << std::endl;
+        fitfile->Close();
+        return;
+    }
+
+    outputFile.cd();
+    covMatrix->Write("covMatrix");
+    outputFile.Close();
 }
 
 int main(int argc, char *argv[])
