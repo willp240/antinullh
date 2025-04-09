@@ -233,7 +233,7 @@ Now the time has come to run a fit. When we float the oscillation parameters, we
 
 The value of the oscillation parameters should be set in the `fit` config file. This performs a `Minuit` fit, with the oscillation parameters fixed at those values. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced.
 
-`fit_results.txt` contains each parameter value for the maximum LLH point.
+`fit_results.txt` contains each parameter value for the maximum LLH point, and `fit_results.root` contains the vectors of parameter names, postfit values and uncertainties, and a covariance matrix.
 
 There will also be several subdirectories produced inside the `output_directory` set in the `fit_config`. `unscaled_pdfs` will contain each of the unscaled (normalised) PDFs without any systematics applied. `asimov_dists` will contain each of the PDFs scaled to their nominal rates with nominal systematics applied. If you're running with `fake_data = 1` in the `fit_config`, `fakedata_dists` will contain each of the PDFs scaled to their fake data value rate with systematics applied at their fake data values.
 
@@ -303,7 +303,7 @@ The config files should be ones you've used to run one of the fits. If this take
 
 > python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
 
-Once the tree is made, the it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true.
+Once the tree is made, the it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true. The covariance matrix from this fit is saved along with the tree of fit results.
 
 <h4>plotFixedOscLLH</h4>
 
@@ -328,6 +328,8 @@ In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U
 <h4>plotFixedOscParams</h4>
 
 This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. The constraint, nominal, and postfit histograms are also saved in the root file. If `plotFixedOscLLH` has already been run, it will look for the outputted `LLH.root` file to find the oscillation parameter uncertainties. Otherwise, it will use the grid spacing.
+
+A separate canvas is also saved, containing a plot of the postfit correlation matrix of all fit parameters.
 
 You can run it with:
 
