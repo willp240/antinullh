@@ -259,9 +259,9 @@ There will also be a root file (`fit_name_i.root`) which contains a tree. Each e
 
 <h2>Submitting Batch Jobs</h2>
 
-<h3>Full fits</h3>
+<h3>Individual Jobs</h3>
 
-For running full fits, it’s advisable to run multiple fits at once in parallel as you probably want around 1 million steps. Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think).  
+Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think). You can use this for any exectuable. For running full MCMC fits, it’s advisable to run multiple identical fits at once in parallel as you probably want around 1 million steps.   
 
 You can submit N jobs with:  
 
@@ -275,7 +275,7 @@ You can run this script with any of the apps. If you're not running a fit, you p
 
 <h3>Fixed Oscillation Parameters Fits</h3>
 
-First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
+First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
 
 There is a script, similar to `utils/submitCondor.py` but for submitting these fixed oscillation parameter fits. This is in `util/submitFixedOscJobs.py`. 
 
