@@ -23,7 +23,7 @@
 /// vectors are sorted into the order we want to plot (so this will
 /// need to be updated when parameters change). The covariance matrix
 /// is loaded and the entries rearranged to the order we want to plot
-/// them in, and the correlations are calculated and plotted. 
+/// them in, and the correlations are calculated and plotted.
 ///
 /// The plots are drawn and the canvases are saved as pdf and root files,
 /// along with each of the histograms.
@@ -31,13 +31,14 @@
 /////////////////////////////////////////////////////////////////// */
 
 /// Function to sort vectors of names, nominals, and constraints into the order we want to plot them in.
-void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec,
-                 std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec, TMatrixT<double> *&covMatrix)
+void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errVec,std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec,
+                 std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec, TMatrixT<double> *&covMatrix, std::string theta12name)
 {
 
     int nParams = namesVec->size();
 
     std::vector<double> *tempNomsVec = new std::vector<double>(nParams, 0.0);
+    std::vector<double> *tempErrVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempConstrMeansVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempConstrErrsVec = new std::vector<double>(nParams, 0.0);
     std::vector<std::string> *tempLabelsVec = new std::vector<std::string>(nParams, "");
@@ -47,7 +48,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
 
     // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
     std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
-                                                                          "theta12",
+                                                                          theta12name,
                                                                           "reactor_nubar",
                                                                           "geonu_U",
                                                                           "geonu_Th",
@@ -75,6 +76,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
         int iOriginal = nameToOldIndex[tempNamesVec->at(iParam)];
 
         tempNomsVec->at(iParam) = nomsVec->at(iOriginal);
+        tempErrVec->at(iParam) = errVec->at(iOriginal);
         tempConstrMeansVec->at(iParam) = constrMeansVec->at(iOriginal);
         tempConstrErrsVec->at(iParam) = constrErrsVec->at(iOriginal);
         tempLabelsVec->at(iParam) = labelsVec->at(iOriginal);
@@ -84,7 +86,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
     for (int iParam = 0; iParam < matrixNamesVec->size(); ++iParam)
     {
         // Erase the deltam and theta entries from the matrix name vector to get the right order for those later
-        if (matrixNamesVec->at(iParam) == "deltam21" || matrixNamesVec->at(iParam) == "theta12")
+        if (matrixNamesVec->at(iParam) == "deltam21" || matrixNamesVec->at(iParam) == theta12name)
         {
             matrixNamesVec->erase(matrixNamesVec->begin() + iParam) - 1;
             iParam--;
@@ -113,6 +115,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<std::string> *
     namesVec = tempNamesVec;
     labelsVec = tempLabelsVec;
     nomsVec = tempNomsVec;
+    errVec = tempErrVec;
     constrMeansVec = tempConstrMeansVec;
     constrErrsVec = tempConstrErrsVec;
     covMatrix = tempCovMatrix;
@@ -142,6 +145,15 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     // Get the list of branches
     TObjArray *branches = tree->GetListOfBranches();
     std::map<std::string, double> branchValues;
+
+    // Check the form of theta 12
+    std::string theta12name;
+    if (tree->GetBranch("theta12"))
+        theta12name = "theta12";
+    else if (tree->GetBranch("sintheta12"))
+        theta12name = "sintheta12";
+    else if (tree->GetBranch("sinsqtheta12"))
+        theta12name = "sinsqtheta12";
 
     // Create a map of branch names to variables
     std::map<std::string, double *> branchPointers;
@@ -173,7 +185,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     std::cout << "Best LLH: " << branchValues["LLH"] << std::endl;
     std::cout << "Best Entry: " << bestLLHEntry << std::endl;
-    std::cout << "Best theta: " << branchValues["theta12"] << std::endl;
+    std::cout << "Best theta: " << branchValues[theta12name] << std::endl;
     std::cout << "Best deltam: " << branchValues["deltam21"] << std::endl;
 
     // Retrieve the vectors from the file: nominal, constr means, constr err, constr names
@@ -224,8 +236,16 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         {
             std::cerr << "Error: Could not find maps in file " << llhFileName.str()
                       << ". Defaulting to grid space oscillation parameter errors" << std::endl;
-            thLowErr = 0.18;
-            thHighErr = 0.18;
+            if(theta12name == "theta12")
+            {
+                thLowErr = 0.18;
+                thHighErr = 0.18;
+            }
+            else if(theta12name == "sintheta12" || theta12name == "sinsqtheta12")
+            {
+                thLowErr = 0.002;
+                thHighErr = 0.1;
+            }
             dmLowErr = 7E-8;
             dmHighErr = 7E-8;
         }
@@ -240,17 +260,21 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     std::ostringstream fitFileName;
 
-    fitFileName << fileDir.string() << "/th" << std::fixed << std::setprecision(2) << branchValues["theta12"] << "/th"
-                << std::fixed << std::setprecision(2) << branchValues["theta12"] << "_dm"
+    fitFileName << fileDir.string() << "/th" << std::fixed << std::setprecision(3) << branchValues[theta12name] << "/th"
+                << std::fixed << std::setprecision(3) << branchValues[theta12name] << "_dm"
                 << std::fixed << std::setprecision(8) << branchValues["deltam21"] << "/fit_result.root";
 
     TFile *fitFile = new TFile(fitFileName.str().c_str(), "READ");
     fitFile->GetObject("paramErr", paramErr);
-    paramErr->insert(paramErr->begin(), std::max(thLowErr, thHighErr));
-    paramErr->insert(paramErr->begin(), std::max(dmLowErr, dmHighErr));
+    // Now find the position of deltam and theta in the other vectors, so we can insert them into paramErr at the same place 
+    // before reordering
+    std::vector<std::string>::iterator deltampos = std::find(paramNames->begin(), paramNames->end(), "deltam21");
+    std::vector<std::string>::iterator thetapos = std::find(paramNames->begin(), paramNames->end(), theta12name);
+    paramErr->insert(paramErr->begin() + std::distance(paramNames->begin(), deltampos), std::max(dmLowErr, dmHighErr));
+    paramErr->insert(paramErr->begin() + std::distance(paramNames->begin(), thetapos), std::max(thLowErr, thHighErr));
 
     // Reorder vectors to the order we want to plot them
-    sortVectors(paramNames, labelsVec, nomVals, constrMeans, constrErr, covMatrix);
+    sortVectors(paramNames, paramErr, labelsVec, nomVals, constrMeans, constrErr, covMatrix, theta12name);
 
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
@@ -376,7 +400,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     hCorrMatrix->GetZaxis()->SetLabelFont(42);
     hCorrMatrix->GetZaxis()->SetRangeUser(-1, 1);
     hCorrMatrix->SetTitle("");
-    hCorrMatrix->Draw("colz"); 
+    hCorrMatrix->Draw("colz");
 
     outfile->cd();
     hCorrMatrix->Write("correlations");

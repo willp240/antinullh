@@ -205,7 +205,7 @@ This app also divides the three alpha-n processes into different files. They are
 
 Right, we've now pruned our trees and can use them to build PDFs and a simulated dataset(s). In theory, we're now ready to launch a fit! But let's be steady Eddies, Cautious Carols, and Nervous Nigels, and make sure everything is behaving as intended. Running fits can be computationally and storage expensive, so it would be a shame to find out after running them that something had previously gone wrong.  
 
-One of way doing this is with likelihood scans. The likelihood scan apps first build the same test statistic that the fit will use, and we will hand it the same PDFs, parameters, and systematics we intend to hand the fitter. For a single floated parameter, it will scan over a range of values centred at the nominal value. For each of 150 steps, it will rebuild the dataset by scaling the PDFs and applying any systematics all set at their nominal values, except the parameter in question which is set to the value we've reached in the scan. This is compared to the actual dataset using the test statistic (probably the binned LLH). The LLH (minus the nominal LLH) is saved at each step, and once we reach the end of the scan for a parameter, it is set back to its nominal value, and we repeat for the next parameter.  
+One way of doing this is with likelihood scans. The likelihood scan apps first build the same test statistic that the fit will use, and we will hand it the same PDFs, parameters, and systematics we intend to hand the fitter. For a single floated parameter, it will scan over a range of values centred at the nominal value. For each of 150 steps, it will rebuild the dataset by scaling the PDFs and applying any systematics all set at their nominal values, except the parameter in question which is set to the value we've reached in the scan. This is compared to the actual dataset using the test statistic (probably the binned LLH). The LLH (minus the nominal LLH) is saved at each step, and once we reach the end of the scan for a parameter, it is set back to its nominal value, and we repeat for the next parameter.  
 
 For the 'true' Asimov dataset, these scans should all minimise at (1,0) (where the x axis is parameter value / nominal value) i.e., by changing a parameter, you can't produce a dataset more similar to the target dataset than by using the exact values used to produce the target dataset. For the other forms of Asimov dataset, most parameters will minimise close to 1, but probably not exactly. The event types with higher rates will be closer to 1 as changes in these will have a greater impact on the LLH, and the small fluctuations causing the differences between the PDFs and Asimov dataset will be smaller proportionally.  
 
@@ -215,7 +215,7 @@ To run the fixedosc LLH scan:
 
 > ./bin/fixedosc_llhscan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
-A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
+You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter specified in the fit config. A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
 
 The other version of the likelihood scan, `llh_scan`, hands all the parameters, including the oscillation parameters, to the `BinnedNLLH`. It then scans through all parameters in the same way, setting the values in the `BinnedNLLH` and evaluating the likelihood. This version of the likelihood scan is designed to be used for validating the full fits where every parameter floats at once (see below).
 
@@ -231,7 +231,7 @@ Now the time has come to run a fit. When we float the oscillation parameters, we
 
 > ./bin/fixedosc_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
-The value of the oscillation parameters should be set in the `fit` config file. This performs a `Minuit` fit, with the oscillation parameters fixed at those values. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced.
+The value of the oscillation parameters should be set in the `fit` config file. You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter. This performs a `Minuit` fit, with the oscillation parameters fixed at those values. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced.
 
 `fit_results.txt` contains each parameter value for the maximum LLH point, and `fit_results.root` contains the vectors of parameter names, postfit values and uncertainties, and a covariance matrix.
 
@@ -259,9 +259,9 @@ There will also be a root file (`fit_name_i.root`) which contains a tree. Each e
 
 <h2>Submitting Batch Jobs</h2>
 
-<h3>Full fits</h3>
+<h3>Individual Jobs</h3>
 
-For running full fits, it’s advisable to run multiple fits at once in parallel as you probably want around 1 million steps. Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think).  
+Every batch system will be different, but for submitting to a Condor based queue system there is a script, `util/submitCondor.py`, based on one for submitting RAT jobs originally from Josie (I think). You can use this for any exectuable. For running full MCMC fits, it’s advisable to run multiple identical fits at once in parallel as you probably want around 1 million steps.   
 
 You can submit N jobs with:  
 
@@ -275,7 +275,7 @@ You can run this script with any of the apps. If you're not running a fit, you p
 
 <h3>Fixed Oscillation Parameters Fits</h3>
 
-First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
+First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
 
 There is a script, similar to `utils/submitCondor.py` but for submitting these fixed oscillation parameter fits. This is in `util/submitFixedOscJobs.py`. 
 

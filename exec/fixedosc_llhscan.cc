@@ -48,6 +48,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
+  std::map<std::string, std::string> labelName = fitConfig.GetTexLabels();
 
   std::string pdfDir = outDir + "/unscaled_pdfs";
   std::string asimovDistDir = outDir + "/asimov_dists";
@@ -125,14 +126,36 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     systMap[it->first] = syst;
   }
 
+  // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
+  bool hasTheta12 = noms.find("theta12") != noms.end();
+  bool hasSinTheta12 = noms.find("sintheta12") != noms.end();
+  bool hasSinSqTheta12 = noms.find("sinsqtheta12") != noms.end();
+  bool hasDeltam21 = noms.find("deltam21") != noms.end();
+  int thetacount = int(hasTheta12) + int(hasSinTheta12) + int(hasSinSqTheta12);
+  if (thetacount == 0 || !hasDeltam21)
+  {
+    throw std::runtime_error("ERROR: A theta12, sintheta12, or sinsqtheta12 parameter, along with a deltam21 parameter, must be provided in the fitconfig.");
+  }
+  if (thetacount > 1)
+  {
+    throw std::runtime_error("ERROR: More than one of theta12, sintheta12, sinsqtheta12 parameters were set in the fitconfig. There must be exactly one.");
+  }
+  std::string theta12name;
+  if (hasTheta12)
+    theta12name = "theta12";
+  else if (hasSinTheta12)
+    theta12name = "sintheta12";
+  else if (hasSinSqTheta12)
+    theta12name = "sinsqtheta12";
+
   // Store the oscillation parameter scan region. We got these from the fit config file, but are about to delete them as they're
   // not used in the OXO llh
   double deltam21_nom = noms["deltam21"];
   double deltam21_min = mins["deltam21"];
   double deltam21_max = maxs["deltam21"];
-  double theta12_nom = noms["theta12"];
-  double theta12_min = mins["theta12"];
-  double theta12_max = maxs["theta12"];
+  double theta12_nom = noms[theta12name];
+  double theta12_min = mins[theta12name];
+  double theta12_max = maxs[theta12name];
 
   // Define the number of points
   int npoints = 150;
@@ -224,7 +247,13 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       // Build the distribution with oscillation parameters at their nominal values
       // Pass double by reference here to get ratio of unoscillated to oscillated events
       double ratio = 1.0;
-      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_nom, indexDistance, ratio);
+      // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
+      double theta12_param = theta12_nom;
+      if (hasSinTheta12)
+        theta12_param = theta12_nom * theta12_nom;
+      else if (hasTheta12)
+        theta12_param = sin(M_PI * theta12_nom / 180) * sin(M_PI * theta12_nom / 180);
+      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_param, indexDistance, ratio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
 
@@ -240,8 +269,14 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
       {
         double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / (npoints - 1);
-        std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21 << ", theta12: " << theta12_nom << std::endl;
-        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_nom, indexDistance, ratio);
+        // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
+        double theta12_param = theta12_nom;
+        if (hasSinTheta12)
+          theta12_param = theta12_nom * theta12_nom;
+        else if (hasTheta12)
+          theta12_param = sin(M_PI * theta12_nom / 180) * sin(M_PI * theta12_nom / 180);
+        std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21 << ", " << theta12name << ": " << theta12_param << std::endl;
+        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, ratio);
 
         // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
         oscDist.Normalise();
@@ -266,8 +301,14 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       for (int iTheta = 0; iTheta < npoints; iTheta++)
       {
         double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints - 1);
-        std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", theta12: " << theta12 << std::endl;
-        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12, indexDistance, ratio);
+        // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
+        double theta12_param = theta12;
+        if (hasSinTheta12)
+          theta12_param = theta12 * theta12;
+        else if (hasTheta12)
+          theta12_param = sin(M_PI * theta12 / 180) * sin(M_PI * theta12 / 180);
+        std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", " << theta12name << ": " << theta12_param << std::endl;
+        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_param, indexDistance, ratio);
 
         oscDist.Normalise();
         oscPDFs.push_back(oscDist);
@@ -506,9 +547,9 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     double max = noms[name] + numStepsAboveNom * width;
 
     // Make histogram for this parameter
-    TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
-    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
-    hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
+    TString htitle = Form("%s, Asimov Rate: %f", labelName[name].c_str(), nom);
+    TH1D *hScan = new TH1D((name + "_full").c_str(), (labelName[name] + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
+    hScan->SetTitle(std::string(htitle + ";" + labelName[name] + " (rel. to Asimov); -(ln L_{full})").c_str());
 
     // Now loop from min to max in npoint steps
     for (int i = 0; i < npoints; i++)
@@ -544,9 +585,9 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   double min = deltam21_nom - numStepsBelowNom * width;
   double max = deltam21_nom + numStepsAboveNom * width;
 
-  TString htitle = Form("%s, Nom. Value: %f", "deltam21", deltam21_nom);
-  TH1D *hDeltam = new TH1D("deltam21_full", "deltam21_full", npoints, (min - (width / 2)), (max + (width / 2)));
-  hDeltam->SetTitle(std::string(htitle + "; #Delta m^{2}_{21} (eV^{2}); -(ln L_{full})").c_str());
+  TString htitle = Form("%s, Nom. Value: %f", labelName["deltam21"].c_str(), deltam21_nom);
+  TH1D *hDeltam = new TH1D("deltam21_full", (labelName["deltam21"]+"_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
+  hDeltam->SetTitle(std::string(htitle + "; " + labelName["deltam21"] + " (eV^{2}); -(ln L_{full})").c_str());
 
   std::cout << "Scanning for deltam21" << std::endl;
   for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
@@ -608,10 +649,10 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   max = theta12_nom + numStepsAboveNom * width;
 
   // Repeat for theta
-  htitle = Form("%s, Nom. Value: %f", "theta12", theta12_nom);
-  TH1D *hTheta12 = new TH1D("theta12_nom_full", "theta12_nom_full", npoints, (min - (width / 2)), (max + (width / 2)));
-  hTheta12->SetTitle(std::string(htitle + "; #theta_{12} (^{o}); -(ln L_{full})").c_str());
-  std::cout << "Scanning for theta12" << std::endl;
+  htitle = Form("%s, Nom. Value: %f", labelName[theta12name].c_str(), theta12_nom);
+  TH1D *hTheta12 = new TH1D("theta12_nom_full", (labelName[theta12name]  + "_nom_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
+  hTheta12->SetTitle(std::string(htitle + "; " + labelName[theta12name] + " (^{o}); -(ln L_{full})").c_str());
+  std::cout << "Scanning for " << theta12name << std::endl;
   for (int iTheta12 = 0; iTheta12 < npoints; iTheta12++)
   {
     // Now build a second likelihood for varying oscillation params

@@ -64,7 +64,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double theta12_, std::unordered_map<int, double> indexDistance_, double& ratio)
+  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double sinsqth12_, std::unordered_map<int, double> indexDistance_, double& ratio)
   {
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
@@ -83,7 +83,8 @@ namespace antinufit
       double nuEnergy = ev.GetDatum("nu_energy");
       int reacIndex = ev.GetDatum("reactorIndex");
       double baseline = indexDistance_[reacIndex];
-      double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sin(M_PI*theta12_/180)*sin(M_PI*theta12_/180));
+      //double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sin(M_PI*theta12_/180)*sin(M_PI*theta12_/180));
+      double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sinsqth12_);
       double r = rndm->Rndm();
       if (r > oscprob)
       {

@@ -140,7 +140,7 @@ void stringMapToVectors(std::map<std::string, std::string> sdmap, std::vector<st
 
 // Function to parse output file from job of many fits to a map
 bool parseFitResultsTxt(const std::string &filename, std::map<std::string, double> &branchMap,
-                        TTree *tree, double *bestLLH, double *bestDeltam, double *bestTheta)
+                        TTree *tree, double *bestLLH, double *bestDeltam, double *bestTheta, std::string theta12name)
 {
 
     std::ifstream infile(filename);
@@ -208,13 +208,13 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
             iss >> dummy >> deltam;
             branchMap["deltam21"] = deltam;
         }
-        if (line.find("theta") != std::string::npos)
+        if (line.find(theta12name.c_str()) != std::string::npos)
         {
             std::istringstream iss(line);
             std::string dummy;
             double theta;
             iss >> dummy >> theta;
-            branchMap["theta12"] = theta;
+            branchMap[theta12name] = theta;
         }
         if (line.find("LLH:") != std::string::npos)
         {
@@ -227,7 +227,7 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
             {
                 *bestLLH = branchMap["LLH"];
                 *bestDeltam = branchMap["deltam21"];
-                *bestTheta = branchMap["theta12"];
+                *bestTheta = branchMap[theta12name];
             }
         }
         if (line.find("FitValid:") != std::string::npos)
@@ -276,6 +276,28 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         }
     }
 
+    // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
+    bool hasTheta12 = noms.find("theta12") != noms.end();
+    bool hasSinTheta12 = noms.find("sintheta12") != noms.end();
+    bool hasSinSqTheta12 = noms.find("sinsqtheta12") != noms.end();
+    bool hasDeltam21 = noms.find("deltam21") != noms.end();
+    int thetacount = int(hasTheta12) + int(hasSinTheta12) + int(hasSinSqTheta12);
+    if (thetacount == 0 || !hasDeltam21)
+    {
+        throw std::runtime_error("ERROR: A theta12, sintheta12, or sinsqtheta12 parameter, along with a deltam21 parameter, must be provided in the fitconfig.");
+    }
+    if (thetacount > 1)
+    {
+        throw std::runtime_error("ERROR: More than one of theta12, sintheta12, sinsqtheta12 parameters were set in the fitconfig. There must be exactly one.");
+    }
+    std::string theta12name;
+    if (hasTheta12)
+        theta12name = "theta12";
+    else if (hasSinTheta12)
+        theta12name = "sintheta12";
+    else if (hasSinSqTheta12)
+        theta12name = "sinsqtheta12";
+
     // Use the osc grid config to get the number of steps in each oscillation parameter
     OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
     OscGridConfig oscGridConfig = oscGridLoader.Load();
@@ -318,18 +340,17 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     // Loop over theta and deltam
     for (int i = 0; i < numTheta; ++i)
     {
-        theta = mins["theta12"] + i * ((maxs["theta12"] - mins["theta12"]) / numTheta);
-
+        theta = mins[theta12name] + i * ((maxs[theta12name] - mins[theta12name]) / numTheta);
         // Construct file path
         std::string dirName = std::filesystem::path(outDir).filename().string();
         std::ostringstream filePath;
         filePath << outDir << "/output/" << dirName
-                 << "_th" << std::fixed << std::setprecision(2) << theta
+                 << "_th" << std::fixed << std::setprecision(3) << theta
                  << ".output";
 
         // Parse the file and fill the tree
-        parseFitResultsTxt(filePath.str(), branchMap, &tree, &bestLLH, &bestDeltam, &bestTheta);
         std::cout << "Done " << theta << std::endl;
+        parseFitResultsTxt(filePath.str(), branchMap, &tree, &bestLLH, &bestDeltam, &bestTheta, theta12name);
     }
 
     // Write our tree and make vectors of the parameter names and asimov values
@@ -357,26 +378,26 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
 
     std::cout << "TTree saved to " << outDir << "/" << outFilename << std::endl;
 
-    std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", theta: " << bestTheta << std::endl
+    std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", " << theta12name << ": " << bestTheta << std::endl
               << std::endl;
 
     // Find fit cfg path for that fit
     std::ostringstream bestfitcfg;
-    bestfitcfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "fit_config_"
-               << "th" << std::fixed << std::setprecision(2) << bestTheta
+    bestfitcfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "fit_config_"
+               << "th" << std::fixed << std::setprecision(3) << bestTheta
                << "_dm" << std::fixed << std::setprecision(8) << bestDeltam << ".ini";
 
     // Overwrite save_output bool in that config
     overwriteSaveOutputsBool(bestfitcfg.str());
 
     std::ostringstream eventcfg;
-    eventcfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "event_config.ini";
+    eventcfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "event_config.ini";
     std::ostringstream pdfcfg;
-    pdfcfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "pdf_config.ini";
+    pdfcfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "pdf_config.ini";
     std::ostringstream syscfg;
-    syscfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "syst_config.ini";
+    syscfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "syst_config.ini";
     std::ostringstream osccfg;
-    osccfg << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/cfg/" << "oscgrid_config.ini";
+    osccfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "oscgrid_config.ini";
 
     std::ostringstream fit_command;
     fit_command << "./bin/fixedosc_fit " << bestfitcfg.str() << " " << eventcfg.str() << " " << pdfcfg.str() << " " << syscfg.str() << " " << osccfg.str();
@@ -385,7 +406,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     system(fit_command.str().c_str());
 
     std::ostringstream fitfilename;
-    fitfilename << outDir << "/th" << std::fixed << std::setprecision(2) << bestTheta << "/th" << std::fixed << std::setprecision(2)
+    fitfilename << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/th" << std::fixed << std::setprecision(3)
                 << bestTheta << "_dm" << std::fixed << std::setprecision(8) << bestDeltam << "/fit_result.root";
 
     // Open the ROOT file

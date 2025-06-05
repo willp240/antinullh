@@ -30,7 +30,7 @@ def read_fitcfg(fit_config):
         lines = file.readlines()
 
     for iline, line in enumerate(lines):
-        if line.startswith("[theta12]"):
+        if line.startswith("[theta12]") or line.startswith("[sintheta12]") or line.startswith("[sinsqtheta12]"):
             for jline in range(iline + 1, len(lines)):
                 if lines[jline].startswith("min ="):
                     theta_min = lines[jline].split("=")[1].strip()
@@ -97,7 +97,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
         # Process the file and make updates
         for iline, line in enumerate(lines):
             # Update theta12 nom
-            if line.startswith("[theta12]"):
+            if line.startswith("[theta12]") or line.startswith("[sintheta12]") or line.startswith("[sinsqtheta12]"):
                 for jline in range(iline + 1, len(lines)):
                     if lines[jline].startswith("nom ="):
                         lines[jline] = f"nom = {theta}\n"
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     for iJob in range(numvalstheta):
 
         theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numvalstheta
-        theta = "{:.2f}".format(theta)
+        theta = "{:.3f}".format(theta)
 
         batch_name = job_name + "_th{0}".format(theta)
 

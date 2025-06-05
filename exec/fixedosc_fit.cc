@@ -137,8 +137,30 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     systMap[it->first] = syst;
   }
 
+  // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
+  bool hasTheta12 = noms.find("theta12") != noms.end();
+  bool hasSinTheta12 = noms.find("sintheta12") != noms.end();
+  bool hasSinSqTheta12 = noms.find("sinsqtheta12") != noms.end();
+  bool hasDeltam21 = noms.find("deltam21") != noms.end();
+  int thetacount = int(hasTheta12) + int(hasSinTheta12) + int(hasSinSqTheta12);
+  if (thetacount == 0 || !hasDeltam21)
+  {
+    throw std::runtime_error("ERROR: A theta12, sintheta12, or sinsqtheta12 parameter, along with a deltam21 parameter, must be provided in the fitconfig.");
+  }
+  if (thetacount > 1)
+  {
+    throw std::runtime_error("ERROR: More than one of theta12, sintheta12, sinsqtheta12 parameters were set in the fitconfig. There must be exactly one.");
+  }
+  std::string theta12name;
+  if (hasTheta12)
+    theta12name = "theta12";
+  else if (hasSinTheta12)
+    theta12name = "sintheta12";
+  else if (hasSinSqTheta12)
+    theta12name = "sinsqtheta12";
+
   double deltam21 = noms["deltam21"];
-  double theta12 = noms["theta12"];
+  double theta12 = noms[theta12name];
 
   // A parameter could have been defined in the fit config but isn't associated with a pdf or systematic
   // If so ignore that parameter
@@ -210,8 +232,20 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
     if (it->first == "reactor_nubar")
     {
+      // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
+      double theta12_param = theta12;
+      double theta12_fakeparam = fdValues[theta12name];
+      if (hasSinTheta12){
+        theta12_param = theta12 * theta12;
+        theta12_fakeparam = fdValues[theta12name] * fdValues[theta12name];
+      }
+      else if (hasTheta12){
+        theta12_param = sin(M_PI * theta12 / 180) * sin(M_PI * theta12 / 180);
+        theta12_fakeparam = sin(M_PI * fdValues[theta12name] / 180) * sin(M_PI * fdValues[theta12name] / 180);
+      }
+
       // Build the distribution with oscillation parameters at their nominal values
-      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12, indexDistance, reactorRatio);
+      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, reactorRatio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
       constrMeans[it->first] = constrMeans[it->first] * reactorRatio;
@@ -219,7 +253,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       noms[it->first] = noms[it->first] * reactorRatio;
       mins[it->first] = mins[it->first] * reactorRatio;
       maxs[it->first] = maxs[it->first] * reactorRatio;
-      fakeDataDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], fdValues["theta12"], indexDistance, reactorRatio);
+      fakeDataDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fakeparam, indexDistance, reactorRatio);
       fdValues[it->first] = fdValues[it->first] * reactorRatio;
     }
     else
@@ -574,7 +608,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   }
   std::cout << "Fit complete for:" << std::endl;
   std::cout << "deltam: " << deltam21 << std::endl;
-  std::cout << "theta: " << theta12 << std::endl;
+  std::cout << theta12name << ": " << theta12 << std::endl;
   std::cout << "LLH: " << finalLLH << std::endl;
   std::cout << "FitValid: " << validFit << std::endl;
   std::cout << "ReactorRatio: " << reactorRatio << std::endl

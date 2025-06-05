@@ -181,9 +181,31 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
         return;
     }
 
+    // Check the form of theta 12
+    std::string theta12name = "";
+    std::string theta12label = "";
+    std::string theta12unit = "";
+    std::string theta12labelunit = "";
+    if (tree->GetBranch("theta12")){
+        theta12name = "theta12";
+        theta12label = "#theta_{12}";
+        theta12unit = "#circ";
+        theta12labelunit = theta12label + ", " + theta12unit;
+    }
+    else if (tree->GetBranch("sintheta12")){
+        theta12name = "sintheta12";
+        theta12label = "sin#theta_{12}";
+        theta12labelunit = theta12label;
+    }
+    else if (tree->GetBranch("sinsqtheta12")){
+        theta12name = "sinsqtheta12";
+        theta12label = "sin^{2}#theta_{12}";
+        theta12labelunit = theta12label;
+    }
+
     // Define variables to hold the tree branches
     double theta, deltam, llh;
-    tree->SetBranchAddress("theta12", &theta);
+    tree->SetBranchAddress(theta12name.c_str(), &theta);
     tree->SetBranchAddress("deltam21", &deltam);
     tree->SetBranchAddress("LLH", &llh);
 
@@ -194,11 +216,11 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     int nBinsY = sqrt(nEntries);
     double minDeltam = tree->GetMinimum("deltam21");
     double maxDeltam = tree->GetMaximum("deltam21");
-    double minTheta = tree->GetMinimum("theta12");
-    double maxTheta = tree->GetMaximum("theta12");
+    double minTheta = tree->GetMinimum(theta12name.c_str());
+    double maxTheta = tree->GetMaximum(theta12name.c_str());
     double minLLH = tree->GetMinimum("LLH");
 
-    TH2D *hLLH = new TH2D("hLLH", "#Delta LLH;#Delta m^2, MeV;#theta",
+    TH2D *hLLH = new TH2D("hLLH", ("#Delta LLH;#Delta m^2, MeV;" + theta12labelunit).c_str(),
                           nBinsX, minTheta, maxTheta,
                           nBinsY, minDeltam, maxDeltam);
 
@@ -215,7 +237,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
 
-    hLLH->GetXaxis()->SetTitle("#theta_{12}");
+    hLLH->GetXaxis()->SetTitle(theta12labelunit.c_str());
     hLLH->GetYaxis()->SetTitle("#Delta m^{2}_{21}, MeV");
     hLLH->GetYaxis()->SetTitleOffset(1.2);
     hLLH->GetZaxis()->SetTitle("2#Deltaln(L)");
@@ -263,7 +285,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
 
     Profile.first->Draw();
     Profile.first->SetLineColor(kBlack);
-    Profile.first->GetXaxis()->SetTitle("#theta_{12}");
+    Profile.first->GetXaxis()->SetTitle(theta12labelunit.c_str());
     Profile.first->GetYaxis()->SetTitle("2#Deltaln(L)");
     Profile.first->GetYaxis()->SetTitleOffset(1.2);
     Profile.first->SetTitle("");
@@ -290,8 +312,14 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     latex.SetTextColor(kBlack);
     double left_sigma = thSigmas["bestfit"] - thSigmas["left"];
     double right_sigma = thSigmas["right"] - thSigmas["bestfit"];
-    latex.DrawLatex(thSigmas["right"] - 30, yMaxCanvas * 0.9, Form("#theta_{12} = %.2f#circ ^{+%.2f}_{-%.2f}", thSigmas["bestfit"], right_sigma, left_sigma));
 
+    double labelpos = 0;
+    if (theta12name == "theta12")
+        labelpos = 35;
+    else
+        labelpos = 0.4;
+
+    latex.DrawLatex(labelpos, yMaxCanvas * 0.9, Form("%s = (%.2f ^{+%.2f}_{-%.2f}) %s", theta12label.c_str(), thSigmas["bestfit"], right_sigma, left_sigma, theta12unit.c_str()));
     pathObj.replace_filename("theta12LLHDiff.pdf");
     c2->SaveAs(pathObj.string().c_str());
     outfile->cd();
@@ -333,7 +361,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     latex.SetTextColor(kBlack);
     left_sigma = dmSigmas["bestfit"] - dmSigmas["left"];
     right_sigma = dmSigmas["right"] - dmSigmas["bestfit"];
-    latex.DrawLatex(dmSigmas["left"] - 0.000033, yMaxCanvas * 0.9, Form("#Deltam^{2}_{21} = %.3f^{+%.3f}_{-%.3f}#times10^{-5} eV^{2}", dmSigmas["bestfit"] * 1E5, right_sigma * 1E5, left_sigma * 1E5));
+    latex.DrawLatex(dmSigmas["left"] - 0.000033, yMaxCanvas * 0.9, Form("#Deltam^{2}_{21} = (%.3f^{+%.3f}_{-%.3f}) #times10^{-5} eV^{2}", dmSigmas["bestfit"] * 1E5, right_sigma * 1E5, left_sigma * 1E5));
 
     pathObj.replace_filename("deltam21LLHDiff.pdf");
     c3->SaveAs(pathObj.string().c_str());
