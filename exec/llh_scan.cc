@@ -48,6 +48,7 @@ void llh_scan(const std::string &fitConfigFile_,
   ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
+  std::map<std::string, std::string> labelName = fitConfig.GetTexLabels();
 
   std::string pdfDir = outDir + "/unscaled_pdfs";
   std::string asimovDistDir = outDir + "/asimov_dists";
@@ -397,9 +398,9 @@ void llh_scan(const std::string &fitConfigFile_,
     double max = noms[name] + numStepsAboveNom * width;
 
     // Make histogram for this parameter
-    TString htitle = Form("%s, Asimov Rate: %f", name.c_str(), nom);
-    TH1D *hScan = new TH1D((name + "_full").c_str(), (name + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
-    hScan->SetTitle(std::string(htitle + ";" + name + " (rel. to Asimov); -(ln L_{full})").c_str());
+    TString htitle = Form("%s, Asimov Rate: %f", labelName[name].c_str(), nom);
+    TH1D *hScan = new TH1D((labelName[name] + "_full").c_str(), (labelName[name] + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
+    hScan->SetTitle(std::string(htitle + ";" + labelName[name] + " (rel. to Asimov); -(ln L_{full})").c_str());
 
     // Now loop from min to max in npoint steps
     for (int i = 0; i < npoints; i++)
