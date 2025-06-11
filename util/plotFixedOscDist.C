@@ -58,6 +58,15 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
         tree->SetBranchAddress(branchName.c_str(), branchPointers[branchName]);
     }
 
+    // Check the form of theta 12
+    std::string theta12name;
+    if (tree->GetBranch("theta12"))
+        theta12name = "theta12";
+    else if (tree->GetBranch("sintheta12"))
+        theta12name = "sintheta12";
+    else if (tree->GetBranch("sinsqtheta12"))
+        theta12name = "sinsqtheta12";
+
     double minLLH = 1e9;
     double bestTheta = 0;
     double bestDeltaM = 0;
@@ -70,7 +79,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
         if (branchValues["LLH"] < minLLH)
         {
             minLLH = branchValues["LLH"];
-            bestTheta = branchValues["theta12"];
+            bestTheta = branchValues[theta12name];
             bestDeltaM = branchValues["deltam21"];
         }
     }
@@ -106,8 +115,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root")
     std::filesystem::path dirPath(filename);
     dirPath.replace_filename("");
     std::ostringstream directory;
-    directory << dirPath.string() << "/th" << std::fixed << std::setprecision(2) << bestTheta
-              << "/th" << std::fixed << std::setprecision(2) << bestTheta
+    directory << dirPath.string() << "/th" << std::fixed << std::setprecision(3) << bestTheta
+              << "/th" << std::fixed << std::setprecision(3) << bestTheta
               << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM
               << "/postfit_dists/";
 
