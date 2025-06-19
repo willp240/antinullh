@@ -325,6 +325,12 @@ Canvases are saved in both `.root` and `.pdf` files, in the top level output dir
 
 In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
 
+<h4>compare3FixedOscDists</h4>
+
+This script is similar to `plotFixedOscDist`, but plots the total postfit scaled MC for 3 fits (without each scaled component PDF). It loops through the entries in the output `TTrees` from `makeFixedOscTree`, and finds the fit with the minimum best LLH for each. The distributions plotted are the data for the first fit, and the total MC (sum of all scaled PDFs with systematics applied) for each of the three fits, and a panel showing the ratio of each total MC postfit prediction to the data for the first fit.
+
+> root -l 'util/compare3FixedOscDists.C("/path/to/fit1/params.root", "/path/to/fit2/params.root", "/path/to/fit3/params.root", "fit 1 label", "fit 2 label", "fit 3 label")'
+
 <h4>plotFixedOscParams</h4>
 
 This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. The constraint, nominal, and postfit histograms are also saved in the root file. If `plotFixedOscLLH` has already been run, it will look for the outputted `LLH.root` file to find the oscillation parameter uncertainties. Otherwise, it will use the grid spacing.
@@ -340,6 +346,18 @@ You can run it with:
 This script opens the outputted root file from `plotFixedOscParams` for two different fits, and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
 
 > root -l 'util/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
+
+<h4>compare3FixedOscParams</h4>
+
+This is just like `compareFixedOscParams` but it runs over 3 fits:
+
+> root -l 'util/compare3FixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'. 
+
+<h4>compare3LLHScans</h4>
+
+This script loops through the objects in the first of three LLH scan output files and prints each histogram to a canvas. If a histogram with the same name exists in the second and/or third LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file. You can run it with:
+
+> root -l 'util/compare3LLHScans.C("/path/to/llhscan1/llhscan.root", "/path/to/llhscan1/llhscan.root", "/path/to/llhscan3/llhscan.root", "fit 1 label", "fit 2 label", "fit 3 label")'
 
 <h3>MCMC</h3>
 
