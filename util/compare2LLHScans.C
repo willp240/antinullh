@@ -59,7 +59,7 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, std::string label1, std::string 
       plot1->GetYaxis()->SetTitleSize(0.055);
       plot1->GetXaxis()->SetLabelSize(0.045);
       plot1->GetYaxis()->SetLabelSize(0.045);
-      plot1->SetMaximum(1.3*plot->GetMaximum());
+      plot1->SetMaximum(1.3*plot1->GetMaximum());
       plot1->Draw();
       gPad->Update();
 
