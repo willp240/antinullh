@@ -353,11 +353,29 @@ This is just like `compareFixedOscParams` but it runs over 3 fits:
 
 > root -l 'util/compare3FixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'. 
 
+<h4>compare2LLHScans</h4>
+
+This script loops through the objects in the first of two LLH scan output files and prints each histogram to a canvas. If a histogram with the same name exists in the second LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file. You can run it with:
+
+> root -l 'util/compare2LLHScans.C("/path/to/llhscan1/llhscan.root", "/path/to/llhscan1/llhscan.root", "fit 1 label", "fit 2 label")'
+
 <h4>compare3LLHScans</h4>
 
-This script loops through the objects in the first of three LLH scan output files and prints each histogram to a canvas. If a histogram with the same name exists in the second and/or third LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file. You can run it with:
+This script is the same as `compare2LLHScans` but for three scans. It loops through the objects in the first LLH scan output file and prints each histogram to a canvas. If a histogram with the same name exists in the second and/or third LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file. You can run it with:
 
 > root -l 'util/compare3LLHScans.C("/path/to/llhscan1/llhscan.root", "/path/to/llhscan1/llhscan.root", "/path/to/llhscan3/llhscan.root", "fit 1 label", "fit 2 label", "fit 3 label")'
+
+<h4>plot1DPDFs</h4>
+
+This script loops through all the unscaled PDF files in a directory, and plots each on a different page of a PDF file. You can run it with:
+
+> root -l 'util/plot1DPDFs("/path/to/dir/")'
+
+<h4>compare1DPDFs</h4>
+
+This script loops through all the unscaled PDF files in a directory, and plots each on a different page of a PDF file. The user inputs the two directory paths, and labels for the legend. You can run it with:
+
+> root -l 'util/compare1DPDFs("/path/to/dir1/", "/path/to/dir2/", "label1", "label2")'
 
 <h3>MCMC</h3>
 

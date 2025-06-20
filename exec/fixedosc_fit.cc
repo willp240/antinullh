@@ -248,8 +248,10 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, reactorRatio);
 
       // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
-      constrMeans[it->first] = constrMeans[it->first] * reactorRatio;
-      constrSigmas[it->first] = constrSigmas[it->first] * reactorRatio;
+      if (constrMeans.find(it->first) != constrMeans.end()){
+        constrMeans[it->first] = constrMeans[it->first] * reactorRatio;
+        constrSigmas[it->first] = constrSigmas[it->first] * reactorRatio;
+      }
       noms[it->first] = noms[it->first] * reactorRatio;
       mins[it->first] = mins[it->first] * reactorRatio;
       maxs[it->first] = maxs[it->first] * reactorRatio;

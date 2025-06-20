@@ -4,7 +4,7 @@
 
 /* ///////////////////////////////////////////////////////////////////
 ///
-/// Script for comparing 3 LLH scans.
+/// Script for comparing 2 LLH scans.
 ///
 /// The user inputs the root files made by fixedOscLLHScan for
 /// along with labels to be printed in the legend for
@@ -17,7 +17,7 @@
 ///
 /////////////////////////////////////////////////////////////////// */
 
-void LoopHistos(TDirectory *d1, TDirectory *d2, TDirectory *d3, std::string label1, std::string label2, std::string label3, std::string outfilename)
+void LoopHistos(TDirectory *d1, TDirectory *d2, std::string label1, std::string label2, std::string outfilename)
 {
 
   // Get the directory
@@ -50,6 +50,7 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, TDirectory *d3, std::string labe
       c->SetFrameLineWidth(2);
 
       TH1D *plot1 = (TH1D *)d1->Get(name.c_str())->Clone();
+      plot1->SetName("plot1");
       plot1->GetYaxis()->SetTitleOffset(1.5);
       c->cd();
       plot1->SetLineColor(kBlack);
@@ -58,6 +59,7 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, TDirectory *d3, std::string labe
       plot1->GetYaxis()->SetTitleSize(0.055);
       plot1->GetXaxis()->SetLabelSize(0.045);
       plot1->GetYaxis()->SetLabelSize(0.045);
+      plot1->SetMaximum(1.3*plot->GetMaximum());
       plot1->Draw();
       gPad->Update();
 
@@ -68,6 +70,8 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, TDirectory *d3, std::string labe
         TH1D *hist2 = dynamic_cast<TH1D *>(obj2);
         if (hist2)
         {
+          plot2 = (TH1D *)hist2->Clone();
+          plot2->SetName("plot2");
           plot2->GetYaxis()->SetTitleOffset(1.5);
           c->cd();
           plot2->SetLineWidth(2);
@@ -80,26 +84,9 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, TDirectory *d3, std::string labe
           plot2->Draw("same");
           gPad->Update();
         }
-      }
-
-      TObject *obj3 = d3->Get(name.c_str());
-      TH1D *plot3 = nullptr;
-      if (obj3)
-      {
-        TH1D *hist3 = dynamic_cast<TH1D *>(obj3);
-        if (hist3)
+        else
         {
-          plot3->GetYaxis()->SetTitleOffset(1.5);
-          c->cd();
-          plot3->SetLineWidth(2);
-          plot3->SetLineStyle(3);
-          plot3->SetLineColor(kBlue);
-          plot3->GetXaxis()->SetTitleSize(0.055);
-          plot3->GetYaxis()->SetTitleSize(0.055);
-          plot3->GetXaxis()->SetLabelSize(0.045);
-          plot3->GetYaxis()->SetLabelSize(0.045);
-          plot3->Draw("same");
-          gPad->Update();
+          continue;
         }
       }
 
@@ -107,26 +94,23 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, TDirectory *d3, std::string labe
       t1->SetLineWidth(2);
       t1->AddEntry(plot1, label1.c_str(), "l");
       t1->AddEntry(plot2, label2.c_str(), "l");
-      t1->AddEntry(plot3, label3.c_str(), "l");
       t1->Draw("same");
 
       c->Print(outfilename.c_str());
       delete plot1;
       delete plot2;
-      delete plot3;
       delete c;
     }
   }
 }
 
-void compare3LLHScans(std::string filename1, std::string filename2, std::string filename3, std::string label1, std::string label2, std::string label3)
+void compare2LLHScans(std::string filename1, std::string filename2, std::string label1, std::string label2)
 {
 
   // Open file
   std::filesystem::path filepath1(filename1);
   TFile *f1 = new TFile(filename1.c_str(), "OPEN");
   TFile *f2 = new TFile(filename2.c_str(), "OPEN");
-  TFile *f3 = new TFile(filename3.c_str(), "OPEN");
   std::string outputfilename = filepath1.replace_extension("comp.pdf").string();
 
   // Aesthetics
@@ -138,7 +122,7 @@ void compare3LLHScans(std::string filename1, std::string filename2, std::string 
   c1->cd();
 
   // Now loop over all the histos and print each
-  LoopHistos(f1, f2, f3, label1, label2, label3, outputfilename);
+  LoopHistos(f1, f2, label1, label2, outputfilename);
 
   std::cout << "out the loop" << std::endl;
 
