@@ -652,8 +652,9 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // Repeat for theta
   htitle = Form("%s, Nom. Value: %f", labelName[theta12name].c_str(), theta12_nom);
-  TH1D *hTheta12 = new TH1D(theta12name.c_str(), (labelName[theta12name]  + "_nom_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
+  TH1D *hTheta12 = new TH1D((theta12name + "_full").c_str(), (labelName[theta12name]  + "_nom_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
   hTheta12->SetTitle(std::string(htitle + "; " + labelName[theta12name] + " (^{o}); -(ln L_{full})").c_str());
+
   std::cout << "Scanning for " << theta12name << std::endl;
   for (int iTheta12 = 0; iTheta12 < npoints; iTheta12++)
   {
