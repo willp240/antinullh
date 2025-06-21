@@ -264,6 +264,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
       fakeDataDist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
     }
+    dist.AddPadding();
+    fakeDataDist.AddPadding();
 
     // Save the generated number of events for Beeston Barlow
     genRates.push_back(dist.Integral());
