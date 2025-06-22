@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <string>
 
-void LoopHistos(TDirectory *dir, std::string outfilename)
+void LoopHistos(TDirectory *dir, std::string outfilename, TFile *outfile)
 {
 
   // Get the directory
@@ -25,7 +25,7 @@ void LoopHistos(TDirectory *dir, std::string outfilename)
     {
       dir->cd(name.c_str());
       TDirectory *SubDir = gDirectory;
-      LoopHistos(SubDir, outfilename);
+      LoopHistos(SubDir, outfilename, outfile);
     }
 
     // If we're a histogram, let's plot it
@@ -53,6 +53,8 @@ void LoopHistos(TDirectory *dir, std::string outfilename)
       plot1->Draw();
       gPad->Update();
       c->Print(outfilename.c_str());
+      outfile->cd();
+      c->Write(name.c_str()); 
       delete plot1;
       delete c;
     }
@@ -63,9 +65,11 @@ void plotLLHScans(std::string filename)
 {
 
   // Open file
-  TFile *File = new TFile(filename.c_str(), "OPEN");
   std::filesystem::path filepath(filename);
-  std::string outputfilename = filepath.replace_extension(".pdf").string();
+  TFile *File = new TFile(filename.c_str(), "OPEN");
+  std::string outputfilename = filepath.replace_extension("plots.pdf").string();
+  std::string outrootfilename = filepath.replace_extension(".root").string();
+  TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
 
   // Aesthetics
   gStyle->SetOptStat(0);
@@ -76,9 +80,10 @@ void plotLLHScans(std::string filename)
   c1->cd();
 
   // Now loop over all the histos and print each
-  LoopHistos(File, outputfilename);
+  LoopHistos(File, outputfilename, outfile);
 
   std::cout << "out the loop" << std::endl;
 
   c1->Print((outputfilename + "]").c_str());
+  outfile->Close();
 }

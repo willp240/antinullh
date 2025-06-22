@@ -23,6 +23,8 @@ void plot1DPDFs(std::string dirname)
 
     std::vector<std::filesystem::path> pdfFiles;
     std::string outputfilename = dirname + "/pdfplots.pdf";
+    std::string outrootfilename = dirname + "/pdfplots.root";
+    TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
 
     // Add files from the pdfs directory
     for (const auto &entry : std::filesystem::directory_iterator(dirname.c_str()))
@@ -85,8 +87,11 @@ void plot1DPDFs(std::string dirname)
         gPad->SetGrid(1);
         gPad->Update();
         c1->Print(outputfilename.c_str());
+        outfile->cd();
+        c1->Write(histName.c_str());
     }
 
     c1->Print((outputfilename + "]").c_str());
+    c1->Close();
 
 }
