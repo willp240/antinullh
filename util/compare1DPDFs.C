@@ -25,6 +25,8 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
 
     std::vector<std::filesystem::path> pdfFiles;
     std::string outputfilename = dirname1 + "/comppdfplots.pdf";
+    std::string outrootfilename = dirname1 + "/comppdfplots.root";
+    TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
 
     // Add files from the pdfs directory
     for (const auto &entry : std::filesystem::directory_iterator(dirname1.c_str()))
@@ -116,8 +118,10 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         t1->Draw();
 
         c1->Print(outputfilename.c_str());
+        outfile->cd();
+        c1->Write(histName.c_str()); 
     }
 
     c1->Print((outputfilename + "]").c_str());
-
+    outfile->Close();   
 }
