@@ -289,6 +289,13 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     Profile.first->GetYaxis()->SetTitle("2#Deltaln(L)");
     Profile.first->GetYaxis()->SetTitleOffset(1.2);
     Profile.first->SetTitle("");
+    Profile.first->GetXaxis()->SetTitleFont(42);
+    Profile.first->GetYaxis()->SetTitleFont(42);
+    Profile.first->GetZaxis()->SetTitleFont(42);
+    Profile.first->GetXaxis()->SetLabelFont(42);
+    Profile.first->GetYaxis()->SetLabelFont(42);
+    Profile.first->GetZaxis()->SetLabelFont(42);
+    Profile.first->SetTitleFont(42);
 
     std::map<std::string, double> thSigmas = calc1Sigma(Profile.first);
     double yMin = 0;
@@ -339,6 +346,13 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     Profile.second->GetYaxis()->SetTitle("2#Deltaln(L)");
     Profile.second->GetYaxis()->SetTitleOffset(1.2);
     Profile.second->SetTitle("");
+    Profile.second->GetXaxis()->SetTitleFont(42);
+    Profile.second->GetYaxis()->SetTitleFont(42);
+    Profile.second->GetZaxis()->SetTitleFont(42);
+    Profile.second->GetXaxis()->SetLabelFont(42);
+    Profile.second->GetYaxis()->SetLabelFont(42);
+    Profile.second->GetZaxis()->SetLabelFont(42);
+    Profile.second->SetTitleFont(42);
 
     std::map<std::string, double> dmSigmas = calc1Sigma(Profile.second);
     yMin = 0;
