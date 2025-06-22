@@ -55,7 +55,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
                                                                           "alphan_CScatter",
                                                                           "alphan_OExcited",
                                                                           "alphan_PRecoil",
-                                                                          //"sideband",
+                                                                          "sideband",
                                                                           "energy_scale",
                                                                           "energy_conv",
                                                                           "birks_constant",
