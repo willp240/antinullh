@@ -291,7 +291,7 @@ In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the 
 
 <h3>Fixed Oscillation Fits</h3>
 
-A lot of the postfit analysis will be done using scripts that reside in `util` (not to be confused with `src/util`).
+A lot of the postfit analysis will be done using scripts that reside in `util` (not to be confused with `src/util`), and `plotting`.
 
 <h4>makeFixedOscTree</h4>
 
@@ -307,13 +307,13 @@ Once the tree is made, the it finds the fit that had the best LLH, and reruns th
 
 <h4>plotFixedOscLLH</h4>
 
-The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `util/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`. It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. 
+The next thing to do is to plot the best fit LLH as a function of the oscillation parameters. You can do this by running `plotting/plotFixedOscLLH.C` over the output `TTree` from `makeFixedOscTree`. It loops over all the entries, and gets the oscillation parameter values and LLH for each fit. It then plots a 2D histogram where the X and Y axis are the oscilltion parameters, and the Z axis is the LLH. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. 
 
 Also plotted are profile LLHs for both $\Delta m^2_{21}$ and $\theta_{12}$. Each are saved as `.pdf` file and also in the same root file as the 2D plot. The $1\sigma$ bounds are calculated and saved in that root file. These can then be used by `plotFixedOscParams` as the oscillation parameter postfit uncertainties.
 
 It can be run by doing:
 
-> root -l 'util/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")'
+> root -l 'plotting/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")'
 
 <h4>plotFixedOscDist</h4>
 
@@ -321,7 +321,7 @@ This script will loop over all entries in the output `TTree` from `makeFixedOscT
 
 Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
-> root -l 'util/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")'
+> root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")'
 
 In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
 
@@ -329,7 +329,7 @@ In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U
 
 This script is similar to `plotFixedOscDist`, but plots the total postfit scaled MC for 3 fits (without each scaled component PDF). It loops through the entries in the output `TTrees` from `makeFixedOscTree`, and finds the fit with the minimum best LLH for each. The distributions plotted are the data for the first fit, and the total MC (sum of all scaled PDFs with systematics applied) for each of the three fits, and a panel showing the ratio of each total MC postfit prediction to the data for the first fit.
 
-> root -l 'util/compare3FixedOscDists.C("/path/to/fit1/params.root", "/path/to/fit2/params.root", "/path/to/fit3/params.root", "fit 1 label", "fit 2 label", "fit 3 label")'
+> root -l 'plotting/compare3FixedOscDists.C("/path/to/fit1/params.root", "/path/to/fit2/params.root", "/path/to/fit3/params.root", "fit 1 label", "fit 2 label", "fit 3 label")'
 
 <h4>plotFixedOscParams</h4>
 
@@ -339,43 +339,55 @@ A separate canvas is also saved, containing a plot of the postfit correlation ma
 
 You can run it with:
 
-> root -l 'util/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
+> root -l 'plotting/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
 
 <h4>compareFixedOscParams</h4>
 
 This script opens the outputted root file from `plotFixedOscParams` for two different fits, and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
 
-> root -l 'util/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
+> root -l 'plotting/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
 
 <h4>compare3FixedOscParams</h4>
 
 This is just like `compareFixedOscParams` but it runs over 3 fits:
 
-> root -l 'util/compare3FixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'. 
+> root -l 'plotting/compare3FixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'. 
 
 <h4>compare2LLHScans</h4>
 
-This script loops through the objects in the first of two LLH scan output files and prints each histogram to a canvas. If a histogram with the same name exists in the second LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file. You can run it with:
+This script loops through the objects in the first of two LLH scan output files and prints each histogram to a canvas. If a histogram with the same name exists in the second LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file, and in a root file. You can run it with:
 
-> root -l 'util/compare2LLHScans.C("/path/to/llhscan1/llhscan.root", "/path/to/llhscan1/llhscan.root", "fit 1 label", "fit 2 label")'
+> root -l 'plotting/compare2LLHScans.C("/path/to/llhscan1/llhscan.root", "/path/to/llhscan1/llhscan.root", "fit 1 label", "fit 2 label")'
 
 <h4>compare3LLHScans</h4>
 
-This script is the same as `compare2LLHScans` but for three scans. It loops through the objects in the first LLH scan output file and prints each histogram to a canvas. If a histogram with the same name exists in the second and/or third LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file. You can run it with:
+This script is the same as `compare2LLHScans` but for three scans. It loops through the objects in the first LLH scan output file and prints each histogram to a canvas. If a histogram with the same name exists in the second and/or third LLH scan output files, these are drawn on the same canvas. Each canvas is saved as one page in a PDF file, and in a root file. You can run it with:
 
-> root -l 'util/compare3LLHScans.C("/path/to/llhscan1/llhscan.root", "/path/to/llhscan1/llhscan.root", "/path/to/llhscan3/llhscan.root", "fit 1 label", "fit 2 label", "fit 3 label")'
+> root -l 'plotting/compare3LLHScans.C("/path/to/llhscan1/llhscan.root", "/path/to/llhscan1/llhscan.root", "/path/to/llhscan3/llhscan.root", "fit 1 label", "fit 2 label", "fit 3 label")'
 
 <h4>plot1DPDFs</h4>
 
-This script loops through all the unscaled PDF files in a directory, and plots each on a different page of a PDF file. You can run it with:
+This script loops through all the unscaled PDF files in a directory, and plots each on a different page of a PDF file, and in a root file. You can run it with:
 
-> root -l 'util/plot1DPDFs("/path/to/dir/")'
+> root -l 'plotting/plot1DPDFs("/path/to/dir/")'
 
 <h4>compare1DPDFs</h4>
 
-This script loops through all the unscaled PDF files in a directory, and plots each on a different page of a PDF file. The user inputs the two directory paths, and labels for the legend. You can run it with:
+This script loops through all the unscaled PDF files in a directory, and plots each on a different page of a PDF file, and in a root file. The user inputs the two directory paths, and labels for the legend. You can run it with:
 
-> root -l 'util/compare1DPDFs("/path/to/dir1/", "/path/to/dir2/", "label1", "label2")'
+> root -l 'plotting/compare1DPDFs("/path/to/dir1/", "/path/to/dir2/", "label1", "label2")'
+
+<h4>plot2DPDFs</h4>
+
+This script loops through all the 2D unscaled PDF files in a directory, and plots each (with colz) on a different page of a PDF file, and in a root file. You can run it with:
+
+> root -l 'plotting/plot2DPDFs("/path/to/dir/")'
+
+<h4>projectPDFs</h4>
+
+This script loops through all the 2D unscaled PDF files in a directory, and plots the projection of each on the y-axis (likely to be the #alpha-n classifier axis) on a different page of a PDF file, and in a root file. You can run it with:
+
+> root -l 'plotting/projectPDFs("/path/to/dir/")'
 
 <h3>MCMC</h3>
 
