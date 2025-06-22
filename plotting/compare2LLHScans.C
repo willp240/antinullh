@@ -17,7 +17,7 @@
 ///
 /////////////////////////////////////////////////////////////////// */
 
-void LoopHistos(TDirectory *d1, TDirectory *d2, std::string label1, std::string label2, std::string outfilename)
+void LoopHistos(TDirectory *d1, TDirectory *d2, std::string label1, std::string label2, std::string outfilename, TFile *outfile)
 {
 
   // Get the directory
@@ -59,7 +59,7 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, std::string label1, std::string 
       plot1->GetYaxis()->SetTitleSize(0.055);
       plot1->GetXaxis()->SetLabelSize(0.045);
       plot1->GetYaxis()->SetLabelSize(0.045);
-      plot1->SetMaximum(1.3*plot->GetMaximum());
+      plot1->SetMaximum(1.3 * plot1->GetMaximum());
       plot1->Draw();
       gPad->Update();
 
@@ -97,6 +97,8 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, std::string label1, std::string 
       t1->Draw("same");
 
       c->Print(outfilename.c_str());
+      outfile->cd();
+      c->Write(name.c_str());
       delete plot1;
       delete plot2;
       delete c;
@@ -112,6 +114,8 @@ void compare2LLHScans(std::string filename1, std::string filename2, std::string 
   TFile *f1 = new TFile(filename1.c_str(), "OPEN");
   TFile *f2 = new TFile(filename2.c_str(), "OPEN");
   std::string outputfilename = filepath1.replace_extension("comp.pdf").string();
+  std::string outrootfilename = filepath1.replace_extension(".root").string();
+  TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
 
   // Aesthetics
   gStyle->SetOptStat(0);
@@ -122,9 +126,10 @@ void compare2LLHScans(std::string filename1, std::string filename2, std::string 
   c1->cd();
 
   // Now loop over all the histos and print each
-  LoopHistos(f1, f2, label1, label2, outputfilename);
+  LoopHistos(f1, f2, label1, label2, outputfilename, outfile);
 
   std::cout << "out the loop" << std::endl;
 
   c1->Print((outputfilename + "]").c_str());
+  outfile->Close();
 }
