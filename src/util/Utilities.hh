@@ -24,6 +24,6 @@ namespace antinufit
   std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double>, double);
   std::vector<std::string> SplitString(const std::string &, char);
   void PrintParams(ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict,
-                   std::map<std::string, std::string>, ParameterDict, std::map<std::string, std::string>);
+                   std::map<std::string, std::string>, ParameterDict, std::map<std::string, std::string>, std::map<std::string, std::vector<std::string>> );
 }
 #endif

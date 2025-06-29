@@ -154,7 +154,7 @@ namespace antinufit
 
     void PrintParams(ParameterDict mins, ParameterDict maxs, ParameterDict noms, ParameterDict constrMeans, ParameterDict constrSigmas,
                      ParameterDict constrRatioMeans, ParameterDict constrRatioSigmas, std::map<std::string, std::string> constrRatioParName,
-                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName)
+                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName, std::map<std::string, std::vector<std::string>> datasets)
     {
 
         std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
@@ -190,6 +190,8 @@ namespace antinufit
         std::cout << "| ";
         std::cout << std::left << std::setw(15) << "Maximum";
         std::cout << "| ";
+        std::cout << std::left << std::setw(20) << "Datasets";
+        std::cout << "| ";
         std::cout << std::left << std::setw(20) << "Constraint Mean";
         std::cout << "| ";
         std::cout << std::left << std::setw(20) << "Constraint Sigma";
@@ -209,6 +211,14 @@ namespace antinufit
             std::cout << std::left << std::setw(15) << mins[tempNamesVec->at(iParam)];
             std::cout << "| ";
             std::cout << std::left << std::setw(15) << maxs[tempNamesVec->at(iParam)];
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20);
+            for (int iDS = 0; iDS < datasets[tempNamesVec->at(iParam)].size(); iDS++)
+            {
+                std::cout << datasets[tempNamesVec->at(iParam)].at(iDS);
+                if( iDS < datasets[tempNamesVec->at(iParam)].size()-1)
+                    std::cout << ", ";
+            }
             std::cout << "| ";
             if (constrMeans[tempNamesVec->at(iParam)])
             {
