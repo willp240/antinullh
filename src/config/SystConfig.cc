@@ -33,6 +33,12 @@ namespace antinufit
     return fParamNames;
   }
 
+  std::map<std::string, std::vector<std::string>>
+  SystConfig::GetDataSets() const
+  {
+    return fDataSets;
+  }
+
   const std::string &
   SystConfig::GetName() const
   {
@@ -40,12 +46,13 @@ namespace antinufit
   }
 
   void
-  SystConfig::AddParameter(const std::string &name_, const std::vector<std::string> &param_names_, const std::vector<std::string> &dist_obs_, const std::vector<std::string> &trans_obs_, const std::string &type_, const std::string &group_)
+  SystConfig::AddParameter(const std::string &name_, const std::vector<std::string> &param_names_, const std::vector<std::string> &dist_obs_, const std::vector<std::string> &trans_obs_, const std::string &type_, const std::string &group_, const std::vector<std::string> &datasets_)
   {
     fDistObs[name_] = dist_obs_;
     fTransObs[name_] = trans_obs_;
     fType[name_] = type_;
     fGroup[name_] = group_;
     fParamNames[name_] = param_names_;
+    fDataSets[name_] = datasets_;
   }
 }
