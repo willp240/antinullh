@@ -48,27 +48,40 @@ namespace antinufit
     return retVal;
   }
 
-  std::map<std::string, EventConfig>
+  std::map<std::string, std::map<std::string, EventConfig> >
   EventConfigLoader::LoadActive() const
   {
     typedef std::set<std::string> StringSet;
+    typedef std::map<std::string, std::map<std::string, EventConfig>> DataSetConfigMap;
     typedef std::map<std::string, EventConfig> EventConfigMap;
     ConfigLoader::Open(fPath);
 
-    StringSet toLoad;
-    StringSet dontLoad;
+    StringSet dataSets;
+    DataSetConfigMap dsMap;
+    ConfigLoader::Load("summary", "datasets", dataSets);
 
-    ConfigLoader::Load("summary", "active", toLoad);
-    ConfigLoader::Load("summary", "inactive", dontLoad);
-    //  if all is in the list, just do all of them
-    if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
-      return LoadAll(dontLoad);
+    for (StringSet::iterator itDS = dataSets.begin(); itDS != dataSets.end(); ++itDS)
+    {
 
-    EventConfigMap evMap;
-    for (StringSet::iterator it = toLoad.begin(); it != toLoad.end(); ++it)
-      evMap[*it] = LoadOne(*it);
+      StringSet toLoad;
+      StringSet dontLoad;
 
-    return evMap;
+      ConfigLoader::Load(*itDS, "active", toLoad);
+      ConfigLoader::Load(*itDS, "inactive", dontLoad);
+      //  if all is in the list, just do all of them
+      if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end()){
+        dsMap[*itDS] = LoadAll(dontLoad);
+        continue;
+      }
+
+      EventConfigMap evMap;
+      for (StringSet::iterator itEv = toLoad.begin(); itEv != toLoad.end(); ++itEv)
+        evMap[*itEv] = LoadOne(*itEv);
+
+      dsMap[*itDS] = evMap;
+    }
+
+    return dsMap;
   }
 
   EventConfigLoader::~EventConfigLoader()
@@ -93,4 +106,24 @@ namespace antinufit
     return evMap;
   }
 
+  std::map<std::string, std::string> 
+  EventConfigLoader::GetDataPaths() const
+  {
+    std::map<std::string, std::string> dataPathMap;
+    typedef std::set<std::string> StringSet;
+    ConfigLoader::Open(fPath);
+
+    StringSet dataSets;
+    ConfigLoader::Load("summary", "datasets", dataSets);
+
+    for (StringSet::iterator itDS = dataSets.begin(); itDS != dataSets.end(); ++itDS)
+    {
+
+      std::string dataPath;
+      ConfigLoader::Load(*itDS, "datafile", dataPath);
+      dataPathMap[*itDS] = dataPath;
+    }
+
+  return dataPathMap;
+  }
 }
