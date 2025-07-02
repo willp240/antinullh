@@ -18,6 +18,7 @@ namespace antinufit
     std::map<std::string, std::vector<std::string>> GetTransObs() const;
     std::map<std::string, std::vector<std::string>> GetParamNames() const;
     std::map<std::string, std::vector<std::string>> GetDataSets() const;
+    std::map<std::string, std::vector<std::string>> GetParDataSets() const;
 
     const std::string &GetName() const;
     void SetName(const std::string &name_);
@@ -32,6 +33,7 @@ namespace antinufit
     std::map<std::string, std::vector<std::string> > fDistObs;
     std::map<std::string, std::vector<std::string> > fTransObs;
     std::map<std::string, std::vector<std::string> > fDataSets;
+    std::map<std::string, std::vector<std::string> > fParDataSets;
   };
 }
 #endif

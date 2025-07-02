@@ -39,6 +39,12 @@ namespace antinufit
     return fDataSets;
   }
 
+  std::map<std::string, std::vector<std::string>>
+  SystConfig::GetParDataSets() const
+  {
+    return fParDataSets;
+  }
+
   const std::string &
   SystConfig::GetName() const
   {
@@ -54,5 +60,10 @@ namespace antinufit
     fGroup[name_] = group_;
     fParamNames[name_] = param_names_;
     fDataSets[name_] = datasets_;
+
+    for(int iPar = 0; iPar < param_names_.size(); iPar++)
+    {
+      fParDataSets[param_names_.at(iPar)] = datasets_;
+    }
   }
 }
