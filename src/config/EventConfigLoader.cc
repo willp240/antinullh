@@ -9,22 +9,22 @@ namespace antinufit
   }
 
   EventConfig
-  EventConfigLoader::LoadOne(const std::string &name_) const
+  EventConfigLoader::LoadOne(const std::string &name_, const std::string dataset_) const
   {
 
     ConfigLoader::Open(fPath);
-    std::string baseDir;
-    std::string prunedDir;
-
-    ConfigLoader::Load("summary", "orig_base_dir", baseDir);
-    ConfigLoader::Load("summary", "pruned_ntup_dir", prunedDir);
 
     std::vector<std::string> ntupFiles;
     int numDimensions;
     std::vector<std::string> groups;
+    std::string baseDir;
+    std::string prunedDir;
 
     ConfigLoader::Load(name_, "ntup_files", ntupFiles);
     ConfigLoader::Load(name_, "dimensions", numDimensions);
+
+    ConfigLoader::Load(dataset_, "orig_base_dir", baseDir);
+    ConfigLoader::Load(dataset_, "pruned_ntup_dir", prunedDir);
 
     try
     {
@@ -48,7 +48,7 @@ namespace antinufit
     return retVal;
   }
 
-  std::map<std::string, std::map<std::string, EventConfig> >
+  std::map<std::string, std::map<std::string, EventConfig>>
   EventConfigLoader::LoadActive() const
   {
     typedef std::set<std::string> StringSet;
@@ -68,15 +68,17 @@ namespace antinufit
 
       ConfigLoader::Load(*itDS, "active", toLoad);
       ConfigLoader::Load(*itDS, "inactive", dontLoad);
+
       //  if all is in the list, just do all of them
-      if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end()){
-        dsMap[*itDS] = LoadAll(dontLoad);
+      if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
+      {
+        dsMap[*itDS] = LoadAll(dontLoad, *itDS);
         continue;
       }
 
       EventConfigMap evMap;
       for (StringSet::iterator itEv = toLoad.begin(); itEv != toLoad.end(); ++itEv)
-        evMap[*itEv] = LoadOne(*itEv);
+        evMap[*itEv] = LoadOne(*itEv, *itDS);
 
       dsMap[*itDS] = evMap;
     }
@@ -90,23 +92,33 @@ namespace antinufit
   }
 
   std::map<std::string, EventConfig>
-  EventConfigLoader::LoadAll(const std::set<std::string> &except_) const
+  EventConfigLoader::LoadAll(const std::set<std::string> &except_, const std::string dataset_) const
   {
     typedef std::set<std::string> StringSet;
     StringSet toLoad = ConfigLoader::ListSections();
     toLoad.erase("summary");
 
     std::map<std::string, EventConfig> evMap;
-    for (StringSet::iterator it = toLoad.begin(); it != toLoad.end();
-         ++it)
+    for (StringSet::iterator evIt = toLoad.begin(); evIt != toLoad.end(); ++evIt)
     {
-      if (!except_.count(*it))
-        evMap[*it] = LoadOne(*it);
+      if (!except_.count(*evIt))
+      {
+        try
+        {
+          std::string ntupFiles;
+          ConfigLoader::Load(*evIt, "ntup_files", ntupFiles);
+          evMap[*evIt] = LoadOne(*evIt, dataset_);
+        }
+        catch (const std::exception &e)
+        {
+          continue;
+        }
+      }
     }
     return evMap;
   }
 
-  std::map<std::string, std::string> 
+  std::map<std::string, std::string>
   EventConfigLoader::GetDataPaths() const
   {
     std::map<std::string, std::string> dataPathMap;
@@ -124,6 +136,6 @@ namespace antinufit
       dataPathMap[*itDS] = dataPath;
     }
 
-  return dataPathMap;
+    return dataPathMap;
   }
 }

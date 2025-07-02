@@ -18,9 +18,9 @@ namespace antinufit
   public:
     EventConfigLoader(const std::string &filePath_);
     ~EventConfigLoader();
-    EventConfig LoadOne(const std::string &name_) const;
+    EventConfig LoadOne(const std::string &name_, const std::string dataset_) const;
     std::map<std::string, std::map<std::string, EventConfig>> LoadActive() const;
-    std::map<std::string, EventConfig> LoadAll(const std::set<std::string> &except_) const;
+    std::map<std::string, EventConfig> LoadAll(const std::set<std::string> &except_, const std::string dataset_) const;
     std::map<std::string, std::string> GetDataPaths() const;
 
   private:
