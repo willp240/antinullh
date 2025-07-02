@@ -101,6 +101,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<std::string>> systDistObs = systConfig.GetDistObs();
   std::map<std::string, std::vector<std::string>> systTransObs = systConfig.GetTransObs();
   std::map<std::string, std::vector<std::string>> systDataSets = systConfig.GetDataSets();
+  std::map<std::string, std::vector<std::string>> systParDataSets = systConfig.GetParDataSets();
   std::vector<std::string> fullParamNameVec;
 
   // Load up the oscillation probability grids
@@ -139,8 +140,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     // All the "dimensions" of the dataset
     syst->SetDistributionObs(systDistObs[systIt->first]);
     syst->Construct();
-    for (std::map<std::string, std::vector<std::string>>::iterator dsIt = systDataSets.begin(); dsIt != systDataSets.end(); ++dsIt)
-      systMap[dsIt->first][systIt->first] = syst;
+    for (std::vector<std::string>::iterator dsIt = systDataSets[systIt->first].begin(); dsIt != systDataSets[systIt->first].end(); ++dsIt)
+      systMap[*dsIt][systIt->first] = syst;
   }
 
   // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
@@ -173,12 +174,12 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   ParameterDict::iterator parIt = noms.begin();
   size_t numParams = noms.size();
   std::cout << std::endl;
-  std::map<std::string, std::vector<std::string>> datasets;
+  std::map<std::string, std::vector<std::string>> datasetPars;
   for (int iParam = 0; iParam < numParams; iParam++)
   {
 
     // We will check if the parameter is a pdf or systematic for any dataset.
-    // We'll also use 'datasets' to keep track of which datasets each parameter applies to
+    // We'll also use 'datasetPars' to keep track of which datasets each parameter applies to
     bool isPDF = false;
     bool isSyst = false;
     bool iterate = true;
@@ -187,13 +188,13 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       if (dsIt->second.find(parIt->first) != dsIt->second.end())
       {
         isPDF = true;
-        datasets[parIt->first].push_back(dsIt->first);
+        datasetPars[parIt->first].push_back(dsIt->first);
       }
     }
-    if (!isPDF && systDataSets.find(parIt->first) != systDataSets.end())
+    if (!isPDF && systParDataSets.find(parIt->first) != systParDataSets.end())
     {
       isSyst = true;
-      datasets[parIt->first] = systDataSets[parIt->first];
+      datasetPars[parIt->first] = systParDataSets[parIt->first];
     }
 
     if (!isPDF && !isSyst)
@@ -220,21 +221,20 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   }
   std::cout << std::endl;
 
-  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasets);
+  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasetPars);
 
   // Create the individual PDFs and Asimov components, for each dataset, and make the component LLH objects
   std::map<std::string, std::vector<BinnedED>> pdfMap;
   std::map<std::string, std::vector<std::vector<std::string>>> pdfGroups;
-  std::vector<TestStatistic *> teststats;
-  ParameterDict parameterValues;
-  ParameterDict reactRatios;
+  std::vector<BinnedNLLH> teststats;
+  std::map<std::string, ParameterDict> parameterValues;
+  double reactorRatio = 1.0; // Ratio of oscillated to unoscillated number of reactor IBDs
   // Now we're going to loop over datasets and build the asimov datsets
   for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
   {
     std::cout << "Building Asimov for dataset: " << dsIt->first << std::endl;
     std::vector<int> genRates;
     std::vector<NormFittingStatus> *norm_fitting_statuses = new std::vector<NormFittingStatus>;
-    double reactorRatio = 1.0; // Ratio of oscillated to unoscillated number of reactor IBDs
 
     // Create the empty full dist
     BinnedED asimov = BinnedED("asimov", systAxes);
@@ -299,7 +299,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         maxs[evIt->first] = maxs[evIt->first] * reactorRatio;
         fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fakeparam, indexDistance, reactorRatio);
         fdValues[evIt->first] = fdValues[evIt->first] * reactorRatio;
-        reactRatios[dsIt->first] = reactorRatio;
       }
       else
       {
@@ -487,8 +486,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
     {
       // If either parameter doesn't exist for this dataset, move along
-      if (std::find(datasets[corrIt->first].begin(), datasets[corrIt->first].end(), dsIt->first) == datasets[corrIt->first].end() ||
-          std::find(datasets[constrCorrParName.at(corrIt->first)].begin(), datasets[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasets[constrCorrParName.at(corrIt->first)].end())
+      if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
+          std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
         continue;
       lh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
                        constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
@@ -497,7 +496,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
     {
       // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasets[constrIt->first].begin(), datasets[constrIt->first].end(), dsIt->first) == datasets[constrIt->first].end())
+      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
         continue;
 
       // Only add single parameter constraint if correlation hasn't already been applied
@@ -507,37 +506,48 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
     {
       // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasets[ratioIt->first].begin(), datasets[ratioIt->first].end(), dsIt->first) == datasets[ratioIt->first].end())
+      if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
         continue;
 
       lh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
     }
+
     // And finally bring it all together
     lh.RegisterFitComponents();
 
     // Initialise to nominal values
     for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
     {
-      if (std::find(datasets[parIt->first].begin(), datasets[parIt->first].end(), dsIt->first) == datasets[parIt->first].end())
+      if (std::find(datasetPars[parIt->first].begin(), datasetPars[parIt->first].end(), dsIt->first) == datasetPars[parIt->first].end())
         continue;
-      parameterValues[parIt->first] = noms[parIt->first];
+      parameterValues[dsIt->first][parIt->first] = noms[parIt->first];
     }
     // If we have constraints, initialise to those
     for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
     {
-      if (std::find(datasets[constrIt->first].begin(), datasets[constrIt->first].end(), dsIt->first) == datasets[constrIt->first].end())
+      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
         continue;
-      parameterValues[constrIt->first] = constrMeans[constrIt->first];
+      parameterValues[dsIt->first][constrIt->first] = constrMeans[constrIt->first];
     }
     // Set to these initial values
-    lh.SetParameters(parameterValues);
-
-    teststats.push_back(&lh);
-
+    lh.SetParameters(parameterValues[dsIt->first]);
+    teststats.push_back(std::move(lh));
   } // End loop over datasets
 
   // Now combine the LLH for each dataset
-  StatisticSum fullLLH = Sum(teststats);
+  ParameterDict allParVals;
+  for(std::map<std::string, ParameterDict>::iterator parMapIt = parameterValues.begin(); parMapIt != parameterValues.end(); parMapIt++)
+  {
+    for(ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++ )
+      allParVals[parIt->first] = parIt->second;
+  }
+  
+  std::vector<TestStatistic *> rawllhptrs;
+  for (BinnedNLLH &lh : teststats)
+  {
+    rawllhptrs.push_back(&lh);
+  }
+  StatisticSum fullLLH = Sum(rawllhptrs);
   fullLLH.RegisterFitComponents();
 
   // Now do a fit!
@@ -546,7 +556,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   min.SetMaxCalls(10000000);
   min.SetMinima(mins);
   min.SetMaxima(maxs);
-  min.SetInitialValues(parameterValues);
+  min.SetInitialValues(allParVals);
   min.SetInitialErrors(sigmas);
 
   FitResult res = min.Optimise(&fullLLH);
@@ -696,8 +706,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::cout << theta12name << ": " << theta12 << std::endl;
   std::cout << "LLH: " << finalLLH << std::endl;
   std::cout << "FitValid: " << validFit << std::endl;
-  for (ParameterDict::iterator reacRatioIt = reactRatios.begin(); reacRatioIt != reactRatios.end(); ++reacRatioIt)
-    std::cout << "ReactorRatio " << reacRatioIt->first << ": " << reacRatioIt->second << std::endl;
+  std::cout << "ReactorRatio: " << reactorRatio << std::endl;
   std::cout << std::endl
             << std::endl;
 }
