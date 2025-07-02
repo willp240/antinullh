@@ -180,7 +180,7 @@ namespace antinufit
 
         std::cout << std::endl;
         std::cout << "************** Fit Parameters **************" << std::endl;
-        std::cout << " -------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        std::cout << " -----------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
         std::cout << "| ";
         std::cout << std::left << std::setw(25) << "Name";
         std::cout << "| ";
@@ -196,7 +196,7 @@ namespace antinufit
         std::cout << "| ";
         std::cout << std::left << std::setw(20) << "Constraint Sigma";
         std::cout << "| " << std::endl;
-        std::cout << " =========================================================================================================================" << std::endl;
+        std::cout << " ===============================================================================================================================================" << std::endl;
         for (int iParam = 0; iParam < tempNamesVec->size(); iParam++)
         {
 
@@ -212,13 +212,14 @@ namespace antinufit
             std::cout << "| ";
             std::cout << std::left << std::setw(15) << maxs[tempNamesVec->at(iParam)];
             std::cout << "| ";
-            std::cout << std::left << std::setw(20);
+            std::string datasetString = "";
             for (int iDS = 0; iDS < datasets[tempNamesVec->at(iParam)].size(); iDS++)
             {
-                std::cout << datasets[tempNamesVec->at(iParam)].at(iDS);
-                if( iDS < datasets[tempNamesVec->at(iParam)].size()-1)
-                    std::cout << ", ";
+                datasetString += datasets[tempNamesVec->at(iParam)].at(iDS);
+                if (iDS < datasets[tempNamesVec->at(iParam)].size() - 1)
+                    datasetString += ", ";
             }
+            std::cout << std::left << std::setw(20) << datasetString;
             std::cout << "| ";
             if (constrMeans[tempNamesVec->at(iParam)])
             {
@@ -235,7 +236,7 @@ namespace antinufit
             std::cout << std::endl;
         }
 
-        std::cout << " -------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        std::cout << " -----------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
         if (constrRatioMeans.size() > 0)
         {
             std::cout << std::endl;
@@ -262,9 +263,8 @@ namespace antinufit
                 std::cout << std::left << std::setw(20) << constrRatioMeans[it->first];
                 std::cout << "| ";
                 std::cout << std::left << std::setw(20) << constrRatioSigmas[it->first];
-                std::cout << "| ";
+                std::cout << "| " << std::endl;
             }
-            std::cout << std::endl;
             std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
         }
 
