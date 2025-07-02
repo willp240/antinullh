@@ -69,9 +69,6 @@ namespace antinufit
     bool GetFakeData() const;
     void SetFakeData(bool);
 
-    std::string GetDatafile() const;
-    void SetDatafile(std::string);
-
     double GetLivetime() const;
     void SetLivetime(double);
 
@@ -104,7 +101,6 @@ namespace antinufit
     bool fFakeData;
     double fLivetime;
     bool fSaveOutputs;
-    std::string fDatafile;
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrCorrParName;
   };

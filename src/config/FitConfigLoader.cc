@@ -44,7 +44,6 @@ namespace antinufit
     ConfigLoader::Load("summary", "sigma_scale", sigmaScale);
     ConfigLoader::Load("summary", "beeston_barlow", beestonBarlowFlag);
     ConfigLoader::Load("summary", "asimov", asimovFlag);
-    ConfigLoader::Load("summary", "datafile", datafile);
     ConfigLoader::Load("summary", "livetime", livetime);
     ConfigLoader::Load("summary", "save_outputs", saveOutputs);
 
@@ -74,7 +73,6 @@ namespace antinufit
     ret.SetBeestonBarlow(beestonBarlowFlag);
     ret.SetAsimov(asimovFlag);
     ret.SetFakeData(fakeDataFlag);
-    ret.SetDatafile(datafile);
     ret.SetLivetime(livetime);
     ret.SetSaveOutputs(saveOutputs);
 

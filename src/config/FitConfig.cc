@@ -137,18 +137,6 @@ namespace antinufit
     fFakeData = b_;
   }
 
-  std::string
-  FitConfig::GetDatafile() const
-  {
-    return fDatafile;
-  }
-
-  void
-  FitConfig::SetDatafile(std::string s_)
-  {
-    fDatafile = s_;
-  }
-
   double
   FitConfig::GetLivetime() const
   {
