@@ -65,14 +65,14 @@ namespace antinufit
       }
       try
       {
-        ConfigLoader::Load(name, "datasets", dataSets);
+        ConfigLoader::Load(name, "dataset", dataSets);
       }
       catch (ConfigFieldMissing)
       {
         try
         {
           std::string dataset;
-          ConfigLoader::Load(name, "datasets", dataset);
+          ConfigLoader::Load(name, "dataset", dataset);
           dataSets.push_back(dataset);
         }
         catch (ConfigFieldMissing)
