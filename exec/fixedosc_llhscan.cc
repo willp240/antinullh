@@ -1,20 +1,24 @@
 // Antinu headers
 #include <PDFConfigLoader.hh>
 #include <DistBuilder.hh>
+#include <DistTools.h>
 #include <FitConfigLoader.hh>
 #include <EventConfigLoader.hh>
 #include <SystConfigLoader.hh>
 #include <SystFactory.hh>
 #include <OscGridConfigLoader.hh>
+#include <Utilities.hh>
 
 // OXO headers
 #include <ROOTNtuple.h>
 #include <BinnedNLLH.h>
+#include <StatisticSum.h>
 #include <IO.h>
 #include <Rand.h>
 
 // ROOT headers
 #include <TH1D.h>
+#include <TKey.h>
 
 // c++ headers
 #include <sys/stat.h>
@@ -66,8 +70,11 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // Load up all the event types we want to contribute
   typedef std::map<std::string, EventConfig> EvMap;
-  EventConfigLoader loader(evConfigFile_);
-  EvMap toGet = loader.LoadActive();
+  typedef std::map<std::string, std::map<std::string, EventConfig>> DSMap;
+  EventConfigLoader evLoader(evConfigFile_);
+  DSMap dsPDFMap = evLoader.LoadActive();
+  std::map<std::string, std::string> dataPath = evLoader.GetDataPaths();
+  std::map<std::string, BinnedED> dataDists;
 
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
   PDFConfigLoader pdfLoader(pdfConfigFile_);
@@ -84,6 +91,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   std::map<std::string, std::string> systType = systConfig.GetType();
   std::map<std::string, std::vector<std::string>> systDistObs = systConfig.GetDistObs();
   std::map<std::string, std::vector<std::string>> systTransObs = systConfig.GetTransObs();
+  std::map<std::string, std::vector<std::string>> systDataSets = systConfig.GetDataSets();
+  std::map<std::string, std::vector<std::string>> systParDataSets = systConfig.GetParDataSets();
   std::vector<std::string> fullParamNameVec;
 
   // Load up the oscillation probability grids information
@@ -97,8 +106,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorjson);
 
   // Loop over systematics and declare each one
-  std::map<std::string, Systematic *> systMap;
-  for (std::map<std::string, std::string>::iterator it = systType.begin(); it != systType.end(); ++it)
+  std::map<std::string, std::map<std::string, Systematic *>> systMap;
+  for (std::map<std::string, std::string>::iterator systIt = systType.begin(); systIt != systType.end(); ++systIt)
   {
     // Check any parameter defined for a systematic, was declared in the fit config
     for (std::map<std::string, std::vector<std::string>>::iterator paramIt = systParamNames.begin(); paramIt != systParamNames.end(); ++paramIt)
@@ -112,18 +121,19 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         }
       }
     }
-    fullParamNameVec.insert(fullParamNameVec.end(), systParamNames[it->first].begin(), systParamNames[it->first].end());
+    fullParamNameVec.insert(fullParamNameVec.end(), systParamNames[systIt->first].begin(), systParamNames[systIt->first].end());
 
     // Now build the systematic
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], systParamNames[it->first], noms, dummyOscGridMap, indexDistance);
-    AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
+    Systematic *syst = SystFactory::New(systIt->first, systType[systIt->first], systParamNames[systIt->first], noms, dummyOscGridMap, indexDistance);
+    AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[systIt->first].size());
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to
-    syst->SetTransformationObs(systTransObs[it->first]);
+    syst->SetTransformationObs(systTransObs[systIt->first]);
     // All the "dimensions" of the dataset
-    syst->SetDistributionObs(systDistObs[it->first]);
+    syst->SetDistributionObs(systDistObs[systIt->first]);
     syst->Construct();
-    systMap[it->first] = syst;
+    for (std::vector<std::string>::iterator dsIt = systDataSets[systIt->first].begin(); dsIt != systDataSets[systIt->first].end(); ++dsIt)
+      systMap[*dsIt][systIt->first] = syst;
   }
 
   // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
@@ -153,9 +163,13 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   double deltam21_nom = noms["deltam21"];
   double deltam21_min = mins["deltam21"];
   double deltam21_max = maxs["deltam21"];
+  double deltam21_fd = fdValues["deltam21"];
   double theta12_nom = noms[theta12name];
   double theta12_min = mins[theta12name];
   double theta12_max = maxs[theta12name];
+  double theta12_fd = fdValues[theta12name];
+
+  std::cout << std::endl;
 
   // Define the number of points
   int npoints = 150;
@@ -163,378 +177,494 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // A parameter could have been defined in the fit config but isn't associated with a pdf or systematic
   // If so ignore that parameter
-  ParameterDict::iterator paramIt = noms.begin();
+  ParameterDict::iterator parIt = noms.begin();
   size_t numParams = noms.size();
-  int reacPDFNum;
+
+  std::map<std::string, int> reacPDFNum;
+  std::map<std::string, std::vector<std::string>> datasetPars;
   for (int iParam = 0; iParam < numParams; iParam++)
   {
+    // We will check if the parameter is a pdf or systematic for any dataset.
+    // We'll also use 'datasetPars' to keep track of which datasets each parameter applies to
+    bool isPDF = false;
+    bool isSyst = false;
     bool iterate = true;
-    if (toGet.find(paramIt->first) == toGet.end() && std::find(fullParamNameVec.begin(), fullParamNameVec.end(), paramIt->first) == fullParamNameVec.end())
+    for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
-      std::cout << paramIt->first << " parameter defined in fit config but not in syst or event config. It will be ignored." << std::endl;
-      constrSigmas.erase(paramIt->first);
-      constrMeans.erase(paramIt->first);
-      mins.erase(paramIt->first);
-      maxs.erase(paramIt->first);
-      paramIt = noms.erase(paramIt);
-      if (paramIt != noms.begin())
-        paramIt--;
+      if (dsIt->second.find(parIt->first) != dsIt->second.end())
+      {
+        isPDF = true;
+        datasetPars[parIt->first].push_back(dsIt->first);
+      }
+    }
+    if (!isPDF && systParDataSets.find(parIt->first) != systParDataSets.end())
+    {
+      isSyst = true;
+      datasetPars[parIt->first] = systParDataSets[parIt->first];
+    }
+
+    if (!isPDF && !isSyst)
+    {
+      std::cout << parIt->first << " parameter defined in fit config but not in syst or event config. It will be ignored." << std::endl;
+      constrSigmas.erase(parIt->first);
+      constrMeans.erase(parIt->first);
+      constrRatioMeans.erase(parIt->first);
+      constrRatioSigmas.erase(parIt->first);
+      constrRatioParName.erase(parIt->first);
+      constrCorrs.erase(parIt->first);
+      constrCorrParName.erase(parIt->first);
+      mins.erase(parIt->first);
+      maxs.erase(parIt->first);
+      parIt = noms.erase(parIt);
+      if (parIt != noms.begin())
+        parIt--;
       else
         iterate = false;
     }
     if (iterate)
-      paramIt++;
+      parIt++;
   }
+  std::cout << std::endl;
 
-  PrintParams(noms, mins, maxs, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName);
+  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasetPars);
 
-  // Create the individual PDFs and Asimov components
-  std::vector<BinnedED> pdfs;
-  std::vector<int> genRates;
-  std::vector<std::vector<std::string>> pdfGroups;
-  std::vector<NormFittingStatus> *norm_fitting_statuses = new std::vector<NormFittingStatus>;
+  // Create the individual PDFs and Asimov components, for each dataset, and make the component LLH objects
+  std::map<std::string, std::vector<BinnedED>> pdfMap;
+  std::map<std::string, std::vector<std::vector<std::string>>> pdfGroups;
+  std::vector<BinnedNLLH> testStats;
+  std::map<std::string, ParameterDict> parameterValues;
+  std::map<std::string, std::vector<BinnedED>> oscPDFsMap;
+  double reactorRatio = 1.0; // Ratio of oscillated to unoscillated number of reactor IBDs
+  std::map<std::string, std::vector<int>> genRates;
+  std::map<std::string, std::vector<NormFittingStatus> *> normFittingStatuses;
 
-  // Create the empty full dist
-  BinnedED asimov = BinnedED("asimov", systAxes);
-  asimov.SetObservables(dataObs);
-  // And an empty fake data dist
-  BinnedED fakeDataset = BinnedED("fake_dataset", systAxes);
-  fakeDataset.SetObservables(dataObs);
-
-  // And we're going to create a scaled "asimov" dataset and reactor PDF for each point in the oscillation parameter scans
-  // The oscDatasets aren't actually used in the scan, but we save them as they're useful to look at. But the teststat object
-  // should build exact equivalents if everything has gone to plan
-  std::vector<BinnedED> oscDatasets;
-  std::vector<BinnedED> oscPDFs;
-  for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
+  // Now we're going to loop over datasets and build the asimov datsets
+  for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
   {
-    BinnedED oscAsmv = BinnedED("asimov", systAxes);
-    oscAsmv.SetObservables(dataObs);
-    oscDatasets.push_back(oscAsmv);
-  }
+    std::cout << "Building Asimov for dataset: " << dsIt->first << std::endl;
+    reacPDFNum[dsIt->first] = -999;
+    std::vector<NormFittingStatus> *normStatVec = new std::vector<NormFittingStatus>;
+    normFittingStatuses[dsIt->first] = normStatVec;
 
-  // Build each of the PDFs, scale them to the correct size
-  for (EvMap::iterator it = toGet.begin(); it != toGet.end(); ++it)
-  {
+    // Create the empty full dist
+    BinnedED asimov = BinnedED("asimov", systAxes);
+    asimov.SetObservables(dataObs);
+    // And an empty fake data dist
+    BinnedED fakeDataset = BinnedED("fake_dataset", systAxes);
+    fakeDataset.SetObservables(dataObs);
 
-    std::cout << "Building distribution for " << it->first << std::endl;
-    pdfGroups.push_back(it->second.GetGroup());
-
-    // Get MC events from file
-    DataSet *dataSet;
-    try
+    // And we're going to create a scaled "asimov" dataset and reactor PDF for each point in the oscillation parameter scans
+    // The oscDatasets aren't actually used in the scan, but we save them as they're useful to look at. But the teststat object
+    // should build exact equivalents if everything has gone to plan
+    std::vector<BinnedED> oscDatasets;
+    for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
     {
-      std::cout << "Loading " << it->second.GetPrunedPath() << std::endl;
-      dataSet = new ROOTNtuple(it->second.GetPrunedPath(), "pruned");
-    }
-    catch (const IOError &e_)
-    {
-      std::cout << "Warning: skipping " << it->first << " couldn't open files:\n\t" << e_.what() << std::endl;
-      continue;
+      BinnedED oscAsmv = BinnedED("asimov", systAxes);
+      oscAsmv.SetObservables(dataObs);
+      oscDatasets.push_back(oscAsmv);
     }
 
-    // Build distribution of those events
-    BinnedED dist;
-    BinnedED fakeDataDist;
-    BinnedED unscaledPDF;
-    int num_dimensions = it->second.GetNumDimensions();
-
-    // If it's the reactor PDF, two things are different from the others. Firstly we use the BuildOscillatedDist rather than just Build.
-    // Also, we're going to loop over oscillation scan points to make the reactor's PDF for that point as well
-    if (it->first == "reactor_nubar")
+    // Build each of the PDFs, scale them to the correct size
+    for (EvMap::iterator evIt = dsIt->second.begin(); evIt != dsIt->second.end(); ++evIt)
     {
-      reacPDFNum = pdfs.size();
-      // Build the distribution with oscillation parameters at their nominal values
-      // Pass double by reference here to get ratio of unoscillated to oscillated events
-      double ratio = 1.0;
-      // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
-      double theta12_param = theta12_nom;
-      if (hasSinTheta12)
-        theta12_param = theta12_nom * theta12_nom;
-      else if (hasTheta12)
-        theta12_param = sin(M_PI * theta12_nom / 180) * sin(M_PI * theta12_nom / 180);
-      dist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_param, indexDistance, ratio);
-      dist.AddPadding();
-      // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
 
-      double noms_config = noms[it->first];
-      if (constrMeans.find(it->first) != constrMeans.end()){
-        constrMeans[it->first] = constrMeans[it->first] * ratio;
-        constrSigmas[it->first] = constrSigmas[it->first] * ratio;
-      }
-      noms[it->first] = noms_config * ratio;
-      mins[it->first] = mins[it->first] * ratio;
-      maxs[it->first] = maxs[it->first] * ratio;
-      fdValues[it->first] = fdValues[it->first] * ratio;
+      std::cout << "Building distribution for " << evIt->first << std::endl;
+      pdfGroups[dsIt->first].push_back(evIt->second.GetGroup());
 
-      // Now loop over deltam points and make a new pdf for each
-      for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
+      // Get MC events from file
+      DataSet *dataSet;
+      try
       {
-        double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / (npoints - 1);
+        std::cout << "Loading " << evIt->second.GetPrunedPath() << std::endl;
+        dataSet = new ROOTNtuple(evIt->second.GetPrunedPath(), "pruned");
+      }
+      catch (const IOError &e_)
+      {
+        std::cout << "Warning: skipping " << evIt->first << " couldn't open files:\n\t" << e_.what() << std::endl;
+        continue;
+      }
+
+      // Build distribution of those events
+      BinnedED dist;
+      BinnedED fakeDataDist;
+      BinnedED unscaledPDF;
+      int num_dimensions = evIt->second.GetNumDimensions();
+
+      // If it's the reactor PDF, two things are different from the others. Firstly we use the BuildOscillatedDist rather than just Build.
+      // Also, we're going to loop over oscillation scan points to make the reactor's PDF for that point as well
+      if (evIt->first.find("reactor_nubar") != std::string::npos)
+      {
+        reacPDFNum[dsIt->first] = pdfMap[dsIt->first].size();
+
         // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
         double theta12_param = theta12_nom;
+        double theta12_fdparam = theta12_fd;
         if (hasSinTheta12)
+        {
           theta12_param = theta12_nom * theta12_nom;
+          theta12_fdparam = theta12_fd * theta12_fd;
+          mins[theta12name] = mins[theta12name] * mins[theta12name];
+          maxs[theta12name] = maxs[theta12name] * maxs[theta12name];
+        }
         else if (hasTheta12)
+        {
           theta12_param = sin(M_PI * theta12_nom / 180) * sin(M_PI * theta12_nom / 180);
-        std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21 << ", " << theta12name << ": " << theta12_param << std::endl;
-        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, ratio);
-
-        oscDist.AddPadding();
-        oscDist.Normalise();
-        oscPDFs.push_back(oscDist);
-        // Apply nominal systematic variables to the oscillated distribution
-        for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
-        {
-          // If group is "", we apply to all groups
-          if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
-          {
-            double norm;
-            oscDist = systIt->second->operator()(oscDist, &norm);
-          }
+          theta12_fdparam = sin(M_PI * theta12_fd / 180) * sin(M_PI * theta12_fd / 180);
+          mins[theta12name] = sin(M_PI * mins[theta12name] / 180) * sin(M_PI * mins[theta12name] / 180);
+          maxs[theta12name] = sin(M_PI * maxs[theta12name] / 180) * sin(M_PI * maxs[theta12name] / 180);
         }
-        // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
-        oscDist.Scale(noms_config * ratio);
-        // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
-        // We'll Add the rest of the PDFs later
-        oscDatasets.at(iDeltaM).Add(oscDist);
+
+        // Build the distribution with oscillation parameters at their nominal values
+        // Pass double by reference here to get ratio of unoscillated to oscillated events
+        dist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_param, indexDistance, reactorRatio);
+        dist.AddPadding();
+        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21_fd, theta12_fdparam, indexDistance, reactorRatio);
+        fakeDataDist.AddPadding();
+
+        // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
+
+        double noms_config = noms[evIt->first];
+        if (constrMeans.find(evIt->first) != constrMeans.end())
+        {
+          constrMeans[evIt->first] = constrMeans[evIt->first] * reactorRatio;
+          constrSigmas[evIt->first] = constrSigmas[evIt->first] * reactorRatio;
+        }
+        noms[evIt->first] = noms_config * reactorRatio;
+        mins[evIt->first] = mins[evIt->first] * reactorRatio;
+        maxs[evIt->first] = maxs[evIt->first] * reactorRatio;
+        fdValues[evIt->first] = fdValues[evIt->first] * reactorRatio;
+
+        // Now loop over deltam points and make a new pdf for each
+        for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
+        {
+          double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / (npoints - 1);
+          // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
+          double theta12_param = theta12_nom;
+          if (hasSinTheta12)
+            theta12_param = theta12_nom * theta12_nom;
+          else if (hasTheta12)
+            theta12_param = sin(M_PI * theta12_nom / 180) * sin(M_PI * theta12_nom / 180);
+          BinnedED oscDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, reactorRatio);
+
+          oscDist.AddPadding();
+          oscDist.Normalise();
+          oscPDFsMap[dsIt->first].push_back(oscDist);
+          // Apply nominal systematic variables to the oscillated distribution
+          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+          {
+            // If group is "", we apply to all groups
+            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+            {
+              double norm;
+              oscDist = systIt->second->operator()(oscDist, &norm);
+            }
+          }
+          // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
+          oscDist.Scale(noms_config * reactorRatio);
+          // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
+          // We'll Add the rest of the PDFs later
+          oscDatasets.at(iDeltaM).Add(oscDist);
+        }
+        // And do the same for theta
+        for (int iTheta = 0; iTheta < npoints; iTheta++)
+        {
+          double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints - 1);
+          // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
+          double theta12_param = theta12;
+          if (hasSinTheta12)
+            theta12_param = theta12 * theta12;
+          else if (hasTheta12)
+            theta12_param = sin(M_PI * theta12 / 180) * sin(M_PI * theta12 / 180);
+          BinnedED oscDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_param, indexDistance, reactorRatio);
+
+          oscDist.AddPadding();
+          oscDist.Normalise();
+          oscPDFsMap[dsIt->first].push_back(oscDist);
+          // Apply nominal systematic variables to the oscillated distribution
+          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+          {
+            // If group is "", we apply to all groups
+            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+            {
+              double norm;
+              oscDist = systIt->second->operator()(oscDist, &norm);
+            }
+          }
+          // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
+          oscDist.Scale(noms_config * reactorRatio);
+          // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
+          // We'll Add the rest of the PDFs later
+          oscDatasets.at(npoints + iTheta).Add(oscDist);
+        }
       }
-      // And do the same for theta
-      for (int iTheta = 0; iTheta < npoints; iTheta++)
+      else
       {
-        double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints - 1);
-        // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
-        double theta12_param = theta12;
-        if (hasSinTheta12)
-          theta12_param = theta12 * theta12;
-        else if (hasTheta12)
-          theta12_param = sin(M_PI * theta12 / 180) * sin(M_PI * theta12 / 180);
-        std::cout << "Loading " << it->second.GetPrunedPath() << " deltam21: " << deltam21_nom << ", " << theta12name << ": " << theta12_param << std::endl;
-        BinnedED oscDist = DistBuilder::BuildOscillatedDist(it->first, num_dimensions, pdfConfig, dataSet, deltam21_nom, theta12_param, indexDistance, ratio);
-
-        oscDist.AddPadding();
-        oscDist.Normalise();
-        oscPDFs.push_back(oscDist);
-        // Apply nominal systematic variables to the oscillated distribution
-        for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
-        {
-          // If group is "", we apply to all groups
-          if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
-          {
-            double norm;
-            oscDist = systIt->second->operator()(oscDist, &norm);
-          }
-        }
-        // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
-        oscDist.Scale(noms_config * ratio);
-        // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
-        // We'll Add the rest of the PDFs later
-        oscDatasets.at(npoints + iTheta).Add(oscDist);
+        // For all other PDFs, just use Build
+        dist = DistBuilder::Build(evIt->first, num_dimensions, pdfConfig, dataSet);
+        fakeDataDist = DistBuilder::Build(evIt->first, num_dimensions, pdfConfig, dataSet);
       }
-    }
-    else
-    {
-      // For all other PDFs, just use Build
-      dist = DistBuilder::Build(it->first, num_dimensions, pdfConfig, dataSet);
+
       dist.AddPadding();
-    }
+      fakeDataDist.AddPadding();
 
-    // Now make a fake data dist for the event type
-    fakeDataDist = dist;
+      // Save the generated number of events for Beeston Barlow
+      genRates[dsIt->first].push_back(dist.Integral());
 
-    // Save the generated number of events for Beeston Barlow
-    genRates.push_back(dist.Integral());
-
-    // Scale for PDF and add to vector
-    if (dist.Integral() && fakeDataDist.Integral())
-    {
-      dist.Normalise();
-      fakeDataDist.Normalise();
-    }
-    pdfs.push_back(dist);
-    unscaledPDF = dist;
-
-    norm_fitting_statuses->push_back(INDIRECT);
-
-    // Apply nominal systematic variables
-    for (std::map<std::string, Systematic *>::iterator systIt = systMap.begin(); systIt != systMap.end(); ++systIt)
-    {
-
-      // If group is "", we apply to all groups
-      if (systGroup[systIt->first] == "" || std::find(pdfGroups.back().begin(), pdfGroups.back().end(), systGroup[systIt->first]) != pdfGroups.back().end())
+      // Scale for PDF and add to vector
+      if (dist.Integral() && fakeDataDist.Integral())
       {
-        double norm;
-        dist = systIt->second->operator()(dist, &norm);
-        // Set syst parameter to fake data value, and apply to fake data dist and rescale
-        std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
-        for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        dist.Normalise();
+        fakeDataDist.Normalise();
+      }
+      pdfMap[dsIt->first].push_back(dist);
+      unscaledPDF = dist;
+
+      normFittingStatuses[dsIt->first]->push_back(INDIRECT);
+
+      // Apply nominal systematic variables
+      for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+      {
+
+        // If group is "", we apply to all groups
+        if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
         {
-          systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
+          double norm;
+          dist = systIt->second->operator()(dist, &norm);
+          // Set syst parameter to fake data value, and apply to fake data dist and rescale
+          std::set<std::string> systParamNames = systIt->second->GetParameterNames();
+          for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+          {
+            systIt->second->SetParameter(*itSystParam, fdValues[*itSystParam]);
+          }
+          systIt->second->Construct();
+          fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
         }
-        systIt->second->Construct();
-        fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
       }
+
+      // Now scale the Asimov component by expected count, and also save pdf as a histo
+      dist.Scale(noms[evIt->first]);
+      fakeDataDist.Scale(fdValues[evIt->first]);
+      if (dist.GetNDims() != asimov.GetNDims())
+      {
+        BinnedED marginalised = dist.Marginalise(dataObs);
+        asimov.Add(marginalised);
+        BinnedED marginalisedPDF = unscaledPDF.Marginalise(dataObs);
+        IO::SaveHistogram(marginalised.GetHistogram(), asimovDistDir + "/" + evIt->first + "_" + dsIt->first + ".root", dist.GetName());
+        IO::SaveHistogram(marginalisedPDF.GetHistogram(), pdfDir + "/" + evIt->first + "_" + dsIt->first + ".root", unscaledPDF.GetName());
+        // Also scale fake data dist by fake data value
+        if (isFakeData)
+        {
+          BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
+          fakeDataset.Add(marginalisedFakeData);
+          IO::SaveHistogram(marginalisedFakeData.GetHistogram(), fakedataDistDir + "/" + evIt->first + "_" + dsIt->first + ".root", fakeDataDist.GetName());
+        }
+      }
+      else
+      {
+        asimov.Add(dist);
+        IO::SaveHistogram(dist.GetHistogram(), asimovDistDir + "/" + evIt->first + "_" + dsIt->first + ".root", dist.GetName());
+        IO::SaveHistogram(unscaledPDF.GetHistogram(), pdfDir + "/" + evIt->first + "_" + dsIt->first + ".root", unscaledPDF.GetName());
+        // For the non-reactor PDFs, add to the oscillated asimovs too!
+        if (evIt->first.find("reactor_nubar") != std::string::npos)
+        {
+          for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
+          {
+            oscDatasets.at(iOscPoints).Add(dist);
+          }
+        }
+        // Also scale fake data dist by fake data value
+        if (isFakeData)
+        {
+          fakeDataset.Add(fakeDataDist);
+          IO::SaveHistogram(fakeDataDist.GetHistogram(), fakedataDistDir + "/" + evIt->first + "_" + dsIt->first + ".root", fakeDataDist.GetName());
+        }
+      }
+    } // End loop over PDFs
+
+    // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
+    // compare to to calculate the llh at each point in the scans
+    IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov_" + dsIt->first + ".root", "asimov");
+    if (isFakeData)
+    {
+      IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata_" + dsIt->first + ".root", "fakedata");
     }
 
-    // Now scale the Asimov component by expected count, and also save pdf as a histo
-    dist.Scale(noms[it->first]);
-    fakeDataDist.Scale(fdValues[it->first]);
-    if (dist.GetNDims() != asimov.GetNDims())
+    // Now save the datasets for each point in the oscillation scans. These are the same as the above but with an oscillated reactor PDF
+    for (int iOscPoints = 0; iOscPoints < npoints; iOscPoints++)
     {
-      BinnedED marginalised = dist.Marginalise(dataObs);
-      asimov.Add(marginalised);
-      BinnedED marginalisedPDF = unscaledPDF.Marginalise(dataObs);
-      IO::SaveHistogram(marginalised.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
-      IO::SaveHistogram(marginalisedPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
+      double deltam21 = deltam21_min + (double)iOscPoints * (deltam21_max - deltam21_min) / (npoints - 1);
+      std::stringstream dmOscAsimovName;
+      dmOscAsimovName << "oscAsimov_dm21_" << deltam21 << ".root";
+      IO::SaveHistogram(oscDatasets.at(iOscPoints).GetHistogram(), outDir + "/" + dmOscAsimovName.str(), "asimov");
 
-      // Also scale fake data dist by fake data value
-      if (isFakeData)
-      {
-        BinnedED marginalisedFakeData = fakeDataDist.Marginalise(dataObs);
-        fakeDataset.Add(marginalisedFakeData);
-        IO::SaveHistogram(marginalisedFakeData.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
-      }
+      double theta12 = theta12_min + (double)iOscPoints * (theta12_max - theta12_min) / (npoints - 1);
+      std::stringstream thOscAsimovName;
+      thOscAsimovName << "oscAsimov_th12_" << theta12 << ".root";
+      IO::SaveHistogram(oscDatasets.at(iOscPoints + npoints).GetHistogram(), outDir + "/" + thOscAsimovName.str(), "asimov");
+    }
+
+    // Now let's load up the data
+    BinnedED dataDist;
+    if (isAsimov)
+    {
+      dataDist = asimov;
+    }
+    else if (isFakeData)
+    {
+      dataDist = fakeDataset;
     }
     else
     {
-      asimov.Add(dist);
-      IO::SaveHistogram(dist.GetHistogram(), asimovDistDir + "/" + it->first + ".root", dist.GetName());
-      IO::SaveHistogram(unscaledPDF.GetHistogram(), pdfDir + "/" + it->first + ".root", unscaledPDF.GetName());
-      // For the non-reactor PDFs, add to the oscillated asimovs too!
-      if (it->first != "reactor_nubar")
+      TFile *dataFile = TFile::Open(dataPath[dsIt->first].c_str(), "READ");
+      if (!dataFile || dataFile->IsZombie())
       {
-        for (int iOscPoints = 0; iOscPoints < 2 * npoints; iOscPoints++)
+        std::cerr << "Error opening data file " << dataFile << std::endl;
+        throw;
+      }
+
+      // Get the list of keys in the file
+      TList *keyList = dataFile->GetListOfKeys();
+      if (!keyList)
+      {
+        std::cerr << "Error: No keys found in the datafile " << dataPath[dsIt->first] << std::endl;
+        throw;
+      }
+
+      // Loop through all objects in the file
+      TIter nextKey(keyList);
+      TKey *key;
+      while ((key = (TKey *)nextKey()))
+      {
+        std::string className = key->GetClassName();
+        std::string objectName = key->GetName();
+
+        if (className == "TNtuple")
         {
-          oscDatasets.at(iOscPoints).Add(dist);
+          // Load up the data set
+          ROOTNtuple dataToFit(dataPath[dsIt->first], objectName.c_str());
+
+          // And bin the data inside
+          dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+          break; // Stop once we find an nTuple
+        }
+        else if (className == "TH1D")
+        {
+          TH1D *dataHist = (TH1D *)dataFile->Get(objectName.c_str());
+          Histogram loaded = DistTools::ToHist(*dataHist);
+          dataDist = BinnedED("data", loaded);
+          dataDist.SetObservables(pdfConfig.GetDataBranchNames());
+          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig, pdfConfig.GetDataAxisCount());
+          dataDist.SetAxes(axes);
+          break;
         }
       }
-      // Also scale fake data dist by fake data value
+    }
+    dataDists[dsIt->first] = dataDist;
+
+    // Now build the likelihood
+    BinnedNLLH lh;
+    lh.SetBuffer("energy", 1, 20);
+    // Add our data
+    lh.SetDataDist(dataDist);
+    // Set whether or not to use Beeston Barlow
+    lh.SetBarlowBeeston(beestonBarlowFlag);
+    // Add the systematics and any prior constraints
+    for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+      lh.AddSystematic(systIt->second, systGroup[systIt->first]);
+    // Add our pdfs
+    lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
+
+    // And constraints
+    std::vector<std::string> corrPairs;
+    for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+    {
+      // If either parameter doesn't exist for this dataset, move along
+      if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
+          std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
+        continue;
+      lh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                       constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+      corrPairs.push_back(constrCorrParName.at(corrIt->first));
+    }
+
+    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+    {
+      // If parameter doesn't exist for this dataset, move along
+      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
+        continue;
+
+      // Only add single parameter constraint if correlation hasn't already been applied
+      if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+        lh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+    }
+
+    for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+    {
+      // If parameter doesn't exist for this dataset, move along
+      if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
+        continue;
+
+      lh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+    }
+
+    // And finally bring it all together
+    lh.RegisterFitComponents();
+
+    // Initialise to nominal values
+    for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
+    {
+      if (std::find(datasetPars[parIt->first].begin(), datasetPars[parIt->first].end(), dsIt->first) == datasetPars[parIt->first].end())
+        continue;
+      parameterValues[dsIt->first][parIt->first] = noms[parIt->first];
       if (isFakeData)
       {
-        fakeDataset.Add(fakeDataDist);
-        IO::SaveHistogram(fakeDataDist.GetHistogram(), fakedataDistDir + "/" + it->first + ".root", fakeDataDist.GetName());
+        parameterValues[dsIt->first][parIt->first] = fdValues[parIt->first];
       }
     }
-  } // End loop over PDFs
 
-  // And save combined histogram (final asimov dataset). This is with everything (including oscillation parameters) nominal. This is what we
-  // compare to to calculate the llh at each point in the scans
-  IO::SaveHistogram(asimov.GetHistogram(), outDir + "/asimov.root", "asimov");
-  if (isFakeData)
-  {
-    IO::SaveHistogram(fakeDataset.GetHistogram(), outDir + "/fakedata.root", "fakedata");
-  }
-
-  // Now save the datasets for each point in the oscillation scans. These are the same as the above but with an oscillated reactor PDF
-  for (int iOscPoints = 0; iOscPoints < npoints; iOscPoints++)
-  {
-    double deltam21 = deltam21_min + (double)iOscPoints * (deltam21_max - deltam21_min) / (npoints - 1);
-    std::stringstream dmOscAsimovName;
-    dmOscAsimovName << "oscAsimov_dm21_" << deltam21 << ".root";
-    IO::SaveHistogram(oscDatasets.at(iOscPoints).GetHistogram(), outDir + "/" + dmOscAsimovName.str(), "asimov");
-
-    double theta12 = theta12_min + (double)iOscPoints * (theta12_max - theta12_min) / (npoints - 1);
-    std::stringstream thOscAsimovName;
-    thOscAsimovName << "oscAsimov_th12_" << theta12 << ".root";
-    IO::SaveHistogram(oscDatasets.at(iOscPoints + npoints).GetHistogram(), outDir + "/" + thOscAsimovName.str(), "asimov");
-  }
-
-  // Now let's load up the data
-  BinnedED dataDist;
-  if (isAsimov)
-  {
-    dataDist = asimov;
-  }
-  else if (isFakeData)
-  {
-    dataDist = fakeDataset;
-  }
-  else
-  {
-    std::string dataPath = fitConfig.GetDatafile();
-
-    // Could be h5 or root file
-    if (dataPath.substr(dataPath.find_last_of(".") + 1) == "h5")
+    // If we have constraints, initialise to those
+    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
     {
-      Histogram loaded = IO::LoadHistogram(dataPath);
-      dataDist = BinnedED("data", loaded);
-      dataDist.SetObservables(pdfConfig.GetBranchNames());
+      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
+        continue;
+      parameterValues[dsIt->first][constrIt->first] = constrMeans[constrIt->first];
     }
-    else
-    {
-      // Load up the data set
-      ROOTNtuple dataToFit(dataPath, "pruned");
 
-      // And bin the data inside
-      dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+    // Set to these initial values
+    lh.SetParameters(parameterValues[dsIt->first]);
+    testStats.push_back(std::move(lh));
+  } // End loop over datasets
+
+  // Now combine the LLH for each dataset
+  ParameterDict allParVals;
+  for (std::map<std::string, ParameterDict>::iterator parMapIt = parameterValues.begin(); parMapIt != parameterValues.end(); parMapIt++)
+  {
+    for (ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++)
+    {
+      allParVals[parIt->first] = parIt->second;
     }
   }
 
-  // Now build the likelihood
-  BinnedNLLH lh;
-  lh.SetBuffer("energy", 1, 20);
-  // Add our data
-  lh.SetDataDist(dataDist);
-  // Set whether or not to use Beeston Barlow
-  lh.SetBarlowBeeston(beestonBarlowFlag);
-  // Add the systematics and any prior constraints
-  for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-    lh.AddSystematic(it->second, systGroup[it->first]);
-  // Add our pdfs
-  lh.AddPdfs(pdfs, pdfGroups, genRates, norm_fitting_statuses);
-
-  // And constraints
-  std::vector<std::string> corrPairs;
-  for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
+  std::vector<TestStatistic *> rawllhptrs;
+  for (BinnedNLLH &lh : testStats)
   {
-    lh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
-                     constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
-    corrPairs.push_back(constrCorrParName.at(it->first));
+    rawllhptrs.push_back(&lh);
   }
-  for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-  {
-    // Only add single parameter constraint if correlation hasn't already been applied
-    if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
-      lh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
-  }
-  for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-    lh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
-
-  // And finally bring it all together
-  lh.RegisterFitComponents();
-
-  // Initialise to nominal values
-  ParameterDict parameterValues;
-  for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
-    parameterValues[it->first] = noms[it->first];
-  // If we have constraints, initialise to those
-  for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
-    parameterValues[it->first] = constrMeans[it->first];
-  // Set to these initial values
-  lh.SetParameters(parameterValues);
+  StatisticSum fullLLH = Sum(rawllhptrs);
+  fullLLH.RegisterFitComponents();
 
   // Calculate the nominal LLH
-  double nomllh = lh.Evaluate();
-
-  if (isFakeData)
-  {
-    for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
-      parameterValues[it->first] = fdValues[it->first];
-
-    lh.SetParameters(parameterValues);
-    nomllh = lh.Evaluate();
-  }
+  double nomllh = fullLLH.Evaluate();
 
   // Setup outfile
   std::string outFileName = outDir + "/llh_scan.root";
   TFile *outFile = new TFile(outFileName.c_str(), "recreate");
 
   // Loop over (non-oscillation) parameters
-  for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
+  for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
   {
     // Get param name
-    std::string name = it->first;
-    std::cout << "Scanning for " << name << std::endl;
+    std::string name = parIt->first;
 
     // Set scan range from this parameter's max and min values
     // We plot x axis as relative to the nominal value, so if this = 0 we set it to 1
@@ -564,17 +694,17 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
       // Set Parameters
       double parval = hScan->GetBinCenter(i + 1) * nom;
-      double tempval = parameterValues[name];
-      parameterValues[name] = parval;
-      lh.SetParameters(parameterValues);
+      double tempval = allParVals[name];
+      allParVals[name] = parval;
+      fullLLH.SetParameters(allParVals);
 
       // Evaluate LLH (later do sample and penalty)
-      double llh = lh.Evaluate();
+      double llh = fullLLH.Evaluate();
       // Set bin contents
       hScan->SetBinContent(i + 1, llh - nomllh);
 
       // Return to nominal value
-      parameterValues[name] = tempval;
+      allParVals[name] = tempval;
     }
     // Write Histos
     hScan->Write();
@@ -590,7 +720,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   double max = deltam21_nom + numStepsAboveNom * width;
 
   TString htitle = Form("%s, Nom. Value: %f", labelName["deltam21"].c_str(), deltam21_nom);
-  TH1D *hDeltam = new TH1D("deltam21_full", (labelName["deltam21"]+"_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
+  TH1D *hDeltam = new TH1D("deltam21_full", (labelName["deltam21"] + "_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
   hDeltam->SetTitle(std::string(htitle + "; " + labelName["deltam21"] + " (eV^{2}); -(ln L_{full})").c_str());
 
   std::cout << "Scanning for deltam21" << std::endl;
@@ -598,49 +728,83 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   {
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
-    BinnedNLLH osclh;
-    osclh.SetBuffer("energy", 1, 20);
-    // Add our 'data'
-    osclh.SetDataDist(dataDist);
 
-    // Add the systematics and any prior constraints
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-      osclh.AddSystematic(it->second, systGroup[it->first]);
-
-    // Get all the PDFs in a new vector with the required oscillated reactor PDF
-    std::vector<BinnedED> pdfvec;
-    for (int iPDF = 0; iPDF < pdfs.size(); iPDF++)
+    std::vector<BinnedNLLH> oscTestStats;
+    for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
-      if (iPDF != reacPDFNum)
-        pdfvec.push_back(pdfs.at(iPDF));
-      else
-        pdfvec.push_back(oscPDFs.at(iDeltaM));
-    }
-    osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
+      BinnedNLLH osclh;
+      osclh.SetBuffer("energy", 1, 20);
+      // Add our 'data'
+      osclh.SetDataDist(dataDists[dsIt->first]);
 
-    // And constraints
-    std::vector<std::string> corrPairs;
-    for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
-      osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
-                          constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
-    for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
+      // Set whether or not to use Beeston Barlow
+      osclh.SetBarlowBeeston(beestonBarlowFlag);
+
+      // Add the systematics and any prior constraints
+      for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+        osclh.AddSystematic(systIt->second, systGroup[systIt->first]);
+
+      // Get all the PDFs in a new vector with the required oscillated reactor PDF
+      std::vector<BinnedED> pdfvec;
+      for (int iPDF = 0; iPDF < pdfMap[dsIt->first].size(); iPDF++)
+      {
+        if (iPDF != reacPDFNum[dsIt->first])
+          pdfvec.push_back(pdfMap[dsIt->first].at(iPDF));
+        else
+          pdfvec.push_back(oscPDFsMap[dsIt->first].at(iDeltaM));
+      }
+      osclh.AddPdfs(pdfvec, pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
+
+      // And constraints
+      std::vector<std::string> corrPairs;
+      for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+      {
+        // If either parameter doesn't exist for this dataset, move along
+        if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
+            std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
+          continue;
+        osclh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                            constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+        corrPairs.push_back(constrCorrParName.at(corrIt->first));
+      }
+      for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+      {
+        // If parameter doesn't exist for this dataset, move along
+        if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
+          continue;
+
+        // Only add single parameter constraint if correlation hasn't already been applied
+        if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+          osclh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+      }
+      for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+      {
+        // If parameter doesn't exist for this dataset, move along
+        if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
+          continue;
+
+        osclh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+      }
+
+      if (iDeltaM % countwidth == 0)
+        std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
+
+      // Bring it all together
+      osclh.RegisterFitComponents();
+      osclh.SetParameters(parameterValues[dsIt->first]);
+      oscTestStats.push_back(std::move(osclh));
+    }
+
+    std::vector<TestStatistic *> rawoscllhptrs;
+    for (BinnedNLLH &oscllh : oscTestStats)
     {
-      // Only add single parameter constraint if correlation hasn't already been applied
-      if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
-        osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+      rawoscllhptrs.push_back(&oscllh);
     }
-    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
-
-    if (iDeltaM % countwidth == 0)
-      std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
-
-    // Bring it all together
-    osclh.RegisterFitComponents();
-    osclh.SetParameters(parameterValues);
+    StatisticSum fullOscLLH = Sum(rawoscllhptrs);
+    fullOscLLH.RegisterFitComponents();
 
     // Evaluate LLH and set histogram bin content
-    double llh = osclh.Evaluate();
+    double llh = fullOscLLH.Evaluate();
     hDeltam->SetBinContent(iDeltaM + 1, llh - nomllh);
   }
   hDeltam->Write();
@@ -654,7 +818,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // Repeat for theta
   htitle = Form("%s, Nom. Value: %f", labelName[theta12name].c_str(), theta12_nom);
-  TH1D *hTheta12 = new TH1D((theta12name + "_full").c_str(), (labelName[theta12name]  + "_nom_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
+  TH1D *hTheta12 = new TH1D((theta12name + "_full").c_str(), (labelName[theta12name] + "_nom_full").c_str(), npoints, (min - (width / 2)), (max + (width / 2)));
   hTheta12->SetTitle(std::string(htitle + "; " + labelName[theta12name] + " (^{o}); -(ln L_{full})").c_str());
 
   std::cout << "Scanning for " << theta12name << std::endl;
@@ -662,48 +826,83 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   {
     // Now build a second likelihood for varying oscillation params
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
-    BinnedNLLH osclh;
-    osclh.SetBuffer("energy", 1, 20);
-    // Add our 'data'
-    osclh.SetDataDist(dataDist);
 
-    // Add the systematics and any prior constraints
-    for (std::map<std::string, Systematic *>::iterator it = systMap.begin(); it != systMap.end(); ++it)
-      osclh.AddSystematic(it->second, systGroup[it->first]);
-
-    // Get all the PDFs in a new vector with the required oscillated reactor PDF
-    std::vector<BinnedED> pdfvec;
-    for (int iPDF = 0; iPDF < pdfs.size(); iPDF++)
+    std::vector<BinnedNLLH> oscTestStats;
+    for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
-      if (iPDF != reacPDFNum)
-        pdfvec.push_back(pdfs.at(iPDF));
-      else
-        pdfvec.push_back(oscPDFs.at(iTheta12 + npoints));
-    }
-    osclh.AddPdfs(pdfvec, pdfGroups, genRates, norm_fitting_statuses);
+      BinnedNLLH osclh;
+      osclh.SetBuffer("energy", 1, 20);
+      // Add our 'data'
+      osclh.SetDataDist(dataDists[dsIt->first]);
 
-    // And set any constraints
-    std::vector<std::string> corrPairs;
-    for (ParameterDict::iterator it = constrCorrs.begin(); it != constrCorrs.end(); ++it)
-      osclh.SetConstraint(it->first, constrMeans.at(it->first), constrSigmas.at(it->first), constrCorrParName.at(it->first),
-                          constrMeans.at(constrCorrParName.at(it->first)), constrSigmas.at(constrCorrParName.at(it->first)), it->second);
-    for (ParameterDict::iterator it = constrMeans.begin(); it != constrMeans.end(); ++it)
+      // Set whether or not to use Beeston Barlow
+      osclh.SetBarlowBeeston(beestonBarlowFlag);
+
+      // Add the systematics and any prior constraints
+      for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+        osclh.AddSystematic(systIt->second, systGroup[systIt->first]);
+
+      // Get all the PDFs in a new vector with the required oscillated reactor PDF
+      std::vector<BinnedED> pdfvec;
+      for (int iPDF = 0; iPDF < pdfMap[dsIt->first].size(); iPDF++)
+      {
+        if (iPDF != reacPDFNum[dsIt->first])
+          pdfvec.push_back(pdfMap[dsIt->first].at(iPDF));
+        else
+          pdfvec.push_back(oscPDFsMap[dsIt->first].at(iTheta12 + npoints));
+      }
+      osclh.AddPdfs(pdfvec, pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
+
+      // And constraints
+      std::vector<std::string> corrPairs;
+      for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+      {
+        // If either parameter doesn't exist for this dataset, move along
+        if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
+            std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
+          continue;
+        osclh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                            constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+        corrPairs.push_back(constrCorrParName.at(corrIt->first));
+      }
+      for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+      {
+        // If parameter doesn't exist for this dataset, move along
+        if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
+          continue;
+
+        // Only add single parameter constraint if correlation hasn't already been applied
+        if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+          osclh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+      }
+      for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+      {
+        // If parameter doesn't exist for this dataset, move along
+        if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
+          continue;
+
+        osclh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+      }
+
+      if (iTheta12 % countwidth == 0)
+        std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;
+
+      // Bring it all together
+      osclh.RegisterFitComponents();
+      osclh.SetParameters(parameterValues[dsIt->first]);
+      oscTestStats.push_back(std::move(osclh));
+    }
+
+    std::vector<TestStatistic *> rawoscllhptrs;
+    for (BinnedNLLH &oscllh : oscTestStats)
     {
-      // Only add single parameter constraint if correlation hasn't already been applied
-      if (constrCorrs.find(it->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), it->first) == corrPairs.end())
-        osclh.SetConstraint(it->first, it->second, constrSigmas.at(it->first));
+      rawoscllhptrs.push_back(&oscllh);
     }
-    for (ParameterDict::iterator it = constrRatioMeans.begin(); it != constrRatioMeans.end(); ++it)
-      osclh.SetConstraint(it->first, constrRatioParName.at(it->first), it->second, constrRatioSigmas.at(it->first));
-    if (iTheta12 % countwidth == 0)
-      std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;
-
-    // Bring it all together
-    osclh.RegisterFitComponents();
-    osclh.SetParameters(parameterValues);
+    StatisticSum fullOscLLH = Sum(rawoscllhptrs);
+    fullOscLLH.RegisterFitComponents();
 
     // Evaluate LLH and set histogram bin content
-    double llh = osclh.Evaluate();
+    double llh = fullOscLLH.Evaluate();
     hTheta12->SetBinContent(iTheta12 + 1, llh - nomllh);
   }
   hTheta12->Write();
