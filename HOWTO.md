@@ -222,7 +222,7 @@ To run the fixedosc LLH scan:
 
 You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter specified in the fit config. A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
 
-The other version of the likelihood scan, `llh_scan`, hands all the parameters, including the oscillation parameters, to the `BinnedNLLH`. It then scans through all parameters in the same way, setting the values in the `BinnedNLLH` and evaluating the likelihood. This version of the likelihood scan is designed to be used for validating the full fits where every parameter floats at once (see below).
+The other version of the likelihood scan, `llh_scan`, hands all the parameters, including the oscillation parameters, to the `BinnedNLLH`, but it is currently deprecated (and not compiled by default). It scans through all parameters in the same way, setting the values in the `BinnedNLLH` and evaluating the likelihood. This version of the likelihood scan is designed to be used for validating the full fits where every parameter floats at once (see below).
 
 To run the LLH scan:  
 
@@ -396,7 +396,7 @@ This script loops through all the 2D unscaled PDF files in a directory, and plot
 
 <h3>MCMC</h3>
 
-NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is!
+NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is! The non-fixed osc fits and llh scans are deprecated for now, and are not compiled by default.
 
 Now you’re fit has run, the real fun starts! For each individual chain, you’ll have a number of files and subdirectories. In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps, as set in the fit config, are automatically not included.  
 
