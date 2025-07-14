@@ -228,7 +228,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<std::vector<std::string>>> pdfGroups;
   std::vector<BinnedNLLH> testStats;
   std::map<std::string, ParameterDict> parameterValues;
-  double reactorRatio = 1.0; // Ratio of oscillated to unoscillated number of reactor IBDs
+  std::map<std::string, double > reactorRatio; // Ratio of oscillated to unoscillated number of reactor IBDs
   std::map<std::string, std::vector<int>> genRates;
   std::map<std::string, std::vector<NormFittingStatus> *> normFittingStatuses;
 
@@ -238,6 +238,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     std::cout << "Building Asimov for dataset: " << dsIt->first << std::endl;
     std::vector<NormFittingStatus> *normStatVec = new std::vector<NormFittingStatus>;
     normFittingStatuses[dsIt->first] = normStatVec;
+    reactorRatio[dsIt->first];
 
     // Create the empty full dist
     BinnedED asimov = BinnedED("asimov", systAxes);
@@ -289,20 +290,20 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         }
 
         // Build the distribution with oscillation parameters at their nominal values
-        dist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, reactorRatio);
-        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fdparam, indexDistance, reactorRatio);
+        dist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, reactorRatio[dsIt->first]);
+        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fdparam, indexDistance, reactorRatio[dsIt->first]);
 
         // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
         if (constrMeans.find(evIt->first) != constrMeans.end())
         {
-          constrMeans[evIt->first] = constrMeans[evIt->first] * reactorRatio;
-          constrSigmas[evIt->first] = constrSigmas[evIt->first] * reactorRatio;
+          constrMeans[evIt->first] = constrMeans[evIt->first] * reactorRatio[dsIt->first];
+          constrSigmas[evIt->first] = constrSigmas[evIt->first] * reactorRatio[dsIt->first];
         }
-        noms[evIt->first] = noms[evIt->first] * reactorRatio;
-        mins[evIt->first] = mins[evIt->first] * reactorRatio;
-        maxs[evIt->first] = maxs[evIt->first] * reactorRatio;
-        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fdparam, indexDistance, reactorRatio);
-        fdValues[evIt->first] = fdValues[evIt->first] * reactorRatio;
+        noms[evIt->first] = noms[evIt->first] * reactorRatio[dsIt->first];
+        mins[evIt->first] = mins[evIt->first] * reactorRatio[dsIt->first];
+        maxs[evIt->first] = maxs[evIt->first] * reactorRatio[dsIt->first];
+        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fdparam, indexDistance, reactorRatio[dsIt->first]);
+        fdValues[evIt->first] = fdValues[evIt->first] * reactorRatio[dsIt->first];
       }
       else
       {
@@ -543,12 +544,12 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
   // Now combine the LLH for each dataset
   ParameterDict allParVals;
-  for(std::map<std::string, ParameterDict>::iterator parMapIt = parameterValues.begin(); parMapIt != parameterValues.end(); parMapIt++)
+  for (std::map<std::string, ParameterDict>::iterator parMapIt = parameterValues.begin(); parMapIt != parameterValues.end(); parMapIt++)
   {
-    for(ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++ )
+    for (ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++)
       allParVals[parIt->first] = parIt->second;
   }
-  
+
   std::vector<TestStatistic *> rawllhptrs;
   for (BinnedNLLH &lh : testStats)
   {
@@ -713,7 +714,13 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::cout << theta12name << ": " << theta12 << std::endl;
   std::cout << "LLH: " << finalLLH << std::endl;
   std::cout << "FitValid: " << validFit << std::endl;
-  std::cout << "ReactorRatio: " << reactorRatio << std::endl;
+  for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
+  {
+    if (reactorRatio[dsIt->first] != -999)
+    {
+      std::cout << dsIt->first << " Reactor Ratio: " << reactorRatio[dsIt->first] << std::endl;
+    }
+  }
   std::cout << std::endl
             << std::endl;
 }
