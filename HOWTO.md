@@ -55,8 +55,12 @@ This file should contain information on the types of events you want to include 
 
 <h5>Summary</h5>
 
-- `active`: The event types to be used in the analysis. These should be comma separated, and each should also be the name of an Event field also defined in the file. You can also use `all` to use all events defined in the file
-- `inactive`: Event types defined in the config that aren't being used in the analysis at this time
+- `datasets`: The name of the datasets you want to fit. These should be comma separated, and each should be the name of a dataset table also defined in the file. 
+
+<h5>Datasets</h5>
+
+- `active`: The event types to be used in the analysis for this dataset. These should be comma separated, and each should also be the name of an Event field also defined in the file. You can also use `all` to use all events defined in the file
+- `inactive`: Event types defined in the config that aren't being used for this dataset at this time
 - `orig_base_dir`: The directory where the original (unpruned) MC files have been downloaded to
 - `pruned_ntup_dir`: The directory where the pruned MC files should be written to, and later read from
 
@@ -148,6 +152,7 @@ The name of these tables should be the name of the systematic.
 - `type`: The type of systematic being applied. This is not just the OXO derived systematic class, as here we also determine which function we will use for function-based systematics. The options are defined in the SystFactory (this will be made clearer in the future)
 - `function`: The name of the function used if the systematic needs one. There is some redundancy here with type at the moment but we'll improve that soon
 - `group`: This is the group of pdfs the systematic will be applied to. If this is left blank it will apply to all PDFs
+- `dataset`: This is the dataset the systematic applies to. This should match the name of a dataset defined in the event config file
 
 <h4>Oscillation Grid</h4>
 
