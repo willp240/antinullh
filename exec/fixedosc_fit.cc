@@ -21,6 +21,7 @@
 #include <TH1D.h>
 #include <TKey.h>
 #include <TMatrixD.h>
+#include <TStopwatch.h>
 
 // c++ headers
 #include <sys/stat.h>
@@ -43,6 +44,10 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   bool isFakeData = fitConfig.GetFakeData();
   bool beestonBarlowFlag = fitConfig.GetBeestonBarlow();
   bool saveOutputs = fitConfig.GetSaveOutputs();
+  double tolerance = fitConfig.GetMinuitTolerance();
+  int strategy = fitConfig.GetMinuitStrategy();
+  std::string method = fitConfig.GetMinuitMethod();
+  int iterations = fitConfig.GetIterations();
   std::string outDir = fitConfig.GetOutDir();
   ParameterDict constrMeans = fitConfig.GetConstrMeans();
   ParameterDict constrSigmas = fitConfig.GetConstrSigmas();
@@ -229,6 +234,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::vector<BinnedNLLH> testStats;
   std::map<std::string, ParameterDict> parameterValues;
   std::map<std::string, double > reactorRatio; // Ratio of oscillated to unoscillated number of reactor IBDs
+  std::map<std::string, double > reactorRatioFD; // Ratio of oscillated to unoscillated number of reactor IBDs for the fake dataset if we're making one
   std::map<std::string, std::vector<int>> genRates;
   std::map<std::string, std::vector<NormFittingStatus> *> normFittingStatuses;
 
@@ -238,7 +244,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     std::cout << "Building Asimov for dataset: " << dsIt->first << std::endl;
     std::vector<NormFittingStatus> *normStatVec = new std::vector<NormFittingStatus>;
     normFittingStatuses[dsIt->first] = normStatVec;
-    reactorRatio[dsIt->first];
 
     // Create the empty full dist
     BinnedED asimov = BinnedED("asimov", systAxes);
@@ -275,6 +280,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
       if (evIt->first.find("reactor_nubar") != std::string::npos)
       {
+        reactorRatio[evIt->first];
+        reactorRatioFD[evIt->first];
         // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
         double theta12_param = theta12;
         double theta12_fdparam = fdValues[theta12name];
@@ -290,20 +297,20 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         }
 
         // Build the distribution with oscillation parameters at their nominal values
-        dist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, reactorRatio[dsIt->first]);
-        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fdparam, indexDistance, reactorRatio[dsIt->first]);
+        dist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, deltam21, theta12_param, indexDistance, reactorRatio[evIt->first]);
+        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fdparam, indexDistance, reactorRatioFD[evIt->first]);
 
         // Now we will scale the constraint on the unoscillated reactor flux by the ratio of the oscillated to unoscillated number of events
         if (constrMeans.find(evIt->first) != constrMeans.end())
         {
-          constrMeans[evIt->first] = constrMeans[evIt->first] * reactorRatio[dsIt->first];
-          constrSigmas[evIt->first] = constrSigmas[evIt->first] * reactorRatio[dsIt->first];
+          constrMeans[evIt->first] = constrMeans[evIt->first] * reactorRatio[evIt->first];
+          constrSigmas[evIt->first] = constrSigmas[evIt->first] * reactorRatio[evIt->first];
         }
-        noms[evIt->first] = noms[evIt->first] * reactorRatio[dsIt->first];
-        mins[evIt->first] = mins[evIt->first] * reactorRatio[dsIt->first];
-        maxs[evIt->first] = maxs[evIt->first] * reactorRatio[dsIt->first];
-        fakeDataDist = DistBuilder::BuildOscillatedDist(evIt->first, num_dimensions, pdfConfig, dataSet, fdValues["deltam21"], theta12_fdparam, indexDistance, reactorRatio[dsIt->first]);
-        fdValues[evIt->first] = fdValues[evIt->first] * reactorRatio[dsIt->first];
+        noms[evIt->first] = noms[evIt->first] * reactorRatio[evIt->first];
+        mins[evIt->first] = mins[evIt->first] * reactorRatio[evIt->first];
+        maxs[evIt->first] = maxs[evIt->first] * reactorRatio[evIt->first];
+
+        fdValues[evIt->first] = fdValues[evIt->first] * reactorRatioFD[evIt->first];
       }
       else
       {
@@ -540,6 +547,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     // Set to these initial values
     lh.SetParameters(parameterValues[dsIt->first]);
     testStats.push_back(std::move(lh));
+    std::cout << "Made LLH for Datset: " << dsIt->first << std::endl << std::endl;
   } // End loop over datasets
 
   // Now combine the LLH for each dataset
@@ -558,16 +566,29 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   StatisticSum fullLLH = Sum(rawllhptrs);
   fullLLH.RegisterFitComponents();
 
+  TStopwatch timer;
+  timer.Start( true );
+  fullLLH.Evaluate();
+  timer.Stop();
+  std::cout << "Eval time: " << timer.RealTime() << std::endl;
+
   // Now do a fit!
   Minuit min;
-  min.SetMethod("Migrad");
-  min.SetMaxCalls(10000000);
+  std::cout << method << " " << iterations << " " << tolerance << " " << strategy << std::endl;
+  min.SetMethod(method); // Simplex
+  min.SetMaxCalls(iterations); // 1200
+  min.SetTolerance(tolerance);
+  min.SetStrategy(strategy);
   min.SetMinima(mins);
   min.SetMaxima(maxs);
   min.SetInitialValues(allParVals);
   min.SetInitialErrors(sigmas);
-
+  std::cout << "Run rabbit run!" << std::endl;
+  TStopwatch minuitTimer;
+  minuitTimer.Start( true );
   FitResult res = min.Optimise(&fullLLH);
+  minuitTimer.Stop();
+  std::cout << "Minuit time: " << minuitTimer.RealTime() << std::endl;
   res.SetPrintPrecision(4);
   res.Print();
   ParameterDict bestFit = res.GetBestFit();
@@ -713,14 +734,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::cout << "deltam: " << deltam21 << std::endl;
   std::cout << theta12name << ": " << theta12 << std::endl;
   std::cout << "LLH: " << finalLLH << std::endl;
-  std::cout << "FitValid: " << validFit << std::endl;
-  for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
+  for (auto reacRatioIt = reactorRatio.begin(); reacRatioIt != systParamNames.end(); ++reacRatioIt)
   {
-    if (reactorRatio[dsIt->first] != -999)
-    {
-      std::cout << dsIt->first << " Reactor Ratio: " << reactorRatio[dsIt->first] << std::endl;
-    }
+    std::cout << reacRatioIt->first << " Reactor Ratio: " << reacRatioIt->second << std::endl;
   }
+  std::cout << "FitValid: " << validFit << std::endl;
   std::cout << std::endl
             << std::endl;
 }
