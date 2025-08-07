@@ -50,9 +50,8 @@ using namespace antinufit;
 /// of the fit results
 ///
 /////////////////////////////////////////////////////////////////// */
-
-// Function to overwrite the save_outputs bool in a fit config file
-void overwriteSaveOutputsBool(const std::string &filepath)
+// Function to overwrite the save_outputs bool and Minuit settings in a fit config file
+void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
 {
     std::ifstream file(filepath);
     if (!file)
@@ -60,10 +59,15 @@ void overwriteSaveOutputsBool(const std::string &filepath)
         std::cerr << "Error: Could not open file " << filepath << std::endl;
         return;
     }
+
     std::vector<std::string> lines;
     std::string line;
     bool inSummary = false;
+
     bool foundSaveOutputs = false;
+    bool foundMinuitMethod = false;
+    bool foundMinuitStrategy = false;
+    bool foundMinuitTolerance = false;
 
     while (std::getline(file, line))
     {
@@ -77,11 +81,28 @@ void overwriteSaveOutputsBool(const std::string &filepath)
             inSummary = false;
         }
 
-        // Modify save_outputs if found in [summary]
-        if (inSummary && line.find("save_outputs") != std::string::npos)
+        if (inSummary)
         {
-            line = "save_outputs = 1";
-            foundSaveOutputs = true;
+            if (line.find("save_outputs") != std::string::npos)
+            {
+                line = "save_outputs = 1";
+                foundSaveOutputs = true;
+            }
+            else if (line.find("minuit_method") != std::string::npos)
+            {
+                line = "minuit_method = \"Migrad\"";
+                foundMinuitMethod = true;
+            }
+            else if (line.find("minuit_strategy") != std::string::npos)
+            {
+                line = "minuit_strategy = 2";
+                foundMinuitStrategy = true;
+            }
+            else if (line.find("minuit_tolerance") != std::string::npos)
+            {
+                line = "minuit_tolerance = 0.01";
+                foundMinuitTolerance = true;
+            }
         }
 
         lines.push_back(line);
@@ -89,12 +110,20 @@ void overwriteSaveOutputsBool(const std::string &filepath)
 
     file.close();
 
-    // If save_outputs was not found, add it to the summary section
-    if (!foundSaveOutputs)
+    // Insert any missing entries into the [summary] section
+    std::vector<std::string>::iterator lineIt = std::find(lines.begin(), lines.end(), "[summary]");
+    if (lineIt != lines.end())
     {
-        std::vector<std::string>::iterator it = std::find(lines.begin(), lines.end(), "[summary]");
-        it++;
-        lines.insert(it, "save_outputs = 1");
+        ++lineIt; // move to line after [summary]
+
+        if (!foundSaveOutputs)
+            lineIt = lines.insert(lineIt, "save_outputs = 1") + 1;
+        if (!foundMinuitMethod)
+            lineIt = lines.insert(lineIt, "minuit_method = \"Migrad\"") + 1;
+        if (!foundMinuitStrategy)
+            lineIt = lines.insert(lineIt, "minuit_strategy = 2") + 1;
+        if (!foundMinuitTolerance)
+            lineIt = lines.insert(lineIt, "minuit_tolerance = 0.01") + 1;
     }
 
     // Write back to file
@@ -111,7 +140,7 @@ void overwriteSaveOutputsBool(const std::string &filepath)
     }
 
     outFile.close();
-    std::cout << "Updated save_outputs in " << filepath << std::endl;
+    std::cout << "Updated summary section in " << filepath << std::endl;
 }
 
 // Function to turn a map of string to double into two vectors, one of strings, one of doubles
@@ -237,16 +266,23 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
             double fitValid;
             iss >> dummy >> fitValid;
             branchMap["fit_valid"] = fitValid;
+
+            // FitValid is last line for this fit, so now let's fill
+            tree->Fill();
         }
         if (line.find("ReactorRatio:") != std::string::npos)
         {
+
             std::istringstream iss(line);
-            std::string dummy;
+            std::string datasetName, dummy;
             double reactorRatio;
-            iss >> dummy >> reactorRatio;
-            branchMap["reactor_ratio"] = reactorRatio;
-            // ReactorRatio is last line for this fit, so now let's fill
-            tree->Fill();
+
+            // Format: datasetname Reactor Ratio: value
+            iss >> datasetName >> dummy >> dummy; // Skip "Reactor" and "Ratio:"
+            iss >> reactorRatio;
+
+            std::string key = datasetName + "_ratio" ;
+            branchMap[key] = reactorRatio;
         }
     }
 }
@@ -267,12 +303,12 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     ParameterDict maxs = fitConfig.GetMaxima();
     std::map<std::string, std::string> labels = fitConfig.GetTexLabels();
 
-    for (ParameterDict::iterator it = noms.begin(); it != noms.end(); ++it)
+    for (ParameterDict::iterator parIt = noms.begin(); parIt != noms.end(); ++parIt)
     {
-        if (!constrMeans[it->first])
+        if (!constrMeans[parIt->first])
         {
-            constrMeans[it->first] = noms[it->first];
-            constrSigmas[it->first] = -999;
+            constrMeans[parIt->first] = noms[parIt->first];
+            constrSigmas[parIt->first] = -999;
         }
     }
 
@@ -314,6 +350,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     // Make a map of branch names to values that will fill them
     std::map<std::string, double> branchMap = noms;
 
+    // Make error entry for each parameter
     std::vector<std::string> newKeys;
     for (const auto &pair : branchMap)
         newKeys.push_back(pair.first + "_err");
@@ -323,9 +360,16 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
 
     branchMap["LLH"] = 0;
     branchMap["fit_valid"] = 0;
-    branchMap["reactor_ratio"] = 0;
 
-    // Initialise these to 0
+    for (ParameterDict::iterator parIt = noms.begin(); parIt != noms.end(); ++parIt)
+    {
+        if (parIt->first.find("reactor") != std::string::npos)
+        {
+            branchMap[parIt->first + "_ratio"] = 0;
+        }
+    }
+
+    // Make sure everything's Initialised to 0
     for (auto &[_, v] : branchMap)
         v = 0;
 
@@ -337,20 +381,16 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     double bestDeltam = 999;
     double bestTheta = 999;
 
-    // Loop over theta and deltam
-    for (int i = 0; i < numTheta; ++i)
+    // Loop over all .output files in output dir
+    for (const auto &entry : std::filesystem::directory_iterator(outputDir))
     {
-        theta = mins[theta12name] + i * ((maxs[theta12name] - mins[theta12name]) / numTheta);
-        // Construct file path
-        std::string dirName = std::filesystem::path(outDir).filename().string();
-        std::ostringstream filePath;
-        filePath << outDir << "/output/" << dirName
-                 << "_th" << std::fixed << std::setprecision(3) << theta
-                 << ".output";
+        if (entry.is_regular_file() && entry.path().extension() == ".output")
+        {
+            std::string filePath = entry.path().string();
+            std::cout << "Parsing " << filePath << std::endl;
 
-        // Parse the file and fill the tree
-        std::cout << "Done " << theta << std::endl;
-        parseFitResultsTxt(filePath.str(), branchMap, &tree, &bestLLH, &bestDeltam, &bestTheta, theta12name);
+            parseFitResultsTxt(filePath, branchMap, &tree, &bestLLH, &bestDeltam, &bestTheta, theta12name);
+        }
     }
 
     // Write our tree and make vectors of the parameter names and asimov values
@@ -387,8 +427,8 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
                << "th" << std::fixed << std::setprecision(3) << bestTheta
                << "_dm" << std::fixed << std::setprecision(8) << bestDeltam << ".ini";
 
-    // Overwrite save_output bool in that config
-    overwriteSaveOutputsBool(bestfitcfg.str());
+    // Overwrite save_output bool and Minuit settings in that config
+    overwriteSaveOutputsAndMinuitSettings(bestfitcfg.str());
 
     std::ostringstream eventcfg;
     eventcfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "event_config.ini";
