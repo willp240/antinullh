@@ -89,6 +89,39 @@ namespace antinufit
     fHMCBurnIn = b_;
   }
 
+  int FitConfig::GetMinuitStrategy() const
+  {
+    return fMinuitStrategy;
+  }
+
+  void
+  FitConfig::SetMinuitStrategy(int s_)
+  {
+    fMinuitStrategy = s_;
+  }
+
+  double FitConfig::GetMinuitTolerance() const
+  {
+    return fMinuitTolerance;
+  }
+
+  void
+  FitConfig::SetMinuitTolerance(double t_)
+  {
+    fMinuitTolerance = t_;
+  }
+
+  std::string FitConfig::GetMinuitMethod() const
+  {
+    return fMinuitMethod;
+  }
+
+  void
+  FitConfig::SetMinuitMethod(const std::string m_)
+  {
+    fMinuitMethod = m_;
+  }
+
   double
   FitConfig::GetSigmaScale() const
   {

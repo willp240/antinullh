@@ -23,6 +23,9 @@ namespace antinufit
     int HMCit;
     int HMCburnIn;
     int nSteps;
+    int minuitStrategy;
+    double minuitTolerance;
+    std::string minuitMethod;
     double epsilon;
     double sigmaScale;
     std::string outDir;
@@ -46,6 +49,9 @@ namespace antinufit
     ConfigLoader::Load("summary", "asimov", asimovFlag);
     ConfigLoader::Load("summary", "livetime", livetime);
     ConfigLoader::Load("summary", "save_outputs", saveOutputs);
+    ConfigLoader::Load("summary", "minuit_method", minuitMethod);
+    ConfigLoader::Load("summary", "minuit_tolerance", minuitTolerance);
+    ConfigLoader::Load("summary", "minuit_strategy", minuitStrategy);
 
     try
     {
@@ -62,6 +68,8 @@ namespace antinufit
       fakeDataFlag = false;
     }
 
+    minuitMethod = stripQuoteMarks(minuitMethod);
+
     ret.SetOutDir(outDir);
     ret.SetNSteps(nSteps);
     ret.SetEpsilon(epsilon);
@@ -75,6 +83,9 @@ namespace antinufit
     ret.SetFakeData(fakeDataFlag);
     ret.SetLivetime(livetime);
     ret.SetSaveOutputs(saveOutputs);
+    ret.SetMinuitTolerance(minuitTolerance);
+    ret.SetMinuitStrategy(minuitStrategy);
+    ret.SetMinuitMethod(minuitMethod);
 
     typedef std::set<std::string> StringSet;
     StringSet toLoad;
@@ -112,13 +123,7 @@ namespace antinufit
       ConfigLoader::Load(name, "tex_label", texLabel);
 
       // Remove "" if it surrounds the label string from the config
-      size_t start = 0;
-      size_t end = texLabel.size() - 1;
-      if (texLabel[start] == '"' || texLabel[start] == '\'')
-        start++;
-      if (end > start && (texLabel[end] == '"' || texLabel[end] == '\''))
-        end--;
-      texLabel = texLabel.substr(start, end - start + 1);
+      texLabel = stripQuoteMarks(texLabel);
 
       try
       {

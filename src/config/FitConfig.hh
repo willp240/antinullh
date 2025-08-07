@@ -38,6 +38,13 @@ namespace antinufit
     int GetHMCBurnIn() const;
     void SetHMCBurnIn(int);
 
+    double GetMinuitTolerance() const;
+    void SetMinuitTolerance(double);
+    int GetMinuitStrategy() const;
+    void SetMinuitStrategy(int);
+    std::string GetMinuitMethod() const;
+    void SetMinuitMethod(std::string);
+
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_);
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
                       double constrMean_, double constrSigma_);
@@ -93,6 +100,9 @@ namespace antinufit
     int fBurnIn;
     int fHMCIterations;
     int fHMCBurnIn;
+    int fMinuitStrategy;
+    double fMinuitTolerance;
+    std::string fMinuitMethod;
     int fNsteps;
     bool fBeestonBarlow;
     double fEpsilon;
