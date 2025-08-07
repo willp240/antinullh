@@ -44,13 +44,7 @@ namespace antinufit
       ConfigLoader::Load(name, "tex_name", texName);
 
       // Remove "" if it surrounds the tex name string from the config
-      size_t start = 0;
-      size_t end = texName.size() - 1;
-      if (texName[start] == '"' || texName[start] == '\'')
-        start++;
-      if (end > start && (texName[end] == '"' || texName[end] == '\''))
-        end--;
-        texName = texName.substr(start, end - start + 1);
+      texName = stripQuoteMarks(texName);
 
       retVal.AddAxis(name, branchName, texName, binCount, min, max);
     }

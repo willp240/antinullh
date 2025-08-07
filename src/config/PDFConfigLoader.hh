@@ -3,6 +3,7 @@
 
 // Antinu headers
 #include <PDFConfig.hh>
+#include <Utilities.hh>
 
 // OXO headers
 #include <ConfigLoader.hh>

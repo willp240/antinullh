@@ -300,4 +300,19 @@ namespace antinufit
         std::cout << std::endl;
         return;
     }
+
+    std::string stripQuoteMarks(std::string s_)
+    {
+
+        // Remove "" if it surrounds the tex name string
+        size_t start = 0;
+        size_t end = s_.size() - 1;
+        if (s_[start] == '"' || s_[start] == '\'')
+            start++;
+        if (end > start && (s_[end] == '"' || s_[end] == '\''))
+            end--;
+        s_ = s_.substr(start, end - start + 1);
+
+        return s_;
+    }
 }
