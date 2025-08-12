@@ -30,10 +30,41 @@
 ///
 /////////////////////////////////////////////////////////////////// */
 
+// Hard coded ds and reactor parameter names to make sure we use the right ratio for each
+// Inelegant, but we hard code the parameter order anyway
+const std::string datasetname1 = "dataset1";
+const std::string reactorpar1 = "reactor_nubar";
+const std::string datasetname2 = "dataset2";
+const std::string reactorpar2 = "reactor_nubar2";
+
 /// Function to sort vectors of names, nominals, and constraints into the order we want to plot them in.
-void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errVec,std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec,
+void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errVec, std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec,
                  std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec, TMatrixT<double> *&covMatrix, std::string theta12name)
 {
+
+    // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
+    std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
+                                                                          theta12name,
+                                                                          "reactor_nubar",
+                                                                          "reactor_nubar2",
+                                                                          "geonu_U",
+                                                                          "geonu_U2",
+                                                                          "geonu_Th",
+                                                                          "geonu_Th2",
+                                                                          "alphan_CScatter",
+                                                                          "alphan_CScatter2",
+                                                                          "alphan_OExcited",
+                                                                          "alphan_OExcited2",
+                                                                          "alphan_PRecoil",
+                                                                          "alphan_PRecoil2",
+                                                                          "energy_scale",
+                                                                          "energy_scale2",
+                                                                          "energy_conv",
+                                                                          "energy_conv2",
+                                                                          "birks_constant",
+                                                                          "birks_constant2",
+                                                                          "p_recoil_energy_scale",
+                                                                          "p_recoil_energy_scale2"};
 
     int nParams = namesVec->size();
 
@@ -46,20 +77,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
     TMatrixT<double> *tempCovMatrix = new TMatrixT<double>(nParams - 2, nParams - 2);
     std::vector<std::string> *matrixNamesVec = new std::vector<std::string>(namesVec->begin(), namesVec->end());
 
-    // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
-    std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
-                                                                          theta12name,
-                                                                          "reactor_nubar",
-                                                                          "geonu_U",
-                                                                          "geonu_Th",
-                                                                          "alphan_CScatter",
-                                                                          "alphan_OExcited",
-                                                                          "alphan_PRecoil",
-                                                                          "sideband",
-                                                                          "energy_scale",
-                                                                          "energy_conv",
-                                                                          "birks_constant",
-                                                                          "p_recoil_energy_scale"};
+    // Matrix names won't include osc params
     std::vector<std::string> *tempMatrixNamesVec = new std::vector<std::string>(tempNamesVec->begin() + 2, tempNamesVec->end());
 
     // Map original parameter names to their new indices
@@ -186,9 +204,9 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     std::cout << "Best LLH: " << branchValues["LLH"] << std::endl;
     std::cout << "Best Entry: " << bestLLHEntry << std::endl;
     std::cout << "Best theta: " << branchValues[theta12name] << std::endl;
-    std::cout << "Best deltam: " << branchValues["deltam21"] << std::endl;
+    std::cout << "Best deltam: " << branchValues["deltam21"] << std::endl << std::endl;
 
-    // Retrieve the vectors from the file: nominal, constr means, constr err, constr names
+    // Retrieve the vectors from the file: nominal, constr means, constr err, constr names, labels, cov matrix
     std::vector<std::string> *paramNames = nullptr;
     std::vector<double> *nomVals = nullptr;
     std::vector<double> *constrMeans = nullptr;
@@ -236,12 +254,12 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         {
             std::cerr << "Error: Could not find maps in file " << llhFileName.str()
                       << ". Defaulting to grid space oscillation parameter errors" << std::endl;
-            if(theta12name == "theta12")
+            if (theta12name == "theta12")
             {
                 thLowErr = 0.18;
                 thHighErr = 0.18;
             }
-            else if(theta12name == "sintheta12" || theta12name == "sinsqtheta12")
+            else if (theta12name == "sintheta12" || theta12name == "sinsqtheta12")
             {
                 thLowErr = 0.002;
                 thHighErr = 0.1;
@@ -266,7 +284,8 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     TFile *fitFile = new TFile(fitFileName.str().c_str(), "READ");
     fitFile->GetObject("paramErr", paramErr);
-    // Now find the position of deltam and theta in the other vectors, so we can insert them into paramErr at the same place 
+
+    // Now find the position of deltam and theta in the other vectors, so we can insert them into paramErr at the same place
     // before reordering
     std::vector<std::string>::iterator deltampos = std::find(paramNames->begin(), paramNames->end(), "deltam21");
     std::vector<std::string>::iterator thetapos = std::find(paramNames->begin(), paramNames->end(), theta12name);
@@ -284,11 +303,17 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     {
         // For reactor nubar, rate in fit config is unoscillated, but postfit value is oscillated.
         // So we need to multiply by the ratio saved in outputted fit file
-        if (paramNames->at(iParam) == "reactor_nubar")
+        if (paramNames->at(iParam).find(reactorpar1) != std::string::npos)
         {
-            nomVals->at(iParam) = nomVals->at(iParam) * branchValues["reactor_ratio"];
-            constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues["reactor_ratio"];
-            constrErr->at(iParam) = constrErr->at(iParam) * branchValues["reactor_ratio"];
+            nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar1 + "_ratio"];
+            constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues[reactorpar1 + "_ratio"];
+            constrErr->at(iParam) = constrErr->at(iParam) * branchValues[reactorpar1 + "_ratio"];
+        }
+        else if (paramNames->at(iParam).find(reactorpar2) != std::string::npos)
+        {
+            nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar2 + "_ratio"];
+            constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues[reactorpar2 + "_ratio"];
+            constrErr->at(iParam) = constrErr->at(iParam) * branchValues[reactorpar2 + "_ratio"];
         }
 
         hNom->SetBinContent(iParam + 1, nomVals->at(iParam) / nomVals->at(iParam));
@@ -297,6 +322,10 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         hConstr->SetBinError(iParam + 1, constrErr->at(iParam) / nomVals->at(iParam));
         hPostFit->SetBinContent(iParam + 1, branchValues[paramNames->at(iParam)] / nomVals->at(iParam));
         hPostFit->SetBinError(iParam + 1, paramErr->at(iParam) / nomVals->at(iParam));
+        std::cout << "Par: " << paramNames->at(iParam) << std::endl;
+        std::cout << "Nom Mean: " << nomVals->at(iParam) << std::endl;
+        std::cout << "Constr: " << constrMeans->at(iParam) << " " << constrErr->at(iParam) << std::endl;
+        std::cout << "Fit: " << branchValues[paramNames->at(iParam)] << " " << paramErr->at(iParam) << std::endl << std::endl;
     }
 
     // Draw the histograms
