@@ -89,7 +89,10 @@ void plot2DPDFs(std::string dirname)
         c1->Print(outputfilename.c_str());
 
         outfile->cd();
-        c1->Write(histName.c_str()); 
+        c1->Write(histName.c_str());
+	gStyle->SetOptTitle(0);
+	c1->SaveAs((dirname + histName + ".pdf").c_str());
+	
     }
 
     c1->Print((outputfilename + "]").c_str());

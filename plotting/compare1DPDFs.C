@@ -119,7 +119,9 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
 
         c1->Print(outputfilename.c_str());
         outfile->cd();
-        c1->Write(histName.c_str()); 
+        c1->Write(histName.c_str());
+	c1->SaveAs((dirname1 + "/" + histName + ".pdf").c_str());
+	 
     }
 
     c1->Print((outputfilename + "]").c_str());
