@@ -68,6 +68,7 @@ void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
     bool foundMinuitMethod = false;
     bool foundMinuitStrategy = false;
     bool foundMinuitTolerance = false;
+    bool foundIterations = false;
 
     while (std::getline(file, line))
     {
@@ -102,6 +103,11 @@ void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
             {
                 line = "minuit_tolerance = 0.01";
                 foundMinuitTolerance = true;
+            }
+            else if (line.find("iterations") != std::string::npos && !foundIterations)
+            {
+                line = "iterations = 10000000";
+                foundIterations = true;
             }
         }
 
@@ -270,7 +276,7 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
             // FitValid is last line for this fit, so now let's fill
             tree->Fill();
         }
-        if (line.find("ReactorRatio:") != std::string::npos)
+        if (line.find("Reactor Ratio:") != std::string::npos)
         {
 
             std::istringstream iss(line);
@@ -281,13 +287,13 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
             iss >> datasetName >> dummy >> dummy; // Skip "Reactor" and "Ratio:"
             iss >> reactorRatio;
 
-            std::string key = datasetName + "_ratio" ;
+            std::string key = datasetName + "_ratio";
             branchMap[key] = reactorRatio;
         }
     }
 }
 
-void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscGridConfigFile_)
+void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &eveConfigFile_, const std::string &oscGridConfigFile_)
 {
     Rand::SetSeed(0);
 
@@ -311,6 +317,12 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
             constrSigmas[parIt->first] = -999;
         }
     }
+
+    // Load up all the event types we want to contribute
+    typedef std::map<std::string, EventConfig> EvMap;
+    typedef std::map<std::string, std::map<std::string, EventConfig>> DSMap;
+    EventConfigLoader evLoader(evConfigFile_);
+    DSMap dsPDFMap = evLoader.LoadActive();
 
     // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
     bool hasTheta12 = noms.find("theta12") != noms.end();
@@ -353,21 +365,19 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     // Make error entry for each parameter
     std::vector<std::string> newKeys;
     for (const auto &pair : branchMap)
+    {
         newKeys.push_back(pair.first + "_err");
+        if (pair.first.find("reactor") != std::string::npos)
+        {
+            newKeys.push_back(pair.first + "_ratio");
+        }
+    }
     // Now add the new entries
     for (const auto &key : newKeys)
         branchMap[key] = 0;
 
     branchMap["LLH"] = 0;
     branchMap["fit_valid"] = 0;
-
-    for (ParameterDict::iterator parIt = noms.begin(); parIt != noms.end(); ++parIt)
-    {
-        if (parIt->first.find("reactor") != std::string::npos)
-        {
-            branchMap[parIt->first + "_ratio"] = 0;
-        }
-    }
 
     // Make sure everything's Initialised to 0
     for (auto &[_, v] : branchMap)
@@ -382,7 +392,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     double bestTheta = 999;
 
     // Loop over all .output files in output dir
-    for (const auto &entry : std::filesystem::directory_iterator(outputDir))
+    for (const auto &entry : std::filesystem::directory_iterator((outDir + "/output").c_str()))
     {
         if (entry.is_regular_file() && entry.path().extension() == ".output")
         {
@@ -441,7 +451,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
 
     std::ostringstream fit_command;
     fit_command << "./bin/fixedosc_fit " << bestfitcfg.str() << " " << eventcfg.str() << " " << pdfcfg.str() << " " << syscfg.str() << " " << osccfg.str();
-
+    std::cout << fit_command.str().c_str() << std::endl;
     // Now rerun that fit
     system(fit_command.str().c_str());
 
@@ -477,14 +487,15 @@ int main(int argc, char *argv[])
 
     if (argc != 3)
     {
-        std::cout << "\nUsage makeFixedOscTree <fit_config_file> <oscgrid_config_file>" << std::endl;
+        std::cout << "\nUsage makeFixedOscTree <fit_config_file> <eve_config_file> <oscgrid_config_file>" << std::endl;
         return 1;
     }
 
     std::string fitConfigFile(argv[1]);
-    std::string oscGridConfigFile(argv[2]);
+    std::string eveConfigFile(argv[2]);
+    std::string oscGridConfigFile(argv[3]);
 
-    makeFixedOscTree(fitConfigFile, oscGridConfigFile);
+    makeFixedOscTree(fitConfigFile, eveConfigFile, oscGridConfigFile);
 
     return 0;
 }
