@@ -673,7 +673,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
           // Sum all scaled distributions to get full postfit "dataset"
           postfitDist.Add(pdfMap[dsIt->first][i]);
         }
-        // WP: name should include dataset name
+
         IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist_" + dsIt->first + ".root");
       }
       else
@@ -722,7 +722,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         std::vector<std::string> keepObs;
         keepObs.push_back("energy");
         dataDists[dsIt->first] = dataDists[dsIt->first].Marginalise(keepObs);
-        // WP: name will include ds name
+
         IO::SaveHistogram(dataDists[dsIt->first].GetHistogram(), outDir + "/" + "data_" + dsIt->first + ".root");
       }
 
