@@ -734,7 +734,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::cout << "deltam: " << deltam21 << std::endl;
   std::cout << theta12name << ": " << theta12 << std::endl;
   std::cout << "LLH: " << finalLLH << std::endl;
-  for (auto reacRatioIt = reactorRatio.begin(); reacRatioIt != systParamNames.end(); ++reacRatioIt)
+  for (auto reacRatioIt = reactorRatio.begin(); reacRatioIt != reactorRatio.end(); ++reacRatioIt)
   {
     std::cout << reacRatioIt->first << " Reactor Ratio: " << reacRatioIt->second << std::endl;
   }
