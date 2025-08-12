@@ -53,7 +53,6 @@ def read_fitcfg(fit_config):
 
     return deltam_min, deltam_max, theta_min, theta_max
 
-
 def read_osccfg(filename):
     numvalsdeltam = None
     numvalstheta = None
@@ -67,48 +66,49 @@ def read_osccfg(filename):
 
     return numvalsdeltam, numvalstheta
 
-
-def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, mem, theta, sleep_time = 1, priority = 5):
+def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
+                    fit_config, event_config, pdf_config, syst_config, osc_config,
+                    walltime, mem, theta, start_idx, end_idx,
+                    sleep_time=1, priority=5):
     '''
-    submit a job to condor, write a sh file to source environment and execute command
+    Submit a job to condor, write a sh file to source environment and execute command
     then write a submit file to be run by condor_submit
     '''
 
     print (job_name)
-    batch_name, _ = job_name.rsplit('_', 1)
-    out_dir_base = out_dir.split("/")[-2] + "_th{0}".format(theta)
+    batch_name = job_name.split('_', 1)[0]
+    first_deltam = float(deltam_min) + start_idx*(float(deltam_max)-float(deltam_min))/numvalsdeltam
+    first_deltam = "{:.8f}".format(first_deltam)
+    last_deltam = float(deltam_min) + (end_idx-1)*(float(deltam_max)-float(deltam_min))/numvalsdeltam
+    last_deltam = "{:.8f}".format(last_deltam)
+    out_dir_base = out_dir.split("/")[-2] + "_th{0}_dm{1}-{2}".format(theta, first_deltam, last_deltam)
 
-    # Set a condor path to be called later
     condor_path = "{0}/".format(out_dir)
     exec_path = run_dir + "/bin/" + exec_name
 
-    configs_path = os.path.abspath('{0}/th{1}/cfg'.format(condor_path,theta))
+    configs_path = os.path.abspath('{0}/th{1}/cfg'.format(condor_path, theta))
     check_dir(configs_path)
 
     with open(fit_config, "r") as file:
         lines = file.readlines()
 
-    # Loop over dm values, write fit_config with dm and theta values in
-    for iFit in range(numvalsdeltam):
-
+    # Loop over deltam values, write fit_config with dm and theta values in
+    for iFit in range(start_idx, end_idx):
         deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numvalsdeltam
         deltam = "{:.8f}".format(deltam)
 
         # Process the file and make updates
         for iline, line in enumerate(lines):
-            # Update theta12 nom
             if line.startswith("[theta12]") or line.startswith("[sintheta12]") or line.startswith("[sinsqtheta12]"):
                 for jline in range(iline + 1, len(lines)):
                     if lines[jline].startswith("nom ="):
                         lines[jline] = f"nom = {theta}\n"
                         break
-            # Update deltam21 nom
             elif line.startswith("[deltam21]"):
                 for jline in range(iline + 1, len(lines)):
                     if lines[jline].startswith("nom ="):
                         lines[jline] = f"nom = {deltam}\n"
                         break
-            # Update output_directory
             elif line.startswith("output_directory ="):
                 subdir = f"th{theta}/th{theta}_dm{deltam}"
                 updated_directory = os.path.join(out_dir, subdir)
@@ -118,10 +118,10 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
         base_name, ext = os.path.splitext(fit_config_base)
         new_filename = f"{base_name}_th{theta}_dm{deltam}{ext}"
 
-        # Write the updated lines back to the file
         with open( str(configs_path + "/"+new_filename), "w") as file2:
             file2.writelines(lines)
 
+    # Copy config files
     if event_config != "":
         os.system("cp " + str(event_config) + " " + str(configs_path) + "/" + os.path.basename(event_config) )
         event_config = configs_path + "/" + event_config.split("/")[-1]
@@ -135,18 +135,15 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
         os.system("cp " + str(osc_config) + " " + str(configs_path) + "/" + os.path.basename(osc_config) )
         osc_config = configs_path + "/" + osc_config.split("/")[-1]
 
-    other_commands = 'sleep $[($RANDOM%' + str(sleep_time+1) + ')+1]s'
+    other_commands = f'sleep $[($RANDOM%{sleep_time+1})+1]s'
 
-    # Write sh file to be ran
+    # Write sh file
     out_macro_text = "#!/usr/bin/sh  \n" + \
                      "source " + env_file + "\n" + \
                      "source " + run_dir + "/env.sh " + "\n" + \
-                     "echo $HOME \n" + \
                      "cd " + str(run_dir) + "\n" + \
-                     str(other_commands) + "\n"
-    # now loop over dm values ie do this with different fit configs
-    for iFit in range(numvalsdeltam):
-
+                     other_commands + "\n"
+    for iFit in range(start_idx, end_idx):
         deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numvalsdeltam
         deltam = "{:.8f}".format(deltam)
 
@@ -155,18 +152,16 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
         new_filename = f"{base_name}_th{theta}_dm{deltam}{ext}"
         new_filename = configs_path + "/" + new_filename
 
-        out_macro_text += str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + "\n"
-        print(str(exec_path) + " " + str(new_filename) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config) + "\n")
+        out_macro_text += f"{exec_path} {new_filename} {event_config} {pdf_config} {syst_config} {osc_config}\n"
 
     sh_filepath = "{0}/sh/".format(condor_path) + str(out_dir_base).replace("/", "") + '.sh'
     if not os.path.exists(os.path.dirname(sh_filepath)):
         os.makedirs(os.path.dirname(sh_filepath))
-    sh_file = open(sh_filepath, "w")
-    sh_file.write(out_macro_text)
-    sh_file.close()
+    with open(sh_filepath, "w") as sh_file:
+        sh_file.write(out_macro_text)
     os.chmod(sh_filepath, 0o777)
     
-    # Now create submit file
+    # Create submit file
     error_path = os.path.abspath('{0}/error'.format(condor_path))
     output_path = os.path.abspath('{0}/output'.format(condor_path))
     log_path = os.path.abspath('{0}/log'.format(condor_path))
@@ -179,30 +174,26 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
 
     submit_filepath = os.path.join(submit_path, out_dir_base)
     submit_filepath += ".submit"
-    out_submit_text = "executable              = " + str(sh_filepath) + "\n" + \
-                     "universe                 = " + str(universe) + "\n" + \
-                     "output                   = " + str(output_path) + "/" + str(out_dir_base) + ".output\n" + \
-                     "error                    = " + str(error_path) + "/" + str(out_dir_base) + ".error\n" + \
-                     "log                      = " + str(log_path) + "/" + str(out_dir_base) + ".log\n" + \
-                     "notification             = " + str(notification) + "\n" + \
-                     "priority                 = " + str(priority) + "\n" + \
-                     "getenv                   = " + str(getenv) + "\n" + \
-                     "allowed_execute_duration = " + str(walltime) + " \n" + \
-                     "request_memory           = " + str(mem) + " \n" + \
-                     "queue "+str(n_rep)+"\n"
+    out_submit_text = \
+        f"executable              = {sh_filepath}\n" \
+        f"universe                = {universe}\n" \
+        f"output                  = {output_path}/{out_dir_base}.output\n" \
+        f"error                   = {error_path}/{out_dir_base}.error\n" \
+        f"log                     = {log_path}/{out_dir_base}.log\n" \
+        f"notification            = {notification}\n" \
+        f"priority                = {priority}\n" \
+        f"getenv                  = {getenv}\n" \
+        f"allowed_execute_duration = {walltime} \n" \
+        f"request_memory           = {mem} \n" \
+        f"queue {n_rep}\n"
 
-    # Check and create output path
-    if not os.path.exists(os.path.dirname(submit_filepath)):
-        os.makedirs(os.path.dirname(submit_filepath))
-    out_submit_file = open(submit_filepath, "w")
-    out_submit_file.write(out_submit_text)
-    out_submit_file.close()
+    os.makedirs(os.path.dirname(submit_filepath), exist_ok=True)
+    with open(submit_filepath, "w") as out_submit_file:
+        out_submit_file.write(out_submit_text)
 
-    # Lez doo dis
-    command = 'condor_submit -batch-name \"' + batch_name +'\" ' + submit_filepath
+    command = f'condor_submit -batch-name \"{batch_name}\" {submit_filepath}'
     print ("executing job: " + command)
     os.system(command)
-
 
 if __name__ == "__main__":
 
@@ -216,36 +207,26 @@ if __name__ == "__main__":
     parser.add_argument('-p', "--pdf_cfg", type=str, default="", help='pdf config path')
     parser.add_argument('-s', "--syst_cfg", type=str, default="", help='syst config path')
     parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
-    parser.add_argument("-w", "--wall_time", type=int, default=86400, help="what's the maximum runtime (in seconds, default 1 day)?")
-    parser.add_argument("-m", "--mem", type=float, default=300, help="what's the maximum memory (in MB, default 300 MB)?")
+    parser.add_argument('-d', "--numdeltams", type=int, default=250, help='number of deltam points (individual fits) per job')
+    parser.add_argument("-w", "--wall_time", type=int, default=86400, help="max runtime (seconds)")
+    parser.add_argument("-m", "--mem", type=float, default=300, help="max memory (MB)")
     parser.add_argument("-j", "--job_name", type=str, default="", help='job name')
     args = parser.parse_args()
 
-    # Check if output and condor directories exist, create if they don't
     exec_name = args.exe
     out_dir = check_dir(args.out_dir)
     base_name = out_dir.split("/")[-2]
     run_dir = args.run_dir
     env_file = args.env_file
-    fit_config = args.fit_cfg
-    event_config = args.event_cfg
-    pdf_config = args.pdf_cfg
-    syst_config = args.syst_cfg
-    osc_config = args.osc_cfg
+    fit_config = run_dir + "/" + args.fit_cfg if args.fit_cfg != "" else ""
+    event_config = run_dir + "/" + args.event_cfg if args.event_cfg != "" else ""
+    pdf_config = run_dir + "/" + args.pdf_cfg if args.pdf_cfg != "" else ""
+    syst_config = run_dir + "/" + args.syst_cfg if args.syst_cfg != "" else ""
+    osc_config = run_dir + "/" + args.osc_cfg if args.osc_cfg != "" else ""
+    deltam_chunk = args.numdeltams
     walltime = args.wall_time
     mem = args.mem
     job_name = args.job_name
-
-    if fit_config != "":
-        fit_config = run_dir + "/" + args.fit_cfg
-    if event_config != "":
-        event_config = run_dir + "/" + args.event_cfg
-    if pdf_config != "":
-        pdf_config = run_dir + "/" + args.pdf_cfg
-    if syst_config != "":
-        syst_config = run_dir + "/" + args.syst_cfg
-    if osc_config != "":
-        osc_config = run_dir + "/" + args.osc_cfg
 
     deltam_min, deltam_max, theta_min, theta_max = read_fitcfg(fit_config)
     numvalsdeltam, numvalstheta = read_osccfg(osc_config)
@@ -253,18 +234,20 @@ if __name__ == "__main__":
     if job_name == "":
         job_name = base_name
 
-    # Loop over theta points, and do job one for each
-    for iJob in range(numvalstheta):
-
-        theta = float(theta_min) + iJob*(float(theta_max)-float(theta_min))/numvalstheta
+    for iTheta in range(numvalstheta):
+        theta = float(theta_min) + iTheta*(float(theta_max)-float(theta_min))/numvalstheta
         theta = "{:.3f}".format(theta)
 
-        batch_name = job_name + "_th{0}".format(theta)
+        for start_idx in range(0, numvalsdeltam, deltam_chunk):
+            end_idx = min(start_idx + deltam_chunk, numvalsdeltam)
+            batch_name = f"{job_name}_th{theta}_dm{start_idx}-{end_idx-1}"
+            log_dir = check_dir("{0}/log/".format(out_dir))
+            error_dir = check_dir("{0}/error/".format(out_dir))
+            sh_dir = check_dir("{0}/sh/".format(out_dir))
+            submit_dir = check_dir("{0}/submit/".format(out_dir))
+            output_dir = check_dir("{0}/output/".format(out_dir))
 
-        log_dir = check_dir("{0}/log/".format(out_dir))
-        error_dir = check_dir("{0}/error/".format(out_dir))
-        sh_dir = check_dir("{0}/sh/".format(out_dir))
-        submit_dir = check_dir("{0}/submit/".format(out_dir))
-        output_dir = check_dir("{0}/output/".format(out_dir))
-
-        pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, mem, theta, sleep_time = 1, priority = 5)
+            pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file,
+                            fit_config, event_config, pdf_config, syst_config,
+                            osc_config, walltime, mem, theta,
+                            start_idx, end_idx, sleep_time = 1, priority = 5)
