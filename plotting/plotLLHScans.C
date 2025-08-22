@@ -57,7 +57,7 @@ void LoopHistos(TDirectory *dir, std::string outfilename, TFile *outfile)
       outfile->cd();
       c->Write(name.c_str());
       std::cout << dirPath + "/" + name + ".pdf" << std::endl;
-      c->SaveAs( (dirPath + "/" + name + ".pdf").c_str() );
+      c->SaveAs((dirPath + "/" + name + ".pdf").c_str());
       delete plot1;
       delete c;
     }

@@ -186,18 +186,21 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     std::string theta12label = "";
     std::string theta12unit = "";
     std::string theta12labelunit = "";
-    if (tree->GetBranch("theta12")){
+    if (tree->GetBranch("theta12"))
+    {
         theta12name = "theta12";
         theta12label = "#theta_{12}";
         theta12unit = "#circ";
         theta12labelunit = theta12label + ", " + theta12unit;
     }
-    else if (tree->GetBranch("sintheta12")){
+    else if (tree->GetBranch("sintheta12"))
+    {
         theta12name = "sintheta12";
         theta12label = "sin#theta_{12}";
         theta12labelunit = theta12label;
     }
-    else if (tree->GetBranch("sinsqtheta12")){
+    else if (tree->GetBranch("sinsqtheta12"))
+    {
         theta12name = "sinsqtheta12";
         theta12label = "sin^{2}#theta_{12}";
         theta12labelunit = theta12label;
@@ -385,5 +388,4 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
 
     outfile->WriteObject(&dmSigmas, "dmSigmas");
     outfile->WriteObject(&thSigmas, "thSigmas");
-
 }

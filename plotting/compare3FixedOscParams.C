@@ -66,7 +66,7 @@ void compare3FixedOscParams(std::string filename1, std::string label1, std::stri
     TH1D *hPostFit3 = (TH1D *)file3->Get("postfit");
     hPostFit3->SetName("postfit3");
     hPostFit3->SetTitle("postfit3");
-    
+
     // Draw the histograms
     TCanvas *c1 = new TCanvas("c1", "Params", 800, 600);
     c1->SetBottomMargin(0.18);
@@ -74,22 +74,22 @@ void compare3FixedOscParams(std::string filename1, std::string label1, std::stri
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
 
-    hNom1->SetLineColor(kGreen+2);
+    hNom1->SetLineColor(kGreen + 2);
     hNom1->SetLineWidth(12);
     hNom1->SetMarkerStyle(108);
-    hNom1->SetMarkerColor(kGreen+2);
-    
-    hConstr1->SetLineColor(kRed+2);
+    hNom1->SetMarkerColor(kGreen + 2);
+
+    hConstr1->SetLineColor(kRed + 2);
     hConstr1->SetLineWidth(12);
-    
-    hPostFit1->SetLineColor(kBlue+2);
+
+    hPostFit1->SetLineColor(kBlue + 2);
     hPostFit1->SetLineWidth(8);
     hPostFit1->SetLineStyle(1);
-    
-    hPostFit2->SetLineColor(kGreen+3);
+
+    hPostFit2->SetLineColor(kGreen + 3);
     hPostFit2->SetLineWidth(4);
     hPostFit2->SetLineStyle(1);
-    
+
     hPostFit3->SetLineColor(kBlack);
     hPostFit3->SetLineWidth(1);
     hPostFit3->SetLineStyle(1);

@@ -48,8 +48,8 @@ const std::vector<std::string> geoGroup2 = {"geonu_Th2", "geonu_U2"};
 const std::vector<std::string> alphaGroup2 = {"alphan_PRecoil2", "alphan_CScatter2", "alphan_OExcited2"};
 
 // Define colours for histograms
-std::vector<int> lineColours = {kBlue+2, kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3};
-std::vector<int> fillColours = {kBlue+2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
+std::vector<int> lineColours = {kBlue + 2, kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3};
+std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
 
 void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 0)
 {
@@ -202,7 +202,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         {
 
             std::string filePath = directory.str() + "/" + paramOrders.at(iFile).at(iPar) + "_" + dsname.at(iFile) + ".root";
-            if(paramOrders.at(iFile).at(iPar) == "data")
+            if (paramOrders.at(iFile).at(iPar) == "data")
             {
                 filePath = directory.str() + "/../" + paramOrders.at(iFile).at(iPar) + "_" + dsname.at(iFile) + ".root";
             }
@@ -286,10 +286,10 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     for (int iPar = 0; iPar < paramOrders.at(0).size(); iPar++)
     {
 
-        if(paramOrders.at(0).at(iPar) == "postfitdist")
+        if (paramOrders.at(0).at(iPar) == "postfitdist")
             continue;
 
-        histMap[paramOrders.at(0).at(iPar)]->GetYaxis()->SetRangeUser(0, 1.6*paramOrders.size());
+        histMap[paramOrders.at(0).at(iPar)]->GetYaxis()->SetRangeUser(0, 1.6 * paramOrders.size());
 
         if (paramOrders.at(0).at(iPar) == "data")
         {
@@ -348,7 +348,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     c1->cd();
 
     upper->cd();
-    hStack->SetMaximum(1.6*paramOrders.size());
+    hStack->SetMaximum(1.6 * paramOrders.size());
     hStack->Draw("hist");
     histMap["data"]->SetFillStyle(0);
     histMap["data"]->Draw("histsame");
@@ -427,7 +427,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     t2->AddEntry(hOther, "Other", "f");
 
     upper2->cd();
-    hGroupStack->SetMaximum(1.6*paramOrders.size());
+    hGroupStack->SetMaximum(1.6 * paramOrders.size());
     hGroupStack->Draw("hist");
     histMap["data"]->Draw("histsame");
     hGroupStack->GetXaxis()->SetLabelOffset(1.2);

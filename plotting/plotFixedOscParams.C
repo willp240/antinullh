@@ -204,7 +204,8 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     std::cout << "Best LLH: " << branchValues["LLH"] << std::endl;
     std::cout << "Best Entry: " << bestLLHEntry << std::endl;
     std::cout << "Best theta: " << branchValues[theta12name] << std::endl;
-    std::cout << "Best deltam: " << branchValues["deltam21"] << std::endl << std::endl;
+    std::cout << "Best deltam: " << branchValues["deltam21"] << std::endl
+              << std::endl;
 
     // Retrieve the vectors from the file: nominal, constr means, constr err, constr names, labels, cov matrix
     std::vector<std::string> *paramNames = nullptr;
@@ -325,7 +326,8 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         std::cout << "Par: " << paramNames->at(iParam) << std::endl;
         std::cout << "Nom Mean: " << nomVals->at(iParam) << std::endl;
         std::cout << "Constr: " << constrMeans->at(iParam) << " " << constrErr->at(iParam) << std::endl;
-        std::cout << "Fit: " << branchValues[paramNames->at(iParam)] << " " << paramErr->at(iParam) << std::endl << std::endl;
+        std::cout << "Fit: " << branchValues[paramNames->at(iParam)] << " " << paramErr->at(iParam) << std::endl
+                  << std::endl;
     }
 
     // Draw the histograms

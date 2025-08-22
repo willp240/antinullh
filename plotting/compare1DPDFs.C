@@ -10,9 +10,9 @@
 
 /* ///////////////////////////////////////////////////////////////////
 ///
-/// Script for comparing the unscaled PDFs inside 2 directories. The 
-/// inputs the directory names, and it loops through root files in 
-/// the first directory and plots the PDF histogram. It checks the 
+/// Script for comparing the unscaled PDFs inside 2 directories. The
+/// inputs the directory names, and it loops through root files in
+/// the first directory and plots the PDF histogram. It checks the
 /// same file and histogram exist in the second directory, and then
 /// plots them on the same canvas. The plots are saved in a PDF file,
 /// with one PDF comparison on each page
@@ -34,7 +34,7 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         pdfFiles.push_back(entry.path());
     }
 
-     // Print file name to first page
+    // Print file name to first page
     TCanvas *c1 = new TCanvas("c1", "c1", 1500, 1080);
     c1->SetTopMargin(0.1);
     c1->SetBottomMargin(0.18);
@@ -93,9 +93,9 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
             continue;
         }
 
-        h1->SetMaximum(1.3*h1->GetMaximum());
+        h1->SetMaximum(1.3 * h1->GetMaximum());
         h1->SetLineWidth(2);
-        h1->SetLineColor(kBlue+2);
+        h1->SetLineColor(kBlue + 2);
         h1->GetXaxis()->SetTitleSize(0.055);
         h1->GetYaxis()->SetTitleSize(0.055);
         h1->GetXaxis()->SetLabelSize(0.045);
@@ -106,7 +106,7 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         h2->Draw("same");
         h2->SetLineWidth(2);
         h2->SetLineStyle(2);
-        h2->SetLineColor(kRed+1);
+        h2->SetLineColor(kRed + 1);
         gPad->SetGrid(1);
         gPad->Update();
 
@@ -120,10 +120,9 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         c1->Print(outputfilename.c_str());
         outfile->cd();
         c1->Write(histName.c_str());
-	c1->SaveAs((dirname1 + "/" + histName + ".pdf").c_str());
-	 
+        c1->SaveAs((dirname1 + "/" + histName + ".pdf").c_str());
     }
 
     c1->Print((outputfilename + "]").c_str());
-    outfile->Close();   
+    outfile->Close();
 }
