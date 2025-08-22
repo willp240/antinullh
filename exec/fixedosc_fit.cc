@@ -233,8 +233,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<std::vector<std::string>>> pdfGroups;
   std::vector<BinnedNLLH> testStats;
   std::map<std::string, ParameterDict> parameterValues;
-  std::map<std::string, double > reactorRatio; // Ratio of oscillated to unoscillated number of reactor IBDs
-  std::map<std::string, double > reactorRatioFD; // Ratio of oscillated to unoscillated number of reactor IBDs for the fake dataset if we're making one
+  std::map<std::string, double> reactorRatio; // Ratio of oscillated to unoscillated number of reactor IBDs
+  std::map<std::string, double> reactorRatioFD; // Ratio of oscillated to unoscillated number of reactor IBDs for the fake dataset if we're making one
   std::map<std::string, std::vector<int>> genRates;
   std::map<std::string, std::vector<NormFittingStatus> *> normFittingStatuses;
 
@@ -421,326 +421,316 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     }
     else
     {
-
-      // Could be h5 or root file
-      if (dataPath[dsIt->first].substr(dataPath[dsIt->first].find_last_of(".") + 1) == "h5")
+      TFile *dataFile = TFile::Open(dataPath[dsIt->first].c_str(), "READ");
+      if (!dataFile || dataFile->IsZombie())
       {
-        Histogram loaded = IO::LoadHistogram(dataPath[dsIt->first]);
-        dataDist = BinnedED("data", loaded);
-        dataDist.SetObservables(pdfConfig.GetBranchNames());
+        std::cerr << "Error opening data file " << dataFile << std::endl;
+        throw;
       }
-      else // If a root file
+
+      // Get the list of keys in the file
+      TList *keyList = dataFile->GetListOfKeys();
+      if (!keyList)
       {
+        std::cerr << "Error: No keys found in the datafile " << dataPath[dsIt->first] << std::endl;
+        throw;
+      }
 
-        TFile *dataFile = TFile::Open(dataPath[dsIt->first].c_str(), "READ");
-        if (!dataFile || dataFile->IsZombie())
+      // Loop through all objects in the file
+      TIter nextKey(keyList);
+      TKey *key;
+      while ((key = (TKey *)nextKey()))
+      {
+        std::string className = key->GetClassName();
+        std::string objectName = key->GetName();
+
+        if (className == "TNtuple")
         {
-          std::cerr << "Error opening data file " << dataFile << std::endl;
-          throw;
+          // Load up the data set
+          ROOTNtuple dataToFit(dataPath[dsIt->first], objectName.c_str());
+
+          // And bin the data inside
+          dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
+          break; // Stop once we find an nTuple
         }
-
-        // Get the list of keys in the file
-        TList *keyList = dataFile->GetListOfKeys();
-        if (!keyList)
+        else if (className == "TH1D")
         {
-          std::cerr << "Error: No keys found in the datafile " << dataPath[dsIt->first] << std::endl;
-          throw;
-        }
-
-        // Loop through all objects in the file
-        TIter nextKey(keyList);
-        TKey *key;
-        while ((key = (TKey *)nextKey()))
-        {
-          std::string className = key->GetClassName();
-          std::string objectName = key->GetName();
-
-          if (className == "TNtuple")
-          {
-            // Load up the data set
-            ROOTNtuple dataToFit(dataPath[dsIt->first], objectName.c_str());
-
-            // And bin the data inside
-            dataDist = DistBuilder::Build("data", pdfConfig.GetDataAxisCount(), pdfConfig, (DataSet *)&dataToFit);
-            break; // Stop once we find an nTuple
-          }
-          else if (className == "TH1D")
-          {
-            TH1D *dataHist = (TH1D *)dataFile->Get(objectName.c_str());
-            Histogram loaded = DistTools::ToHist(*dataHist);
-            dataDist = BinnedED("data", loaded);
-            dataDist.SetObservables(pdfConfig.GetDataBranchNames());
-            AxisCollection axes = DistBuilder::BuildAxes(pdfConfig, pdfConfig.GetDataAxisCount());
-            dataDist.SetAxes(axes);
-            break;
-          }
+          TH1D *dataHist = (TH1D *)dataFile->Get(objectName.c_str());
+          Histogram loaded = DistTools::ToHist(*dataHist);
+          dataDist = BinnedED("data", loaded);
+          dataDist.SetObservables(pdfConfig.GetDataBranchNames());
+          AxisCollection axes = DistBuilder::BuildAxes(pdfConfig, pdfConfig.GetDataAxisCount());
+          dataDist.SetAxes(axes);
+          break;
         }
       }
     }
-    dataDists[dsIt->first] = dataDist;
+  }
+  dataDists[dsIt->first] = dataDist;
 
-    // Now build the likelihood
-    BinnedNLLH lh;
-    lh.SetBuffer("energy", 1, 20);
-    // Add our data
-    lh.SetDataDist(dataDist);
-    // Set whether or not to use Beeston Barlow
-    lh.SetBarlowBeeston(beestonBarlowFlag);
-    // Add the systematics and any prior constraints
-    for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
-      lh.AddSystematic(systIt->second, systGroup[systIt->first]);
-    // Add our pdfs
-    lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
+  // Now build the likelihood
+  BinnedNLLH lh;
+  lh.SetBuffer("energy", 1, 20);
+  // Add our data
+  lh.SetDataDist(dataDist);
+  // Set whether or not to use Beeston Barlow
+  lh.SetBarlowBeeston(beestonBarlowFlag);
+  // Add the systematics and any prior constraints
+  for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+    lh.AddSystematic(systIt->second, systGroup[systIt->first]);
+  // Add our pdfs
+  lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
 
-    // And constraints
-    std::vector<std::string> corrPairs;
-    for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
-    {
-      // If either parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
-          std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
-        continue;
-      lh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
-                       constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
-      corrPairs.push_back(constrCorrParName.at(corrIt->first));
-    }
-    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-    {
-      // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-        continue;
-
-      // Only add single parameter constraint if correlation hasn't already been applied
-      if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
-        lh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
-    }
-    for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
-    {
-      // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
-        continue;
-
-      lh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
-    }
-
-    // And finally bring it all together
-    lh.RegisterFitComponents();
-
-    // Initialise to nominal values
-    for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
-    {
-      if (std::find(datasetPars[parIt->first].begin(), datasetPars[parIt->first].end(), dsIt->first) == datasetPars[parIt->first].end())
-        continue;
-      parameterValues[dsIt->first][parIt->first] = noms[parIt->first];
-      if (isFakeData)
-      {
-        parameterValues[dsIt->first][parIt->first] = fdValues[parIt->first];
-      }
-    }
-    // If we have constraints, initialise to those
-    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-    {
-      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-        continue;
-      parameterValues[dsIt->first][constrIt->first] = constrMeans[constrIt->first];
-    }
-    // Set to these initial values
-    lh.SetParameters(parameterValues[dsIt->first]);
-    testStats.push_back(std::move(lh));
-    std::cout << "Made LLH for Datset: " << dsIt->first << std::endl << std::endl;
-  } // End loop over datasets
-
-  // Now combine the LLH for each dataset
-  ParameterDict allParVals;
-  for (std::map<std::string, ParameterDict>::iterator parMapIt = parameterValues.begin(); parMapIt != parameterValues.end(); parMapIt++)
+  // And constraints
+  std::vector<std::string> corrPairs;
+  for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
   {
-    for (ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++)
-      allParVals[parIt->first] = parIt->second;
+    // If either parameter doesn't exist for this dataset, move along
+    if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
+        std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
+      continue;
+    lh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                     constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+    corrPairs.push_back(constrCorrParName.at(corrIt->first));
+  }
+  for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+  {
+    // If parameter doesn't exist for this dataset, move along
+    if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
+      continue;
+
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+      lh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+  }
+  for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+  {
+    // If parameter doesn't exist for this dataset, move along
+    if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
+      continue;
+
+    lh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
   }
 
-  std::vector<TestStatistic *> rawllhptrs;
-  for (BinnedNLLH &lh : testStats)
+  // And finally bring it all together
+  lh.RegisterFitComponents();
+
+  // Initialise to nominal values
+  for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
   {
-    rawllhptrs.push_back(&lh);
-  }
-  StatisticSum fullLLH = Sum(rawllhptrs);
-  fullLLH.RegisterFitComponents();
-
-  TStopwatch timer;
-  timer.Start( true );
-  fullLLH.Evaluate();
-  timer.Stop();
-  std::cout << "Eval time: " << timer.RealTime() << std::endl;
-
-  // Now do a fit!
-  Minuit min;
-  std::cout << method << " " << iterations << " " << tolerance << " " << strategy << std::endl;
-  min.SetMethod(method); // Simplex
-  min.SetMaxCalls(iterations); // 1200
-  min.SetTolerance(tolerance);
-  min.SetStrategy(strategy);
-  min.SetMinima(mins);
-  min.SetMaxima(maxs);
-  min.SetInitialValues(allParVals);
-  min.SetInitialErrors(sigmas);
-  std::cout << "Run rabbit run!" << std::endl;
-  TStopwatch minuitTimer;
-  minuitTimer.Start( true );
-  FitResult res = min.Optimise(&fullLLH);
-  minuitTimer.Stop();
-  std::cout << "Minuit time: " << minuitTimer.RealTime() << std::endl;
-  res.SetPrintPrecision(4);
-  res.Print();
-  ParameterDict bestFit = res.GetBestFit();
-  fullLLH.SetParameters(bestFit);
-  bool validFit = res.GetValid();
-  double finalLLH = fullLLH.Evaluate();
-
-  // Now save the results
-  if (saveOutputs)
-  {
-    res.SaveAs(outDir + "/fit_result.txt");
-    std::ofstream file(outDir + "/fit_result.txt", std::ios::app);
-    file << "\nLLH: " << finalLLH << "\n";
-    file << "\nFit Valid: " << validFit << std::endl;
-    file.close();
-    TFile *outFile = new TFile((outDir + "/fit_result.root").c_str(), "RECREATE");
-    DenseMatrix covMatrix = res.GetCovarianceMatrix();
-    std::vector<std::string> paramNames;
-    std::vector<double> paramVals;
-    std::vector<double> paramErr;
-    TMatrixD covTMatrixD(bestFit.size(), bestFit.size());
-    for (ParameterDict::iterator parIt = bestFit.begin(); parIt != bestFit.end(); ++parIt)
+    if (std::find(datasetPars[parIt->first].begin(), datasetPars[parIt->first].end(), dsIt->first) == datasetPars[parIt->first].end())
+      continue;
+    parameterValues[dsIt->first][parIt->first] = noms[parIt->first];
+    if (isFakeData)
     {
-      paramNames.push_back(parIt->first);
-      paramVals.push_back(parIt->second);
-      if (validFit)
+      parameterValues[dsIt->first][parIt->first] = fdValues[parIt->first];
+    }
+  }
+  // If we have constraints, initialise to those
+  for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+  {
+    if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
+      continue;
+    parameterValues[dsIt->first][constrIt->first] = constrMeans[constrIt->first];
+  }
+  // Set to these initial values
+  lh.SetParameters(parameterValues[dsIt->first]);
+  testStats.push_back(std::move(lh));
+  std::cout << "Made LLH for Datset: " << dsIt->first << std::endl
+            << std::endl;
+} // End loop over datasets
+
+// Now combine the LLH for each dataset
+ParameterDict allParVals;
+for (std::map<std::string, ParameterDict>::iterator parMapIt = parameterValues.begin(); parMapIt != parameterValues.end(); parMapIt++)
+{
+  for (ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++)
+    allParVals[parIt->first] = parIt->second;
+}
+
+std::vector<TestStatistic *> rawllhptrs;
+for (BinnedNLLH &lh : testStats)
+{
+  rawllhptrs.push_back(&lh);
+}
+StatisticSum fullLLH = Sum(rawllhptrs);
+fullLLH.RegisterFitComponents();
+
+TStopwatch timer;
+timer.Start(true);
+fullLLH.Evaluate();
+timer.Stop();
+std::cout << "Eval time: " << timer.RealTime() << std::endl;
+
+// Now do a fit!
+Minuit min;
+std::cout << method << " " << iterations << " " << tolerance << " " << strategy << std::endl;
+min.SetMethod(method); // Simplex
+min.SetMaxCalls(iterations); // 1200
+min.SetTolerance(tolerance);
+min.SetStrategy(strategy);
+min.SetMinima(mins);
+min.SetMaxima(maxs);
+min.SetInitialValues(allParVals);
+min.SetInitialErrors(sigmas);
+std::cout << "Run rabbit run!" << std::endl;
+TStopwatch minuitTimer;
+minuitTimer.Start(true);
+FitResult res = min.Optimise(&fullLLH);
+minuitTimer.Stop();
+std::cout << "Minuit time: " << minuitTimer.RealTime() << std::endl;
+res.SetPrintPrecision(4);
+res.Print();
+ParameterDict bestFit = res.GetBestFit();
+fullLLH.SetParameters(bestFit);
+bool validFit = res.GetValid();
+double finalLLH = fullLLH.Evaluate();
+
+// Now save the results
+if (saveOutputs)
+{
+  res.SaveAs(outDir + "/fit_result.txt");
+  std::ofstream file(outDir + "/fit_result.txt", std::ios::app);
+  file << "\nLLH: " << finalLLH << "\n";
+  file << "\nFit Valid: " << validFit << std::endl;
+  file.close();
+  TFile *outFile = new TFile((outDir + "/fit_result.root").c_str(), "RECREATE");
+  DenseMatrix covMatrix = res.GetCovarianceMatrix();
+  std::vector<std::string> paramNames;
+  std::vector<double> paramVals;
+  std::vector<double> paramErr;
+  TMatrixD covTMatrixD(bestFit.size(), bestFit.size());
+  for (ParameterDict::iterator parIt = bestFit.begin(); parIt != bestFit.end(); ++parIt)
+  {
+    paramNames.push_back(parIt->first);
+    paramVals.push_back(parIt->second);
+    if (validFit)
+    {
+      paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1)));
+      for (int iParam = 0; iParam < paramNames.size(); iParam++)
       {
-        paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1)));
-        for (int iParam = 0; iParam < paramNames.size(); iParam++)
-        {
-          covTMatrixD[paramNames.size() - 1][iParam] = covMatrix.GetComponent(paramNames.size() - 1, iParam);
-          covTMatrixD[iParam][paramNames.size() - 1] = covMatrix.GetComponent(iParam, paramNames.size() - 1);
-        }
+        covTMatrixD[paramNames.size() - 1][iParam] = covMatrix.GetComponent(paramNames.size() - 1, iParam);
+        covTMatrixD[iParam][paramNames.size() - 1] = covMatrix.GetComponent(iParam, paramNames.size() - 1);
       }
     }
-    paramNames.push_back("LLH");
-    paramVals.push_back(finalLLH);
-    paramNames.push_back("FitValid");
-    paramVals.push_back(validFit);
-    outFile->WriteObject(&paramNames, "paramNames");
-    outFile->WriteObject(&paramVals, "paramVals");
-    outFile->WriteObject(&paramErr, "paramErr");
-    outFile->WriteObject(&covTMatrixD, "covMatrix");
-    std::cout << "Saved fit result to " << outDir + "/fit_result.txt and " << outDir << "/fit_result.root" << std::endl;
+  }
+  paramNames.push_back("LLH");
+  paramVals.push_back(finalLLH);
+  paramNames.push_back("FitValid");
+  paramVals.push_back(validFit);
+  outFile->WriteObject(&paramNames, "paramNames");
+  outFile->WriteObject(&paramVals, "paramVals");
+  outFile->WriteObject(&paramErr, "paramErr");
+  outFile->WriteObject(&covTMatrixD, "covMatrix");
+  std::cout << "Saved fit result to " << outDir + "/fit_result.txt and " << outDir << "/fit_result.root" << std::endl;
 
-    // Now save the postfit distributions for each dataset
-    for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
+  // Now save the postfit distributions for each dataset
+  for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
+  {
+    // Initialise postfit distributions to same axis as data
+    BinnedED postfitDist = BinnedED("postfit dist", systAxes);
+    postfitDist.SetObservables(dataObs);
+
+    // Scale the distributions to the correct heights. They are named the same as their fit parameters
+    std::cout << "Saving scaled histograms and data for " << dsIt->first << " to \n\t" << postfitDistDir << std::endl;
+
+    if (dataDists[dsIt->first].GetHistogram().GetNDims() < 3)
     {
-      // Initialise postfit distributions to same axis as data
-      BinnedED postfitDist = BinnedED("postfit dist", systAxes);
-      postfitDist.SetObservables(dataObs);
+      ParameterDict bestFit = res.GetBestFit();
 
-      // Scale the distributions to the correct heights. They are named the same as their fit parameters
-      std::cout << "Saving scaled histograms and data for " << dsIt->first << " to \n\t" << postfitDistDir << std::endl;
-
-      if (dataDists[dsIt->first].GetHistogram().GetNDims() < 3)
+      for (size_t i = 0; i < pdfMap[dsIt->first].size(); i++)
       {
-        ParameterDict bestFit = res.GetBestFit();
-
-        for (size_t i = 0; i < pdfMap[dsIt->first].size(); i++)
+        std::string name = pdfMap[dsIt->first].at(i).GetName();
+        pdfMap[dsIt->first][i].Normalise();
+        // Apply bestfit systematic variables
+        for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
         {
-          std::string name = pdfMap[dsIt->first].at(i).GetName();
-          pdfMap[dsIt->first][i].Normalise();
-          // Apply bestfit systematic variables
-          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+          // If group is "", we apply to all groups
+          if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
           {
-            // If group is "", we apply to all groups
-            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+            std::set<std::string> systParamNames = systIt->second->GetParameterNames();
+            for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
             {
-              std::set<std::string> systParamNames = systIt->second->GetParameterNames();
-              for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
-              {
-                systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
-              }
-              double norm;
-              systIt->second->Construct();
-              pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
+              systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
             }
+            double norm;
+            systIt->second->Construct();
+            pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
           }
-          pdfMap[dsIt->first][i].Scale(bestFit[name]);
-          IO::SaveHistogram(pdfMap[dsIt->first][i].GetHistogram(), postfitDistDir + "/" + name + "_" + dsIt->first + ".root");
-          // Sum all scaled distributions to get full postfit "dataset"
-          postfitDist.Add(pdfMap[dsIt->first][i]);
         }
-
-        IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist_" + dsIt->first + ".root");
+        pdfMap[dsIt->first][i].Scale(bestFit[name]);
+        IO::SaveHistogram(pdfMap[dsIt->first][i].GetHistogram(), postfitDistDir + "/" + name + "_" + dsIt->first + ".root");
+        // Sum all scaled distributions to get full postfit "dataset"
+        postfitDist.Add(pdfMap[dsIt->first][i]);
       }
-      else
+
+      IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist_" + dsIt->first + ".root");
+    }
+    else
+    {
+      ParameterDict bestFit = res.GetBestFit();
+      for (size_t i = 0; i < pdfMap[dsIt->first].size(); i++)
       {
-        ParameterDict bestFit = res.GetBestFit();
-        for (size_t i = 0; i < pdfMap[dsIt->first].size(); i++)
+        std::string name = pdfMap[dsIt->first].at(i).GetName();
+        pdfMap[dsIt->first][i].Normalise();
+        // Apply bestfit systematic variables
+        for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
         {
-          std::string name = pdfMap[dsIt->first].at(i).GetName();
-          pdfMap[dsIt->first][i].Normalise();
-          // Apply bestfit systematic variables
-          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+          // If group is "", we apply to all groups
+          if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
           {
-            // If group is "", we apply to all groups
-            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+            std::set<std::string> systParamNames = systIt->second->GetParameterNames();
+            for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
             {
-              std::set<std::string> systParamNames = systIt->second->GetParameterNames();
-              for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
-              {
-                systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
-              }
-              double norm;
-              systIt->second->Construct();
-              pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
+              systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
             }
+            double norm;
+            systIt->second->Construct();
+            pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
           }
-          pdfMap[dsIt->first][i].Scale(bestFit[name]);
-
-          std::vector<std::string> keepObs;
-          keepObs.push_back("energy");
-          pdfMap[dsIt->first][i] = pdfMap[dsIt->first][i].Marginalise(keepObs);
-          IO::SaveHistogram(pdfMap[dsIt->first][i].GetHistogram(), postfitDistDir + "/" + name + "_" + dsIt->first + ".root");
-          // Sum all scaled distributions to get full postfit "dataset"
-          postfitDist.Add(pdfMap[dsIt->first][i]);
         }
+        pdfMap[dsIt->first][i].Scale(bestFit[name]);
 
-        IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist_" + dsIt->first + ".root");
-      }
-
-      // And also save the data
-      if (dataDists[dsIt->first].GetHistogram().GetNDims() < 3)
-      {
-        IO::SaveHistogram(dataDists[dsIt->first].GetHistogram(), outDir + "/" + "data_" + dsIt->first + ".root");
-      }
-      else
-      {
         std::vector<std::string> keepObs;
         keepObs.push_back("energy");
-        dataDists[dsIt->first] = dataDists[dsIt->first].Marginalise(keepObs);
-
-        IO::SaveHistogram(dataDists[dsIt->first].GetHistogram(), outDir + "/" + "data_" + dsIt->first + ".root");
+        pdfMap[dsIt->first][i] = pdfMap[dsIt->first][i].Marginalise(keepObs);
+        IO::SaveHistogram(pdfMap[dsIt->first][i].GetHistogram(), postfitDistDir + "/" + name + "_" + dsIt->first + ".root");
+        // Sum all scaled distributions to get full postfit "dataset"
+        postfitDist.Add(pdfMap[dsIt->first][i]);
       }
 
-    } // End loop over datasets
+      IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist_" + dsIt->first + ".root");
+    }
 
-  } // End if saving outputs
+    // And also save the data
+    if (dataDists[dsIt->first].GetHistogram().GetNDims() < 3)
+    {
+      IO::SaveHistogram(dataDists[dsIt->first].GetHistogram(), outDir + "/" + "data_" + dsIt->first + ".root");
+    }
+    else
+    {
+      std::vector<std::string> keepObs;
+      keepObs.push_back("energy");
+      dataDists[dsIt->first] = dataDists[dsIt->first].Marginalise(keepObs);
 
-  std::cout << "Fit complete for:" << std::endl;
-  std::cout << "deltam: " << deltam21 << std::endl;
-  std::cout << theta12name << ": " << theta12 << std::endl;
-  std::cout << "LLH: " << finalLLH << std::endl;
-  for (auto reacRatioIt = reactorRatio.begin(); reacRatioIt != reactorRatio.end(); ++reacRatioIt)
-  {
-    std::cout << reacRatioIt->first << " Reactor Ratio: " << reacRatioIt->second << std::endl;
-  }
-  std::cout << "FitValid: " << validFit << std::endl;
-  std::cout << std::endl
-            << std::endl;
+      IO::SaveHistogram(dataDists[dsIt->first].GetHistogram(), outDir + "/" + "data_" + dsIt->first + ".root");
+    }
+
+  } // End loop over datasets
+
+} // End if saving outputs
+
+std::cout << "Fit complete for:" << std::endl;
+std::cout << "deltam: " << deltam21 << std::endl;
+std::cout << theta12name << ": " << theta12 << std::endl;
+std::cout << "LLH: " << finalLLH << std::endl;
+for (auto reacRatioIt = reactorRatio.begin(); reacRatioIt != reactorRatio.end(); ++reacRatioIt)
+{
+  std::cout << reacRatioIt->first << " Reactor Ratio: " << reacRatioIt->second << std::endl;
+}
+std::cout << "FitValid: " << validFit << std::endl;
+std::cout << std::endl
+          << std::endl;
 }
 
 int main(int argc, char *argv[])

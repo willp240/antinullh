@@ -586,7 +586,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
                        constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
       corrPairs.push_back(constrCorrParName.at(corrIt->first));
     }
-
     for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
     {
       // If parameter doesn't exist for this dataset, move along
