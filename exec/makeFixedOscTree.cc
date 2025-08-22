@@ -293,7 +293,7 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
     }
 }
 
-void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &eveConfigFile_, const std::string &oscGridConfigFile_)
+void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscGridConfigFile_)
 {
     Rand::SetSeed(0);
 
@@ -317,12 +317,6 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &eveC
             constrSigmas[parIt->first] = -999;
         }
     }
-
-    // Load up all the event types we want to contribute
-    typedef std::map<std::string, EventConfig> EvMap;
-    typedef std::map<std::string, std::map<std::string, EventConfig>> DSMap;
-    EventConfigLoader evLoader(evConfigFile_);
-    DSMap dsPDFMap = evLoader.LoadActive();
 
     // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
     bool hasTheta12 = noms.find("theta12") != noms.end();
@@ -487,15 +481,14 @@ int main(int argc, char *argv[])
 
     if (argc != 3)
     {
-        std::cout << "\nUsage makeFixedOscTree <fit_config_file> <eve_config_file> <oscgrid_config_file>" << std::endl;
+        std::cout << "\nUsage makeFixedOscTree <fit_config_file> <oscgrid_config_file>" << std::endl;
         return 1;
     }
 
     std::string fitConfigFile(argv[1]);
-    std::string eveConfigFile(argv[2]);
-    std::string oscGridConfigFile(argv[3]);
+    std::string oscGridConfigFile(argv[2]);
 
-    makeFixedOscTree(fitConfigFile, eveConfigFile, oscGridConfigFile);
+    makeFixedOscTree(fitConfigFile, oscGridConfigFile);
 
     return 0;
 }
