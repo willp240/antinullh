@@ -30,11 +30,9 @@
 ///
 /////////////////////////////////////////////////////////////////// */
 
-// Hard coded ds and reactor parameter names to make sure we use the right ratio for each
+// Hard code reactor parameter names to make sure we use the right ratio for each
 // Inelegant, but we hard code the parameter order anyway
-const std::string datasetname1 = "dataset1";
 const std::string reactorpar1 = "reactor_nubar";
-const std::string datasetname2 = "dataset2";
 const std::string reactorpar2 = "reactor_nubar2";
 
 /// Function to sort vectors of names, nominals, and constraints into the order we want to plot them in.
