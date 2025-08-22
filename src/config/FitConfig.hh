@@ -38,6 +38,13 @@ namespace antinufit
     int GetHMCBurnIn() const;
     void SetHMCBurnIn(int);
 
+    double GetMinuitTolerance() const;
+    void SetMinuitTolerance(double);
+    int GetMinuitStrategy() const;
+    void SetMinuitStrategy(int);
+    std::string GetMinuitMethod() const;
+    void SetMinuitMethod(std::string);
+
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_);
     void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
                       double constrMean_, double constrSigma_);
@@ -69,9 +76,6 @@ namespace antinufit
     bool GetFakeData() const;
     void SetFakeData(bool);
 
-    std::string GetDatafile() const;
-    void SetDatafile(std::string);
-
     double GetLivetime() const;
     void SetLivetime(double);
 
@@ -96,6 +100,9 @@ namespace antinufit
     int fBurnIn;
     int fHMCIterations;
     int fHMCBurnIn;
+    int fMinuitStrategy;
+    double fMinuitTolerance;
+    std::string fMinuitMethod;
     int fNsteps;
     bool fBeestonBarlow;
     double fEpsilon;
@@ -104,7 +111,6 @@ namespace antinufit
     bool fFakeData;
     double fLivetime;
     bool fSaveOutputs;
-    std::string fDatafile;
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrCorrParName;
   };

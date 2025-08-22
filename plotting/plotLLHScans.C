@@ -9,6 +9,7 @@ void LoopHistos(TDirectory *dir, std::string outfilename, TFile *outfile)
   TIter next(dir->GetListOfKeys());
   TKey *key;
   std::string name;
+  std::string dirPath = std::filesystem::path(outfilename).parent_path().string();
 
   // Loop through all entries
   while ((key = (TKey *)next()))
@@ -54,7 +55,9 @@ void LoopHistos(TDirectory *dir, std::string outfilename, TFile *outfile)
       gPad->Update();
       c->Print(outfilename.c_str());
       outfile->cd();
-      c->Write(name.c_str()); 
+      c->Write(name.c_str());
+      std::cout << dirPath + "/" + name + ".pdf" << std::endl;
+      c->SaveAs((dirPath + "/" + name + ".pdf").c_str());
       delete plot1;
       delete c;
     }
@@ -81,8 +84,6 @@ void plotLLHScans(std::string filename)
 
   // Now loop over all the histos and print each
   LoopHistos(File, outputfilename, outfile);
-
-  std::cout << "out the loop" << std::endl;
 
   c1->Print((outputfilename + "]").c_str());
   outfile->Close();

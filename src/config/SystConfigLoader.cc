@@ -24,6 +24,7 @@ namespace antinufit
     std::vector<std::string> transObs;
     std::string type;
     std::string group;
+    std::vector<std::string> dataSets;
 
     if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
     {
@@ -62,11 +63,29 @@ namespace antinufit
           paramNames.push_back(name);
         }
       }
+      try
+      {
+        ConfigLoader::Load(name, "dataset", dataSets);
+      }
+      catch (ConfigFieldMissing)
+      {
+        try
+        {
+          std::string dataset;
+          ConfigLoader::Load(name, "dataset", dataset);
+          dataSets.push_back(dataset);
+        }
+        catch (ConfigFieldMissing)
+        {
+          dataSets.push_back("");
+        }
+      }
 
-      ret.AddParameter(name, paramNames, distObs, transObs, type, group);
+      ret.AddParameter(name, paramNames, distObs, transObs, type, group, dataSets);
       distObs.clear();
       transObs.clear();
       paramNames.clear();
+      dataSets.clear();
     }
     return ret;
   }

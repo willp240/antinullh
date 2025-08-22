@@ -10,7 +10,7 @@
 
 /* ///////////////////////////////////////////////////////////////////
 ///
-/// Script for plotting the postfit energy distributions of three 
+/// Script for plotting the postfit energy distributions of three
 /// fixed oscillation fits.
 /// First open the root files (made by makeFixedOscTree) and find the
 /// minimum LLH entries.
@@ -18,7 +18,7 @@
 /// histograms from scaled_dists
 ///
 /// Plot the data from the first fit, and the total fitted distribution
-/// from each fit 
+/// from each fit
 ///
 /// Canvases are saved to .pdf and .root
 ///
@@ -137,15 +137,15 @@ void compare3FixedOscDists(const char *filename1, const char *filename2, const c
     TH1D *hdata = nullptr;
     datafile1->GetObject("oxsx_saved", hdata);
 
-    TFile *scaledfile1 = TFile::Open((bestfitdir1.str()+"/postfitdist.root").c_str(), "READ");
+    TFile *scaledfile1 = TFile::Open((bestfitdir1.str() + "/postfitdist.root").c_str(), "READ");
     TH1D *hscaled1 = nullptr;
     scaledfile1->GetObject("oxsx_saved", hscaled1);
 
-    TFile *scaledfile2 = TFile::Open((bestfitdir2.str()+"/postfitdist.root").c_str(), "READ");
+    TFile *scaledfile2 = TFile::Open((bestfitdir2.str() + "/postfitdist.root").c_str(), "READ");
     TH1D *hscaled2 = nullptr;
     scaledfile2->GetObject("oxsx_saved", hscaled2);
 
-    TFile *scaledfile3 = TFile::Open((bestfitdir3.str()+"/postfitdist.root").c_str(), "READ");
+    TFile *scaledfile3 = TFile::Open((bestfitdir3.str() + "/postfitdist.root").c_str(), "READ");
     TH1D *hscaled3 = nullptr;
     scaledfile3->GetObject("oxsx_saved", hscaled3);
 
@@ -158,13 +158,13 @@ void compare3FixedOscDists(const char *filename1, const char *filename2, const c
 
     hdata->SetLineColor(kBlack);
     hdata->SetLineWidth(4);
-    hscaled1->SetLineColor(kBlue+2);
+    hscaled1->SetLineColor(kBlue + 2);
     hscaled1->SetLineWidth(4);
     hscaled1->SetLineStyle(2);
-    hscaled2->SetLineColor(kRed+2);
+    hscaled2->SetLineColor(kRed + 2);
     hscaled2->SetLineWidth(4);
     hscaled2->SetLineStyle(3);
-    hscaled3->SetLineColor(kGreen+2);
+    hscaled3->SetLineColor(kGreen + 2);
     hscaled3->SetLineWidth(4);
     hscaled3->SetLineStyle(4);
 
@@ -207,9 +207,9 @@ void compare3FixedOscDists(const char *filename1, const char *filename2, const c
     t1->Draw();
     c1->Update();
 
-    TH1D* hscaled1Div = (TH1D*)hscaled1->Clone("hscaled1Div");
-    TH1D* hscaled2Div = (TH1D*)hscaled2->Clone("hscaled2Div");
-    TH1D* hscaled3Div = (TH1D*)hscaled3->Clone("hscaled3Div");
+    TH1D *hscaled1Div = (TH1D *)hscaled1->Clone("hscaled1Div");
+    TH1D *hscaled2Div = (TH1D *)hscaled2->Clone("hscaled2Div");
+    TH1D *hscaled3Div = (TH1D *)hscaled3->Clone("hscaled3Div");
 
     lower->cd();
     hscaled1Div->Divide(hdata);
@@ -246,5 +246,4 @@ void compare3FixedOscDists(const char *filename1, const char *filename2, const c
     c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("distcomp.root");
     c1->SaveAs(pathObj.string().c_str());
-
 }

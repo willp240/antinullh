@@ -91,7 +91,7 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
       // The alpha n particles are simulated at the same time into the same files. We'll split them now, by energy
       if (std::filesystem::path(outFilename_).filename().string() == "alphan_PRecoil.root" && energy > precoil_cscatter_bound)
         continue;
-      if (std::filesystem::path(outFilename_).filename().string() == "alphan_CScatter.root" && (energy < precoil_cscatter_bound || energy > cscatter_oscatter_bound) )
+      if (std::filesystem::path(outFilename_).filename().string() == "alphan_CScatter.root" && (energy < precoil_cscatter_bound || energy > cscatter_oscatter_bound))
         continue;
       if (std::filesystem::path(outFilename_).filename().string() == "alphan_OExcited.root" && energy < cscatter_oscatter_bound)
         continue;
@@ -129,7 +129,8 @@ int main(int argc, char *argv[])
   EventConfigLoader eveLoader(eveConfigFile);
   typedef std::map<std::string, antinufit::EventConfig> EvMap;
   typedef std::vector<std::string> StringVec;
-  EvMap toGet = eveLoader.LoadActive();
+  typedef std::map<std::string, std::map<std::string, EventConfig>> DSMap;
+  DSMap dsPDFMap = eveLoader.LoadActive();
 
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
@@ -138,21 +139,25 @@ int main(int argc, char *argv[])
   }
   std::cout << "Made " << outDir << std::endl;
 
-  // If there is a common path preprend it
-  for (EvMap::iterator it = toGet.begin(); it != toGet.end(); ++it)
+  for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
   {
-    const std::string &name = it->first;
-    std::cout << "Doing " << name << std::endl;
-    const std::string &baseDir = it->second.GetNtupBaseDir();
-    const StringVec &files = it->second.GetNtupFiles();
-    const std::string &outName = it->second.GetPrunedPath();
 
-    std::cout << "Writing from :" << std::endl;
-    for (size_t i = 0; i < files.size(); i++)
-      std::cout << "\t" << files.at(i) << std::endl;
-    std::cout << "to " << outName << std::endl;
+    for (EvMap::iterator evIt = dsIt->second.begin(); evIt != dsIt->second.end(); ++evIt)
+    {
 
-    MakeDataSet(files, baseDir, outName, reactorNameIndex);
+      const std::string &name = evIt->first;
+      std::cout << "Doing " << name << std::endl;
+      const std::string &baseDir = evIt->second.GetNtupBaseDir();
+      const StringVec &files = evIt->second.GetNtupFiles();
+      const std::string &outName = evIt->second.GetPrunedPath();
+
+      std::cout << "Writing from :" << std::endl;
+      for (size_t i = 0; i < files.size(); i++)
+        std::cout << "\t" << files.at(i) << std::endl;
+      std::cout << "to " << outName << std::endl;
+
+      MakeDataSet(files, baseDir, outName, reactorNameIndex);
+    }
   }
 
   return 0;

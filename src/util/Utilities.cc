@@ -154,7 +154,7 @@ namespace antinufit
 
     void PrintParams(ParameterDict mins, ParameterDict maxs, ParameterDict noms, ParameterDict constrMeans, ParameterDict constrSigmas,
                      ParameterDict constrRatioMeans, ParameterDict constrRatioSigmas, std::map<std::string, std::string> constrRatioParName,
-                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName)
+                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName, std::map<std::string, std::vector<std::string>> datasets)
     {
 
         std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
@@ -180,7 +180,7 @@ namespace antinufit
 
         std::cout << std::endl;
         std::cout << "************** Fit Parameters **************" << std::endl;
-        std::cout << " -------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        std::cout << " -----------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
         std::cout << "| ";
         std::cout << std::left << std::setw(25) << "Name";
         std::cout << "| ";
@@ -190,11 +190,13 @@ namespace antinufit
         std::cout << "| ";
         std::cout << std::left << std::setw(15) << "Maximum";
         std::cout << "| ";
+        std::cout << std::left << std::setw(20) << "Datasets";
+        std::cout << "| ";
         std::cout << std::left << std::setw(20) << "Constraint Mean";
         std::cout << "| ";
         std::cout << std::left << std::setw(20) << "Constraint Sigma";
         std::cout << "| " << std::endl;
-        std::cout << " =========================================================================================================================" << std::endl;
+        std::cout << " ===============================================================================================================================================" << std::endl;
         for (int iParam = 0; iParam < tempNamesVec->size(); iParam++)
         {
 
@@ -209,6 +211,15 @@ namespace antinufit
             std::cout << std::left << std::setw(15) << mins[tempNamesVec->at(iParam)];
             std::cout << "| ";
             std::cout << std::left << std::setw(15) << maxs[tempNamesVec->at(iParam)];
+            std::cout << "| ";
+            std::string datasetString = "";
+            for (int iDS = 0; iDS < datasets[tempNamesVec->at(iParam)].size(); iDS++)
+            {
+                datasetString += datasets[tempNamesVec->at(iParam)].at(iDS);
+                if (iDS < datasets[tempNamesVec->at(iParam)].size() - 1)
+                    datasetString += ", ";
+            }
+            std::cout << std::left << std::setw(20) << datasetString;
             std::cout << "| ";
             if (constrMeans[tempNamesVec->at(iParam)])
             {
@@ -225,7 +236,7 @@ namespace antinufit
             std::cout << std::endl;
         }
 
-        std::cout << " -------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        std::cout << " -----------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
         if (constrRatioMeans.size() > 0)
         {
             std::cout << std::endl;
@@ -252,9 +263,8 @@ namespace antinufit
                 std::cout << std::left << std::setw(20) << constrRatioMeans[it->first];
                 std::cout << "| ";
                 std::cout << std::left << std::setw(20) << constrRatioSigmas[it->first];
-                std::cout << "| ";
+                std::cout << "| " << std::endl;
             }
-            std::cout << std::endl;
             std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
         }
 
@@ -289,5 +299,20 @@ namespace antinufit
 
         std::cout << std::endl;
         return;
+    }
+
+    std::string stripQuoteMarks(std::string s_)
+    {
+
+        // Remove "" if it surrounds the tex name string
+        size_t start = 0;
+        size_t end = s_.size() - 1;
+        if (s_[start] == '"' || s_[start] == '\'')
+            start++;
+        if (end > start && (s_[end] == '"' || s_[end] == '\''))
+            end--;
+        s_ = s_.substr(start, end - start + 1);
+
+        return s_;
     }
 }

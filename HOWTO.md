@@ -55,10 +55,15 @@ This file should contain information on the types of events you want to include 
 
 <h5>Summary</h5>
 
-- `active`: The event types to be used in the analysis. These should be comma separated, and each should also be the name of an Event field also defined in the file. You can also use `all` to use all events defined in the file
-- `inactive`: Event types defined in the config that aren't being used in the analysis at this time
+- `datasets`: The name of the datasets you want to fit. These should be comma separated, and each should be the name of a dataset table also defined in the file. 
+
+<h5>Datasets</h5>
+
+- `active`: The event types to be used in the analysis for this dataset. These should be comma separated, and each should also be the name of an Event field also defined in the file. You can also use `all` to use all events defined in the file
+- `inactive`: Event types defined in the config that aren't being used for this dataset at this time
 - `orig_base_dir`: The directory where the original (unpruned) MC files have been downloaded to
 - `pruned_ntup_dir`: The directory where the pruned MC files should be written to, and later read from
+- `datafile`: The file containing the data events for this dataset
 
 <h5>Event Type Tables</h5>
 
@@ -73,13 +78,15 @@ This file should contain information on the parameters of the fit, and the fit i
 
 <h5>Summary</h5>
 
-- `datafile`: The file containing the data events
 - `asimov`: Bool to determine if an Asimov dataset should be used. If 1/True, the scaled PDFs are used as the data to run an Asimov fit
 - `fake_data`: Bool to determine if a 'fake dataset' should be used. If 1/True, PDFs are scaled to fake data values specified later in this config to produce the dataset. Fake data values of systematics are also applied. If both this and 'asimov' are true, the Asimov dataset is used
-- `iterations`: The number of steps in the Markov Chain
+- `minuit_strategy` = The Minuit strategy level
+- `minuit_tolerance` = The Minuit tolerance level
+- `minuit_method` = The Minuit method used (`Migrad`, `Simplex` or `Minimize`)
+- `iterations`: The number of steps in the Markov Chain/fit
 - `burn_in`: The number of steps rejected at the start of the Markov Chain. This can be changed post analysis for most purposes
 - `fit_dists`: Which PDFs should be fit. Can use `all`
-- `output_directory`: Where to write output files To
+- `output_directory`: Where to write output files to
 - `n_steps`: Number of steps per iteration for Hamiltonian MCMC
 - `epsilon`: Hamiltonian step size
 - `hmc_iterations`: Number of steps in Hamiltonian MCMC
@@ -148,6 +155,7 @@ The name of these tables should be the name of the systematic.
 - `type`: The type of systematic being applied. This is not just the OXO derived systematic class, as here we also determine which function we will use for function-based systematics. The options are defined in the SystFactory (this will be made clearer in the future)
 - `function`: The name of the function used if the systematic needs one. There is some redundancy here with type at the moment but we'll improve that soon
 - `group`: This is the group of pdfs the systematic will be applied to. If this is left blank it will apply to all PDFs
+- `dataset`: This is the dataset the systematic applies to. This should match the name of a dataset defined in the event config file
 
 <h4>Oscillation Grid</h4>
 
@@ -193,7 +201,7 @@ In the submitting batch jobs section we will discuss running over all reactor co
 
 Raw SNO+ ntuples, although much more lightweight than RATDS files, still contain much more information than we need at analysis level. So instead of carrying around that deadweight for the whole analysis, we first take the time to prune out the branches we don't need and save what we do need in new files to be used.  
 
-The `prune_trees` app does this for us. Having set your filepaths in your `events` config file, simply run:  
+The `prune_trees` app does this for us. Having set your filepaths for each dataset in your `events` config file, simply run:  
 
 > ./bin/prune_trees cfg/event_config.ini
 
@@ -217,7 +225,7 @@ To run the fixedosc LLH scan:
 
 You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter specified in the fit config. A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
 
-The other version of the likelihood scan, `llh_scan`, hands all the parameters, including the oscillation parameters, to the `BinnedNLLH`. It then scans through all parameters in the same way, setting the values in the `BinnedNLLH` and evaluating the likelihood. This version of the likelihood scan is designed to be used for validating the full fits where every parameter floats at once (see below).
+The other version of the likelihood scan, `llh_scan`, hands all the parameters, including the oscillation parameters, to the `BinnedNLLH`, but it is currently deprecated (and not compiled by default). It scans through all parameters in the same way, setting the values in the `BinnedNLLH` and evaluating the likelihood. This version of the likelihood scan is designed to be used for validating the full fits where every parameter floats at once (see below).
 
 To run the LLH scan:  
 
@@ -231,7 +239,7 @@ Now the time has come to run a fit. When we float the oscillation parameters, we
 
 > ./bin/fixedosc_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
-The value of the oscillation parameters should be set in the `fit` config file. You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter. This performs a `Minuit` fit, with the oscillation parameters fixed at those values. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced.
+The value of the oscillation parameters should be set in the `fit` config file. You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter. This performs a `Minuit` fit, with the oscillation parameters fixed at those values and the Minuit settings in the `fitCofig`. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced (if the `save_outputs` in the `fitConfig` is set).
 
 `fit_results.txt` contains each parameter value for the maximum LLH point, and `fit_results.root` contains the vectors of parameter names, postfit values and uncertainties, and a covariance matrix.
 
@@ -275,13 +283,13 @@ You can run this script with any of the apps. If you're not running a fit, you p
 
 <h3>Fixed Oscillation Parameters Fits</h3>
 
-First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number of course can be tuned for efficient running on your own cluster.
+First, you may want to do a grid scan of oscillation parameters, running a fit at each step. In these fits, the oscillation parameters are fixed at the values for that point in the scan, and everything else is floated in a Minuit fit. We would normally do ~500 steps for each oscillation parameter, so 250,000 individual fits. Now, you can try submitting 250,000 jobs at once but do so at your own (and your friendly neighbourhood sys-admin's) peril! Instead, we do one job for each value of one of the oscillation parameters, so that's 500 jobs each running 500 sequential fits. This number can be tuned for efficient running on your own cluster. The -d option allows you to change the number of fits ran per job.
 
 There is a script, similar to `utils/submitCondor.py` but for submitting these fixed oscillation parameter fits. This is in `util/submitFixedOscJobs.py`. 
 
 You can submit the jobs with:
 
-> python utils/submitFixedOscJobs.py fixedosc_fit output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini -o cfg/oscgrid.ini
+> python utils/submitFixedOscJobs.py fixedosc_fit output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini -o cfg/oscgrid.ini -d fits_per_job -w walltime (s) -m requested_memory (MB) -j jobname
 
 In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the oscillation parameter's fake data values to be their nominal values. This way, for every step in the grid, the fake dataset will be produced with the nominal values, and this will be the same for each fit. The python script will update the nominal values of the oscillation parameters in the config file to the current values in the fixed oscillation parameters scan, so we always fit the same fake data, but with different fixed oscillation parameter values each time. 
 
@@ -303,7 +311,7 @@ The config files should be ones you've used to run one of the fits. If this take
 
 > python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
 
-Once the tree is made, the it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true. The covariance matrix from this fit is saved along with the tree of fit results.
+Once the tree is made, the it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true and Minuit settings updated to do a more rigorous fit. The covariance matrix from this fit is saved along with the tree of fit results.
 
 <h4>plotFixedOscLLH</h4>
 
@@ -319,9 +327,11 @@ It can be run by doing:
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
 
+Currently, the user hard codes the parameter names for each dataset in the top of this file. When running, the user supplies an option as the second argument. `1` plots the distributions for the first dataset, `2` plots the distributions for the second dataset, and `0` plots the summed distributions for both datasets. Obviously it would be nice if this wasn't hardcoded, and you could use N datasets, but for expedience this is how it is at the moment.
+
 Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
-> root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output")'
+> root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output", dataset_option)'
 
 In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
 
@@ -334,6 +344,8 @@ This script is similar to `plotFixedOscDist`, but plots the total postfit scaled
 <h4>plotFixedOscParams</h4>
 
 This script loops over all entries in the output `TTree` from `makeFixedOscTree`, and finds the fit with the minimum best LLH. It then plots each parameter in that entry, relative to it's nominal value. Any prefit constraints are also plotted, relative to nominal values. A canvas is saved in both a `.root` and `.pdf` file, in the top level output directory of the set of fits. The constraint, nominal, and postfit histograms are also saved in the root file. If `plotFixedOscLLH` has already been run, it will look for the outputted `LLH.root` file to find the oscillation parameter uncertainties. Otherwise, it will use the grid spacing.
+
+The reactor parameter names are hardcoded so that they can be multiplied by the correct reactor ratio. The order the parameters are plotted in are also hardcoded.
 
 A separate canvas is also saved, containing a plot of the postfit correlation matrix of all fit parameters.
 
@@ -391,7 +403,7 @@ This script loops through all the 2D unscaled PDF files in a directory, and plot
 
 <h3>MCMC</h3>
 
-NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is!
+NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is! The non-fixed osc fits and llh scans are deprecated for now, and are not compiled by default.
 
 Now you’re fit has run, the real fun starts! For each individual chain, you’ll have a number of files and subdirectories. In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps, as set in the fit config, are automatically not included.  
 

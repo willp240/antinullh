@@ -10,7 +10,7 @@
 
 /* ///////////////////////////////////////////////////////////////////
 ///
-/// Script for plotting the unscaled PDFs inside a directory. The 
+/// Script for plotting the unscaled PDFs inside a directory. The
 /// inputs the directory name, and it loops through root files in that
 /// directory and plots the PDF histograms to a PDF file, one PDF on
 /// each page
@@ -32,7 +32,7 @@ void plot1DPDFs(std::string dirname)
         pdfFiles.push_back(entry.path());
     }
 
-     // Print file name to first page
+    // Print file name to first page
     TCanvas *c1 = new TCanvas("c1", "c1", 1500, 1080);
     c1->SetTopMargin(0.1);
     c1->SetBottomMargin(0.18);
@@ -93,5 +93,4 @@ void plot1DPDFs(std::string dirname)
 
     c1->Print((outputfilename + "]").c_str());
     c1->Close();
-
 }

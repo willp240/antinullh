@@ -3,6 +3,7 @@
 
 // Antinu headers
 #include <FitConfig.hh>
+#include <Utilities.hh>
 
 // OXO headers
 #include <ConfigLoader.hh>
