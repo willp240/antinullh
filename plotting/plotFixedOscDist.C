@@ -256,6 +256,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     hData = (TH1D *)histMap["data"]->Clone("hData");
     hData->Reset();
     hMC = (TH1D *)histMap["postfitdist"]->Clone("hMC");
+    double chi2 = histMap["data"]->Chi2Test(hMC, "CHI2/NDF W");
+    std::cout << "Chi Squared = " << chi2 << std::endl;
     hReactor = (TH1D *)histMap["data"]->Clone("hReactor");
     hReactor->Reset();
     hGeo = (TH1D *)histMap["data"]->Clone("hGeo");
