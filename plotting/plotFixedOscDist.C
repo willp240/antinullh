@@ -51,7 +51,7 @@ const std::vector<std::string> alphaGroup2 = {"alphan_PRecoil2", "alphan_CScatte
 std::vector<int> lineColours = {kBlue + 2, kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3};
 std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
 
-void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 0)
+void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1)
 {
 
     // Open the ROOT file
