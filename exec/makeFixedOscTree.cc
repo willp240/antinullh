@@ -149,29 +149,6 @@ void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
     std::cout << "Updated summary section in " << filepath << std::endl;
 }
 
-// Function to turn a map of string to double into two vectors, one of strings, one of doubles
-// This is useful for writing to root files
-void doubleMapToVectors(std::map<std::string, double> sdmap, std::vector<std::string> &keysvec, std::vector<double> &valsvec)
-{
-
-    for (std::map<std::string, double>::iterator it = sdmap.begin(); it != sdmap.end(); ++it)
-    {
-        keysvec.push_back(it->first);
-        valsvec.push_back(it->second);
-    }
-}
-
-// Function to turn a map of string to string into two vectors of strings
-// This is useful for writing to root files
-void stringMapToVectors(std::map<std::string, std::string> sdmap, std::vector<std::string> &keysvec, std::vector<std::string> &valsvec)
-{
-
-    for (std::map<std::string, std::string>::iterator it = sdmap.begin(); it != sdmap.end(); ++it)
-    {
-        keysvec.push_back(it->first);
-        valsvec.push_back(it->second);
-    }
-}
 
 // Function to parse output file from job of many fits to a map
 bool parseFitResultsTxt(const std::string &filename, std::map<std::string, double> &branchMap,
@@ -400,27 +377,9 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     // Write our tree and make vectors of the parameter names and asimov values
     outputFile.cd();
     tree.Write();
-    std::vector<std::string> paramNameVec;
-    std::vector<double> paramVals;
-    branchMap = noms;
-    doubleMapToVectors(branchMap, paramNameVec, paramVals);
-    outputFile.WriteObject(&paramNameVec, "param_names");
-    outputFile.WriteObject(&paramVals, "param_asimov_values");
 
-    std::vector<std::string> constrNameVec;
-    std::vector<double> constrMeansVals;
-    doubleMapToVectors(constrMeans, constrNameVec, constrMeansVals);
-    outputFile.WriteObject(&constrMeansVals, "constr_mean_values");
 
-    std::vector<double> constrSigmaVals;
-    doubleMapToVectors(constrSigmas, constrNameVec, constrSigmaVals);
-    outputFile.WriteObject(&constrSigmaVals, "constr_sigma_values");
-
-    std::vector<std::string> labelsVals;
-    stringMapToVectors(labels, paramNameVec, labelsVals);
-    outputFile.WriteObject(&labelsVals, "tex_labels");
-
-    std::cout << "TTree saved to " << outDir << "/" << outFilename << std::endl;
+    std::cout << std::endl << "TTree saved to " << outDir << "/" << outFilename << std::endl << std::endl;
 
     std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", " << theta12name << ": " << bestTheta << std::endl
               << std::endl;
@@ -449,6 +408,8 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     // Now rerun that fit
     system(fit_command.str().c_str());
 
+    // Now we open that fit file, get the par name vec, par vals vec, and par err vec, and cov matrix
+    // These will all have the parameters in the same order
     std::ostringstream fitfilename;
     fitfilename << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/th" << std::fixed << std::setprecision(3)
                 << bestTheta << "_dm" << std::fixed << std::setprecision(8) << bestDeltam << "/fit_result.root";
@@ -461,7 +422,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         return;
     }
 
-    // Get the TMatrixT
+    // Get the covariance TMatrixT
     TMatrixT<double> *covMatrix = nullptr;
     fitfile->GetObject("covMatrix", covMatrix);
     if (!covMatrix)
@@ -470,6 +431,79 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         fitfile->Close();
         return;
     }
+
+    // Get the parameter name vector
+    std::vector<std::string> *paramNameVec = nullptr;
+    fitfile->GetObject("paramNames", paramNameVec);
+    if (!paramNameVec)
+    {
+        std::cerr << "Error: Could not find 'paramNames' in file " << fitfilename.str() << std::endl;
+        fitfile->Close();
+        return;
+    }
+    paramNameVec->resize(paramNameVec->size()-2);
+
+    // Get the parameter values vector
+    std::vector<double> *paramVals = nullptr;
+    fitfile->GetObject("paramVals", paramVals);
+    if (!paramVals)
+    {
+        std::cerr << "Error: Could not find 'paramVals' in file " << fitfilename.str() << std::endl;
+        fitfile->Close();
+        return;
+    }
+    paramVals->resize(paramVals->size()-2);
+
+
+    // Get the parameter errors vector
+    std::vector<double> *paramErrs = nullptr;
+    fitfile->GetObject("paramErr", paramErrs);
+    if (!paramErrs)
+    {
+        std::cerr << "Error: Could not find 'paramErrs' in file " << fitfilename.str() << std::endl;
+        fitfile->Close();
+        return;
+    }
+
+    // Now we're going to loop over the paramNameVec, and get the nominals, constraints and labels and put them in a vector
+    // so it's in the same order as the cov matrix, paramVals, and paramErrs
+    std::vector<double> nomVals;
+    std::vector<double> constrMeansVals;
+    std::vector<double> constrSigmaVals;
+    std::vector<std::string> labelsVec;
+    branchMap = noms;
+
+    // Loop over paramNames
+    for (int iPar = 0; iPar < paramNameVec->size(); iPar++)
+    {
+        nomVals.push_back(noms[paramNameVec->at(iPar)]);
+        labelsVec.push_back(labels[paramNameVec->at(iPar)]);
+        constrMeansVals.push_back(constrMeans[paramNameVec->at(iPar)]);
+        constrSigmaVals.push_back(constrSigmas[paramNameVec->at(iPar)]);
+    }
+
+    // Now we have all the vectors are in the same order as the covariance matrix, 
+    // we'll add the osc pars to the end of the vector
+    paramNameVec->push_back("deltam21");
+    paramNameVec->push_back(theta12name);
+    paramVals->push_back(bestDeltam);
+    paramVals->push_back(bestTheta);
+    nomVals.push_back(noms["deltam21"]);
+    nomVals.push_back(noms[theta12name]);
+    labelsVec.push_back(labels["deltam21"]);
+    labelsVec.push_back(labels[theta12name]);
+    constrMeansVals.push_back(constrMeans["deltam21"]);
+    constrMeansVals.push_back(constrMeans[theta12name]);
+    constrSigmaVals.push_back(constrSigmas["deltam21"]);
+    constrSigmaVals.push_back(constrSigmas[theta12name]);
+
+    outputFile.WriteObject(paramNameVec, "param_names");
+    outputFile.WriteObject(paramVals, "param_fit_values");
+    outputFile.WriteObject(paramErrs, "param_fit_err");
+    outputFile.WriteObject(&nomVals, "param_nom_values");
+    outputFile.WriteObject(&constrMeansVals, "constr_mean_values");
+    outputFile.WriteObject(&constrSigmaVals, "constr_sigma_values");
+    outputFile.WriteObject(&labelsVec, "tex_labels");
 
     outputFile.cd();
     covMatrix->Write("covMatrix");
