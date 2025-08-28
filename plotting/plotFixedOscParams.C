@@ -40,43 +40,50 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
                  std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec, TMatrixT<double> *&covMatrix, std::string theta12name)
 {
 
-    // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
-    std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
-                                                                          theta12name,
-                                                                          "reactor_nubar",
-                                                                          "reactor_nubar2",
-                                                                          "geonu_U",
-                                                                          "geonu_U2",
-                                                                          "geonu_Th",
-                                                                          "geonu_Th2",
-                                                                          "alphan_CScatter",
-                                                                          "alphan_CScatter2",
-                                                                          "alphan_OExcited",
-                                                                          "alphan_OExcited2",
-                                                                          "alphan_PRecoil",
-                                                                          "alphan_PRecoil2",
-                                                                          "energy_scale",
-                                                                          "energy_scale2",
-                                                                          "energy_conv",
-                                                                          "energy_conv2",
-                                                                          "birks_constant",
-                                                                          "birks_constant2",
-                                                                          "p_recoil_energy_scale",
-                                                                          "p_recoil_energy_scale2"};
-
     int nParams = namesVec->size();
+
+    // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
+    std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{"deltam21",
+                                                                             theta12name,
+                                                                             "reactor_nubar",
+                                                                             "reactor_nubar2",
+                                                                             "geonu_U",
+                                                                             "geonu_U2",
+                                                                             "geonu_Th",
+                                                                             "geonu_Th2",
+                                                                             "alphan_CScatter",
+                                                                             "alphan_CScatter2",
+                                                                             "alphan_OExcited",
+                                                                             "alphan_OExcited2",
+                                                                             "alphan_PRecoil",
+                                                                             "alphan_PRecoil2",
+                                                                             "energy_scale",
+                                                                             "energy_scale2",
+                                                                             "energy_conv",
+                                                                             "energy_conv2",
+                                                                             "birks_constant",
+                                                                             "birks_constant2",
+                                                                             "p_recoil_energy_scale",
+                                                                             "p_recoil_energy_scale2"};
+    /*std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{"deltam21",
+                                                                             theta12name,
+                                                                             "reactor_nubar",
+                                                                             "geonu_U",
+                                                                             "geonu_Th",
+                                                                             "alphan_CScatter",
+                                                                             "alphan_OExcited",
+                                                                             "alphan_PRecoil",
+                                                                             "energy_scale",
+                                                                             "energy_conv",
+                                                                             "birks_constant",
+                                                                             "p_recoil_energy_scale"};*/
 
     std::vector<double> *tempNomsVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempErrVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempConstrMeansVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempConstrErrsVec = new std::vector<double>(nParams, 0.0);
     std::vector<std::string> *tempLabelsVec = new std::vector<std::string>(nParams, "");
-    // For the fixed osc fits, the matrix won't have theta12 and deltam
-    TMatrixT<double> *tempCovMatrix = new TMatrixT<double>(nParams - 2, nParams - 2);
-    std::vector<std::string> *matrixNamesVec = new std::vector<std::string>(namesVec->begin(), namesVec->end());
-
-    // Matrix names won't include osc params
-    std::vector<std::string> *tempMatrixNamesVec = new std::vector<std::string>(tempNamesVec->begin() + 2, tempNamesVec->end());
+    TMatrixT<double> *tempCovMatrix = new TMatrixT<double>(nParams, nParams);
 
     // Map original parameter names to their new indices
     std::unordered_map<std::string, int> nameToOldIndex;
@@ -89,52 +96,64 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
     // in the old vector, and set the noms and constraints to be the ones for that index
     for (int iParam = 0; iParam < nParams; ++iParam)
     {
-        int iOriginal = nameToOldIndex[tempNamesVec->at(iParam)];
-
+        int iOriginal = nameToOldIndex[orderedNamesVec->at(iParam)];
         tempNomsVec->at(iParam) = nomsVec->at(iOriginal);
         tempErrVec->at(iParam) = errVec->at(iOriginal);
         tempConstrMeansVec->at(iParam) = constrMeansVec->at(iOriginal);
         tempConstrErrsVec->at(iParam) = constrErrsVec->at(iOriginal);
         tempLabelsVec->at(iParam) = labelsVec->at(iOriginal);
-    }
 
-    // And redo this for the matrix indices which will be different (no theta or deltam)
-    for (int iParam = 0; iParam < matrixNamesVec->size(); ++iParam)
-    {
-        // Erase the deltam and theta entries from the matrix name vector to get the right order for those later
-        if (matrixNamesVec->at(iParam) == "deltam21" || matrixNamesVec->at(iParam) == theta12name)
+        for (int jParam = 0; jParam < nParams; ++jParam)
         {
-            matrixNamesVec->erase(matrixNamesVec->begin() + iParam) - 1;
-            iParam--;
-        }
-    }
-
-    int nMatrixParams = matrixNamesVec->size();
-
-    // Map original parameter names to their new indices
-    std::unordered_map<std::string, int> nameToOldMatrixIndex;
-    for (int iParam = 0; iParam < nMatrixParams; ++iParam)
-    {
-        nameToOldMatrixIndex[matrixNamesVec->at(iParam)] = iParam;
-    }
-
-    for (int iParam = 0; iParam < nMatrixParams; ++iParam)
-    {
-        for (int jParam = 0; jParam < nMatrixParams; ++jParam)
-        {
-            int iOriginal = nameToOldMatrixIndex[tempMatrixNamesVec->at(iParam)];
-            int jOriginal = nameToOldMatrixIndex[tempMatrixNamesVec->at(jParam)];
+            int jOriginal = nameToOldIndex[orderedNamesVec->at(jParam)];
             (*tempCovMatrix)(iParam, jParam) = (*covMatrix)(iOriginal, jOriginal);
         }
     }
 
-    namesVec = tempNamesVec;
+    namesVec = orderedNamesVec;
     labelsVec = tempLabelsVec;
     nomsVec = tempNomsVec;
     errVec = tempErrVec;
     constrMeansVec = tempConstrMeansVec;
     constrErrsVec = tempConstrErrsVec;
     covMatrix = tempCovMatrix;
+}
+
+TMatrixT<double> *appendVectorsToMatrix(const TMatrixT<double> *covMatrix, const std::vector<double> &v1, const std::vector<double> &v2)
+{
+    const int N = covMatrix->GetNrows();
+    if (covMatrix->GetNcols() != N)
+        throw std::runtime_error("Matrix must be square");
+    if (v1.size() != static_cast<size_t>(N + 2) || v2.size() != static_cast<size_t>(N + 2))
+        throw std::runtime_error("Vectors to be appended to NxN matrix must have size N+2");
+
+    TMatrixT<double> *newCovMatrix = new TMatrixT<double>(N + 2, N + 2);
+    // Top-left block: copy of the original matrix
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            (*newCovMatrix)(i, j) = (*covMatrix)(i, j);
+
+    // New columns (N and N+1) for rows 0..N-1
+    for (int i = 0; i < N; ++i)
+    {
+        (*newCovMatrix)(i, N) = v1[i];
+        (*newCovMatrix)(i, N + 1) = v2[i];
+    }
+
+    // New rows (N and N+1) for cols 0..N-1 (mirror to keep symmetry)
+    for (int j = 0; j < N; ++j)
+    {
+        (*newCovMatrix)(N, j) = v1[j];
+        (*newCovMatrix)(N + 1, j) = v2[j];
+    }
+
+    // Bottom-right 2x2 from the tails of v1, v2
+    (*newCovMatrix)(N, N) = v1[N];
+    (*newCovMatrix)(N, N + 1) = v1[N + 1];
+    (*newCovMatrix)(N + 1, N) = v2[N];
+    (*newCovMatrix)(N + 1, N + 1) = v2[N + 1];
+
+    return newCovMatrix;
 }
 
 void plotFixedOscParams(const char *filename = "fit_results.root")
@@ -208,14 +227,17 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     // Retrieve the vectors from the file: nominal, constr means, constr err, constr names, labels, cov matrix
     std::vector<std::string> *paramNames = nullptr;
     std::vector<double> *nomVals = nullptr;
+    std::vector<double> *paramVals = nullptr;
+    std::vector<double> *paramErr = nullptr;
     std::vector<double> *constrMeans = nullptr;
     std::vector<double> *constrErr = nullptr;
     std::vector<std::string> *labelsVec = nullptr;
-    std::vector<double> *paramErr = nullptr;
     TMatrixT<double> *covMatrix = nullptr;
 
     file->GetObject("param_names", paramNames);
-    file->GetObject("param_asimov_values", nomVals);
+    file->GetObject("param_nom_values", nomVals);
+    file->GetObject("param_fit_values", paramVals);
+    file->GetObject("param_fit_err", paramErr);
     file->GetObject("constr_mean_values", constrMeans);
     file->GetObject("constr_sigma_values", constrErr);
     file->GetObject("tex_labels", labelsVec);
@@ -281,18 +303,45 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
                 << std::fixed << std::setprecision(3) << branchValues[theta12name] << "_dm"
                 << std::fixed << std::setprecision(8) << branchValues["deltam21"] << "/fit_result.root";
 
-    TFile *fitFile = new TFile(fitFileName.str().c_str(), "READ");
-    fitFile->GetObject("paramErr", paramErr);
+    // Now put the oscillation errors into the error vector. This will still be in the same order as the param values vector etc.
+    paramErr->push_back(std::max(dmLowErr, dmHighErr));
+    paramErr->push_back(std::max(thLowErr, thHighErr));
 
-    // Now find the position of deltam and theta in the other vectors, so we can insert them into paramErr at the same place
-    // before reordering
-    std::vector<std::string>::iterator deltampos = std::find(paramNames->begin(), paramNames->end(), "deltam21");
-    std::vector<std::string>::iterator thetapos = std::find(paramNames->begin(), paramNames->end(), theta12name);
-    paramErr->insert(paramErr->begin() + std::distance(paramNames->begin(), deltampos), std::max(dmLowErr, dmHighErr));
-    paramErr->insert(paramErr->begin() + std::distance(paramNames->begin(), thetapos), std::max(thLowErr, thHighErr));
+    // Now we'll find covariance of each parameter with each osc par and put in vectors
+    std::vector<double> dmCovVec;
+    std::vector<double> thCovVec;
+
+    double mindeltam = tree->GetMinimum("deltam21");
+    double maxdeltam = tree->GetMaximum("deltam21");
+    double mintheta = tree->GetMinimum(theta12name.c_str());
+    double maxtheta = tree->GetMaximum(theta12name.c_str());
+
+    for (int iPar = 0; iPar < paramNames->size(); iPar++)
+    {
+
+        double parmin = tree->GetMinimum(paramNames->at(iPar).c_str());
+        double parmax = tree->GetMaximum(paramNames->at(iPar).c_str());
+
+        TH2D hdeltam("hdeltamcov", ("deltam21;" + paramNames->at(iPar)).c_str(), 500, mindeltam, maxdeltam, 500, parmin, parmax);
+        std::string dmDrawCmd = paramNames->at(iPar) + ":deltam21" + " >> hdeltamcov";
+        tree->Draw(dmDrawCmd.c_str(), "LLH", "goff");
+        double deltamCov = hdeltam.GetCovariance();
+        dmCovVec.push_back(deltamCov);
+
+        TH2D htheta("hthetacov", (theta12name + ";" + paramNames->at(iPar)).c_str(), 500, mintheta, maxtheta, 500, parmin, parmax);
+        std::string thDrawCmd = paramNames->at(iPar) + ":" + theta12name + " >> hthetacov";
+        tree->Draw(thDrawCmd.c_str(), "LLH", "goff");
+        double thetaCov = htheta.GetCovariance();
+        thCovVec.push_back(thetaCov);
+    }
+
+    tree->GetEntry(bestLLHEntry);
+
+    // Now append these oscillation covariance vectors to the covariance matrix
+    TMatrixT<double> *fullCovMatrix = appendVectorsToMatrix(covMatrix, dmCovVec, thCovVec);
 
     // Reorder vectors to the order we want to plot them
-    sortVectors(paramNames, paramErr, labelsVec, nomVals, constrMeans, constrErr, covMatrix, theta12name);
+    sortVectors(paramNames, paramErr, labelsVec, nomVals, constrMeans, constrErr, fullCovMatrix, theta12name);
 
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
@@ -383,22 +432,22 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     c1->Write("c1");
 
     // Now plot the correlation matrix
-    int nParams = covMatrix->GetNrows();
+    int nParams = fullCovMatrix->GetNrows();
     TH2D *hCorrMatrix = new TH2D("hCorrMatrix", "Correlation Matrix", nParams, 0, nParams, nParams, 0, nParams);
 
     for (int i = 0; i < nParams; ++i)
     {
         for (int j = 0; j < nParams; ++j)
         {
-            hCorrMatrix->SetBinContent(i + 1, j + 1, (*covMatrix)(i, j) / (sqrt((*covMatrix)(i, i)) * sqrt((*covMatrix)(j, j))));
+            hCorrMatrix->SetBinContent(i + 1, j + 1, (*fullCovMatrix)(i, j) / (sqrt((*fullCovMatrix)(i, i)) * sqrt((*fullCovMatrix)(j, j))));
         }
     }
 
     // Set axis labels
     for (int i = 0; i < nParams; ++i)
     {
-        hCorrMatrix->GetXaxis()->SetBinLabel(i + 1, labelsVec->at(i + 2).c_str());
-        hCorrMatrix->GetYaxis()->SetBinLabel(i + 1, labelsVec->at(i + 2).c_str());
+        hCorrMatrix->GetXaxis()->SetBinLabel(i + 1, labelsVec->at(i).c_str());
+        hCorrMatrix->GetYaxis()->SetBinLabel(i + 1, labelsVec->at(i).c_str());
     }
 
     // Define a nice red to blue palette
