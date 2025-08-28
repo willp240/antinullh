@@ -441,6 +441,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         fitfile->Close();
         return;
     }
+    // Remove LLH and FitValid elements
     paramNameVec->resize(paramNameVec->size()-2);
 
     // Get the parameter values vector
@@ -452,6 +453,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         fitfile->Close();
         return;
     }
+    // Remove LLH and FitValid elements
     paramVals->resize(paramVals->size()-2);
 
 
