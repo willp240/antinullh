@@ -401,6 +401,12 @@ This script loops through all the 2D unscaled PDF files in a directory, and plot
 
 > root -l 'plotting/projectPDFs("/path/to/dir/")'
 
+<h4>compareContours</h4>
+
+This script uses the files created by `plotFixedOscLLH` and draws the 1 $\sigma$ contours for two fits. The user inputs the two file paths and labels for the legend, along with the name (without file type suffix) of the outputted files.
+
+> root -l 'plotting/compareContours("/path/to/fitdir1/plots/LLH.root", "/path/to/fitdir2/plots/LLH.root", "label1", "label2", "/path/to/output/file")'
+
 <h3>MCMC</h3>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is! The non-fixed osc fits and llh scans are deprecated for now, and are not compiled by default.

@@ -257,11 +257,6 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     double contours[1];
     contours[0] = 2.295748928898636;
 
-    hLLH->DrawCopy("colz");
-    hLLH->SetContour(1, contours);
-    hLLH->Draw("cont3 same");
-    hLLH->SetLineColor(kRed);
-
     // Save plot as image and rootfile
     struct stat st = {0};
     std::filesystem::path pathObj(filename);
@@ -273,8 +268,13 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     pathObj.replace_filename("LLH.root");
     TFile *outfile = new TFile(pathObj.string().c_str(), "RECREATE");
     outfile->cd();
-    c1->Write("c1");
     hLLH->Write("hLLH");
+
+    hLLH->DrawCopy("colz");
+    hLLH->SetContour(1, contours);
+    hLLH->Draw("cont3 same");
+    hLLH->SetLineColor(kRed);
+    c1->Write("c1");
 
     // Now we're going to make the profile LLH plots
     std::pair<TH1D *, TH1D *> Profile = GetMinProfiles(hLLH);
