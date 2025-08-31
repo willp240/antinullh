@@ -88,6 +88,12 @@ namespace antinufit
         return ((1 + (birks_const * obs_val)) / (1 + (params.at("birks_constant") * obs_val))) * obs_val;
       };
 
+      ScaleFunc BirksLaw2 = [](const ParameterDict &params, const double &obs_val)
+      {
+        const double birks_const = 0.074;
+        return ((1 + (birks_const * obs_val)) / (1 + (params.at("birks_constant2") * obs_val))) * obs_val;
+      };
+
       ScaleFunction *scale_func = new ScaleFunction("scale_function");
 
       if (function == "BirksLaw")
@@ -96,6 +102,14 @@ namespace antinufit
         scale_func->SetScaleFunction(BirksLaw, paramnamevec_);
         scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant");
         ParameterDict params({{"birks_constant", paramvals_[paramnamevec_.at(0)]}});
+        scale_func->SetParameters(params);
+      }
+      else if (function == "BirksLaw2")
+      {
+
+        scale_func->SetScaleFunction(BirksLaw2, paramnamevec_);
+        scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant2");
+        ParameterDict params({{"birks_constant2", paramvals_[paramnamevec_.at(0)]}});
         scale_func->SetParameters(params);
       }
       else
