@@ -370,6 +370,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
     lower->cd();
     hMC->Divide(histMap["data"]);
+    hMC->SetFillStyle(0);
     hMC->GetYaxis()->SetRangeUser(0.9, 1.1);
     hMC->GetXaxis()->SetTitleFont(42);
     hMC->GetYaxis()->SetTitleFont(42);
@@ -387,7 +388,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     hMC->GetYaxis()->ChangeLabel(2, -1, -1, -1, -1, -1, " ");
     hMC->GetYaxis()->ChangeLabel(4, -1, -1, -1, -1, -1, " ");
     hMC->SetLineWidth(2);
-    hMC->Draw();
+    hMC->Draw("hist");
     c1->Update();
 
     struct stat st = {0};
@@ -447,7 +448,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     c2->Update();
 
     lower2->cd();
-    hMC->Draw();
+    hMC->Draw("hist");
 
     pathObj.replace_filename(("distgroup" + outsuffix + ".pdf").c_str());
     c2->SaveAs(pathObj.string().c_str());
