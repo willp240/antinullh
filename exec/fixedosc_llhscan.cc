@@ -52,6 +52,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
+  std::map<std::string, bool> fixedPars = fitConfig.GetFixPars();
   std::map<std::string, std::string> labelName = fitConfig.GetTexLabels();
 
   std::string pdfDir = outDir + "/unscaled_pdfs";
@@ -226,7 +227,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   }
   std::cout << std::endl;
 
-  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasetPars);
+  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasetPars, fixedPars);
 
   // Create the individual PDFs and Asimov components, for each dataset, and make the component LLH objects
   std::map<std::string, std::vector<BinnedED>> pdfMap;
