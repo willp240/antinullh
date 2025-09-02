@@ -154,7 +154,8 @@ namespace antinufit
 
     void PrintParams(ParameterDict mins, ParameterDict maxs, ParameterDict noms, ParameterDict constrMeans, ParameterDict constrSigmas,
                      ParameterDict constrRatioMeans, ParameterDict constrRatioSigmas, std::map<std::string, std::string> constrRatioParName,
-                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName, std::map<std::string, std::vector<std::string>> datasets)
+                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName, std::map<std::string, std::vector<std::string>> datasets,
+                     std::map<std::string, bool> fixPars)
     {
 
         std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
@@ -180,7 +181,7 @@ namespace antinufit
 
         std::cout << std::endl;
         std::cout << "************** Fit Parameters **************" << std::endl;
-        std::cout << " -----------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        std::cout << " -------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
         std::cout << "| ";
         std::cout << std::left << std::setw(25) << "Name";
         std::cout << "| ";
@@ -195,8 +196,10 @@ namespace antinufit
         std::cout << std::left << std::setw(20) << "Constraint Mean";
         std::cout << "| ";
         std::cout << std::left << std::setw(20) << "Constraint Sigma";
+        std::cout << "| ";
+        std::cout << std::left << std::setw(6) << "Fixed";
         std::cout << "| " << std::endl;
-        std::cout << " ===============================================================================================================================================" << std::endl;
+        std::cout << " =======================================================================================================================================================" << std::endl;
         for (int iParam = 0; iParam < tempNamesVec->size(); iParam++)
         {
 
@@ -233,10 +236,12 @@ namespace antinufit
                 std::cout << std::left << std::setw(20) << "" << "| ";
                 std::cout << std::left << std::setw(20) << "" << "| ";
             }
+            std::cout << std::left << std::setw(6) << fixPars[tempNamesVec->at(iParam)];
+            std::cout << "| ";
             std::cout << std::endl;
         }
 
-        std::cout << " -----------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
+        std::cout << " -------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
         if (constrRatioMeans.size() > 0)
         {
             std::cout << std::endl;
