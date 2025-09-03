@@ -112,6 +112,7 @@ The name of these tables should be the name of the fit parameter.
 - `constraint_corr`: Correlation of this parameter to another
 - `constraint_corrparname`: Name of other parameter this parameter is correlated to. This must be another parameter defined and activated in this file. Both correlated parameters must have a `constraint_mean` and `constraint_sig` defined.
 - `fake_data_val`: Value to use to produce a fake dataset if `fake_data` is true in the Summary
+- `fix`: Whether or not parameter is fixed in the fit
 
 A note on HMCMC: There is currently the functionality to run some MCMC, followed by some HMCMC starting from the best fit points of the MCMC. However, this didn't give any improvement in results or efficiency over the straight MCMC. The functionality is preserved in case we ever want to use it in the future, but generally we'll just run MCMC, with a notional 1 step HMCMC ran to avoid problems with files not being created when they are expected to.
 It's likely in the future we'll just remove the functionality.
@@ -239,7 +240,7 @@ Now the time has come to run a fit. When we float the oscillation parameters, we
 
 > ./bin/fixedosc_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
-The value of the oscillation parameters should be set in the `fit` config file. You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter. This performs a `Minuit` fit, with the oscillation parameters fixed at those values and the Minuit settings in the `fitCofig`. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced (if the `save_outputs` in the `fitConfig` is set).
+The value of the oscillation parameters should be set (and fixed) in the `fit` config file. You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter. This performs a `Minuit` fit, with the oscillation parameters fixed at those values and the Minuit settings in the `fitCofig`. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced (if the `save_outputs` in the `fitConfig` is set).
 
 `fit_results.txt` contains each parameter value for the maximum LLH point, and `fit_results.root` contains the vectors of parameter names, postfit values and uncertainties, and a covariance matrix.
 

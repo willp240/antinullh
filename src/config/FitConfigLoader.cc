@@ -106,6 +106,7 @@ namespace antinufit
     double constrCorr;
     std::string constrCorrParName;
     int nbins;
+    bool fixed;
 
     if (std::find(toLoad.begin(), toLoad.end(), "all") != toLoad.end())
     {
@@ -145,17 +146,26 @@ namespace antinufit
 
       try
       {
+        ConfigLoader::Load(name, "fix", fixed);
+      }
+      catch(const ConfigFieldMissing &e_)
+      {
+        fixed = false;
+      }
+
+      try
+      {
         ConfigLoader::Load(name, "constraint_mean", constrMean);
         ConfigLoader::Load(name, "constraint_sigma", constrSigma);
         try
         {
           ConfigLoader::Load(name, "constraint_corr", constrCorr);
           ConfigLoader::Load(name, "constraint_corrparname", constrCorrParName);
-          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrMean, constrSigma, constrCorrParName, constrCorr);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed, constrMean, constrSigma, constrCorrParName, constrCorr);
         }
         catch (const ConfigFieldMissing &e_)
         {
-          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrMean, constrSigma);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed, constrMean, constrSigma);
         }
       }
       catch (const ConfigFieldMissing &e_)
@@ -165,11 +175,11 @@ namespace antinufit
           ConfigLoader::Load(name, "constraint_ratiomean", constrRatioMean);
           ConfigLoader::Load(name, "constraint_ratiosigma", constrRatioSigma);
           ConfigLoader::Load(name, "constraint_ratioparname", constrRatioParName);
-          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, constrRatioMean, constrRatioSigma, constrRatioParName);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed, constrRatioMean, constrRatioSigma, constrRatioParName);
         }
         catch (const ConfigFieldMissing &e_)
         {
-          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel);
+          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed);
         }
       }
     }

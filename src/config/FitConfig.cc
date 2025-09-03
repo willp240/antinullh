@@ -259,6 +259,12 @@ namespace antinufit
     return fConstrCorrs;
   }
 
+  std::map<std::string, bool>
+  FitConfig::GetFixPars() const
+  {
+    return fFixPars;
+  }
+
   std::map<std::string, std::string>
   FitConfig::GetConstrCorrParName() const
   {
@@ -279,18 +285,18 @@ namespace antinufit
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          std::string label_, double constrMean_, double constrSigma_)
+                          std::string label_, bool fixed_, double constrMean_, double constrSigma_)
   {
 
     fConstrMeans[name_] = constrMean_;
     fConstrSigmas[name_] = constrSigma_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
   }
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          std::string label_)
+                          std::string label_, bool fixed_)
   {
     fMinima[name_] = min_;
     fMaxima[name_] = max_;
@@ -299,23 +305,24 @@ namespace antinufit
     fSigmas[name_] = sigma_;
     fNbins[name_] = nbins_;
     fTexLabels[name_] = label_;
+    fFixPars[name_] = fixed_;
   }
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          std::string label_, double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_)
+                          std::string label_, bool fixed_, double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_)
   {
 
     fConstrRatioMeans[name_] = constrRatioMean_;
     fConstrRatioSigmas[name_] = constrRatioSigma_;
     fConstrRatioParName[name_] = constrRatioParName_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
   }
 
   void
   FitConfig::AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
-                          std::string label_, double constrMean_, double constrSigma_, std::string constrCorrParName_, double constrCorr_)
+                          std::string label_, bool fixed_, double constrMean_, double constrSigma_, std::string constrCorrParName_, double constrCorr_)
   {
 
     fConstrMeans[name_] = constrMean_;
@@ -323,6 +330,6 @@ namespace antinufit
     fConstrCorrParName[name_] = constrCorrParName_;
     fConstrCorrs[name_] = constrCorr_;
 
-    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_);
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
   }
 }

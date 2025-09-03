@@ -61,6 +61,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
+  std::map<std::string, bool> fixedPars = fitConfig.GetFixPars();
+  int numFixed = 0; // Will use this to count fixed pars later
 
   std::string pdfDir = outDir + "/unscaled_pdfs";
   std::string asimovDistDir = outDir + "/asimov_dists";
@@ -187,6 +189,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     // We'll also use 'datasetPars' to keep track of which datasets each parameter applies to
     bool isPDF = false;
     bool isSyst = false;
+    bool isOsc = false;
     bool iterate = true;
     for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
@@ -195,14 +198,19 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         isPDF = true;
         datasetPars[parIt->first].push_back(dsIt->first);
       }
+      else if(parIt->first == "deltam21" || parIt->first == theta12name)
+      {
+        isOsc = true;
+        datasetPars[parIt->first].push_back(dsIt->first);
+      }
     }
-    if (!isPDF && systParDataSets.find(parIt->first) != systParDataSets.end())
+    if (!isPDF && !isOsc && systParDataSets.find(parIt->first) != systParDataSets.end())
     {
       isSyst = true;
       datasetPars[parIt->first] = systParDataSets[parIt->first];
     }
 
-    if (!isPDF && !isSyst)
+    if (!isPDF && !isSyst && !isOsc)
     {
       std::cout << parIt->first << " parameter defined in fit config but not in syst or event config. It will be ignored." << std::endl;
       constrSigmas.erase(parIt->first);
@@ -226,7 +234,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   }
   std::cout << std::endl;
 
-  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasetPars);
+  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasetPars, fixedPars);
 
   // Create the individual PDFs and Asimov components, for each dataset, and make the component LLH objects
   std::map<std::string, std::vector<BinnedED>> pdfMap;
@@ -520,17 +528,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       if (std::find(datasetPars[parIt->first].begin(), datasetPars[parIt->first].end(), dsIt->first) == datasetPars[parIt->first].end())
         continue;
       parameterValues[dsIt->first][parIt->first] = noms[parIt->first];
-      if (isFakeData)
-      {
-        parameterValues[dsIt->first][parIt->first] = fdValues[parIt->first];
-      }
-    }
-    // If we have constraints, initialise to those
-    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-    {
-      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-        continue;
-      parameterValues[dsIt->first][constrIt->first] = constrMeans[constrIt->first];
     }
     // Set to these initial values
     lh.SetParameters(parameterValues[dsIt->first]);
@@ -544,7 +541,12 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   for (std::map<std::string, ParameterDict>::iterator parMapIt = parameterValues.begin(); parMapIt != parameterValues.end(); parMapIt++)
   {
     for (ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++)
-      allParVals[parIt->first] = parIt->second;
+    {
+      if( allParVals.find(parIt->first) == allParVals.end())
+      {
+        allParVals[parIt->first] = parIt->second;
+      }
+    }
   }
 
   std::vector<TestStatistic *> rawllhptrs;
@@ -563,15 +565,22 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
   // Now do a fit!
   Minuit min;
-  std::cout << method << " " << iterations << " " << tolerance << " " << strategy << std::endl;
-  min.SetMethod(method); // Simplex
-  min.SetMaxCalls(iterations); // 1200
+  min.SetMethod(method);
+  min.SetMaxCalls(iterations);
   min.SetTolerance(tolerance);
   min.SetStrategy(strategy);
   min.SetMinima(mins);
   min.SetMaxima(maxs);
   min.SetInitialValues(allParVals);
   min.SetInitialErrors(sigmas);
+  for (std::map<std::string, bool>::iterator fixParMapIt = fixedPars.begin(); fixParMapIt != fixedPars.end(); fixParMapIt++)
+  {
+    if(fixParMapIt->second)
+    {
+      numFixed++;
+      min.Fix(fixParMapIt->first);
+    }
+  }
   std::cout << "Run rabbit run!" << std::endl;
   TStopwatch minuitTimer;
   minuitTimer.Start(true);
@@ -598,9 +607,14 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     std::vector<std::string> paramNames;
     std::vector<double> paramVals;
     std::vector<double> paramErr;
-    TMatrixD covTMatrixD(bestFit.size(), bestFit.size());
+    TMatrixD covTMatrixD(bestFit.size() - numFixed, bestFit.size()- numFixed);
     for (ParameterDict::iterator parIt = bestFit.begin(); parIt != bestFit.end(); ++parIt)
     {
+      // Fixed params won't be in the covariance matrix
+      if(fixedPars[parIt->first]){
+        continue;
+      }
+
       paramNames.push_back(parIt->first);
       paramVals.push_back(parIt->second);
       if (validFit)

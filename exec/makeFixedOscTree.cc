@@ -50,6 +50,7 @@ using namespace antinufit;
 /// of the fit results
 ///
 /////////////////////////////////////////////////////////////////// */
+
 // Function to overwrite the save_outputs bool and Minuit settings in a fit config file
 void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
 {

@@ -28,6 +28,8 @@ namespace antinufit
     ParameterDict GetConstrCorrs() const;
     std::map<std::string, std::string> GetConstrCorrParName() const;
 
+    std::map<std::string, bool> GetFixPars() const;
+
     int GetIterations() const;
     void SetIterations(int);
     int GetHMCIterations() const;
@@ -45,12 +47,12 @@ namespace antinufit
     std::string GetMinuitMethod() const;
     void SetMinuitMethod(std::string);
 
-    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_);
-    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed);
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
                       double constrMean_, double constrSigma_);
-    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
+    void AddParameter(const std::string &name_, double mean_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
                       double constrMean_, double constrSigma_, std::string constrCorrParName_, double constrCorr_);
-    void AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_,
+    void AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
                       double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_);
 
     std::set<std::string> GetParamNames() const;
@@ -113,6 +115,7 @@ namespace antinufit
     bool fSaveOutputs;
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrCorrParName;
+    std::map<std::string, bool> fFixPars;
   };
 }
 #endif

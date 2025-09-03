@@ -68,7 +68,7 @@ void compareContours(std::string filename1, std::string label1, std::string file
   
     hLLH2->SetLineColor(kRed+2);
     hLLH2->SetLineWidth(2);
-    hLLH2->SetLineStyle(1);
+    hLLH2->SetLineStyle(2);
     hLLH2->SetContour(1, contours);
 
     // Draw the histograms
@@ -82,7 +82,7 @@ void compareContours(std::string filename1, std::string label1, std::string file
     hLLH1->Draw("cont2");
     hLLH2->Draw("cont3 SAME");
 
-    TLegend *t1 = new TLegend(0.78, 0.8, 0.89, 0.88);
+    TLegend *t1 = new TLegend(0.77, 0.8, 0.89, 0.88);
     t1->AddEntry(hLLH1, label1.c_str(), "l");
     t1->AddEntry(hLLH2, label2.c_str(), "l");
     t1->SetLineWidth(2);
