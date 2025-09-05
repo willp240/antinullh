@@ -222,18 +222,32 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     double minTheta = tree->GetMinimum(theta12name.c_str());
     double maxTheta = tree->GetMaximum(theta12name.c_str());
     double minLLH = tree->GetMinimum("LLH");
+    
+    // Steps between centers (because both min and max are included as centers):
+    double stepTheta = (maxTheta   - minTheta)   / (nBinsX - 1);
+    double stepDm    = (maxDeltam  - minDeltam)  / (nBinsY - 1);
 
-    TH2D *hLLH = new TH2D("hLLH", ("#Delta LLH;#Delta m^2, MeV;" + theta12labelunit).c_str(),
-                          nBinsX, minTheta, maxTheta,
-                          nBinsY, minDeltam, maxDeltam);
+    double minThetaBin = minTheta-(stepTheta/2);
+    double maxThetaBin = maxTheta+(stepTheta/2);
+    double minDeltamBin = minDeltam-(stepDm/2);
+    double maxDeltamBin = maxDeltam+(stepDm/2);
 
+    // Make the histogram with those edges:
+    TH2D* hLLH = new TH2D("hLLH", ("#Delta LLH;#Delta m^{2}, MeV;" + theta12labelunit).c_str(),
+			  nBinsX, minThetaBin, maxThetaBin,
+			  nBinsY, minDeltamBin, maxDeltamBin);
+    
     // Loop over the tree entries and fill the histogram
     for (Long64_t i = 0; i < nEntries; i++)
     {
         tree->GetEntry(i);
-        hLLH->Fill(theta, deltam, 2 * (llh - minLLH));
-    }
 
+	    int binx = hLLH->GetXaxis()->FindBin(theta);
+	    int biny = hLLH->GetYaxis()->FindBin(deltam);
+
+	    hLLH->SetBinContent(binx, biny, 2*(llh - minLLH));
+    }
+    
     // Draw the 2D histogram
     TCanvas *c1 = new TCanvas("c1", "LLH", 800, 600);
     c1->SetRightMargin(0.15);

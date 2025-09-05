@@ -374,11 +374,10 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
             parseFitResultsTxt(filePath, branchMap, &tree, &bestLLH, &bestDeltam, &bestTheta, theta12name);
         }
     }
-
+    std::cout << "Got " << tree.GetEntries() << " fits." << std::endl;
     // Write our tree and make vectors of the parameter names and asimov values
     outputFile.cd();
     tree.Write();
-
 
     std::cout << std::endl << "TTree saved to " << outDir << "/" << outFilename << std::endl << std::endl;
 
