@@ -465,7 +465,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
 
     // And make the plot
     TCanvas *c2 = new TCanvas("c2", "Correlations", 800, 600);
-    c1->SetBottomMargin(0.18);
+    c2->SetBottomMargin(0.18);
     c2->SetRightMargin(0.15);
     c2->SetLeftMargin(0.15);
     gPad->SetFrameLineWidth(2);
