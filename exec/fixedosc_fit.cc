@@ -198,7 +198,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         isPDF = true;
         datasetPars[parIt->first].push_back(dsIt->first);
       }
-      else if(parIt->first == "deltam21" || parIt->first == theta12name)
+      else if (parIt->first == "deltam21" || parIt->first == theta12name)
       {
         isOsc = true;
         datasetPars[parIt->first].push_back(dsIt->first);
@@ -241,7 +241,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<std::vector<std::string>>> pdfGroups;
   std::vector<BinnedNLLH> testStats;
   std::map<std::string, ParameterDict> parameterValues;
-  std::map<std::string, double> reactorRatio; // Ratio of oscillated to unoscillated number of reactor IBDs
+  std::map<std::string, double> reactorRatio;   // Ratio of oscillated to unoscillated number of reactor IBDs
   std::map<std::string, double> reactorRatioFD; // Ratio of oscillated to unoscillated number of reactor IBDs for the fake dataset if we're making one
   std::map<std::string, std::vector<int>> genRates;
   std::map<std::string, std::vector<NormFittingStatus> *> normFittingStatuses;
@@ -488,37 +488,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     // Add our pdfs
     lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
 
-    // And constraints
-    std::vector<std::string> corrPairs;
-    for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
-    {
-      // If either parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
-          std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
-        continue;
-      lh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
-                       constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
-      corrPairs.push_back(constrCorrParName.at(corrIt->first));
-    }
-    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-    {
-      // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-        continue;
-
-      // Only add single parameter constraint if correlation hasn't already been applied
-      if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
-        lh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
-    }
-    for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
-    {
-      // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
-        continue;
-
-      lh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
-    }
-
     // And finally bring it all together
     lh.RegisterFitComponents();
 
@@ -542,7 +511,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   {
     for (ParameterDict::iterator parIt = parMapIt->second.begin(); parIt != parMapIt->second.end(); parIt++)
     {
-      if( allParVals.find(parIt->first) == allParVals.end())
+      if (allParVals.find(parIt->first) == allParVals.end())
       {
         allParVals[parIt->first] = parIt->second;
       }
@@ -555,6 +524,28 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     rawllhptrs.push_back(&lh);
   }
   StatisticSum fullLLH = Sum(rawllhptrs);
+
+  // Add constraints
+  std::vector<std::string> corrPairs;
+  for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+  {
+    fullLLH.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                          constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+    corrPairs.push_back(constrCorrParName.at(corrIt->first));
+  }
+  for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+  {
+
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+      fullLLH.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+  }
+  for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+  {
+
+    fullLLH.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+  }
+
   fullLLH.RegisterFitComponents();
 
   TStopwatch timer;
@@ -575,7 +566,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   min.SetInitialErrors(sigmas);
   for (std::map<std::string, bool>::iterator fixParMapIt = fixedPars.begin(); fixParMapIt != fixedPars.end(); fixParMapIt++)
   {
-    if(fixParMapIt->second)
+    if (fixParMapIt->second)
     {
       numFixed++;
       min.Fix(fixParMapIt->first);
@@ -607,11 +598,12 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     std::vector<std::string> paramNames;
     std::vector<double> paramVals;
     std::vector<double> paramErr;
-    TMatrixD covTMatrixD(bestFit.size() - numFixed, bestFit.size()- numFixed);
+    TMatrixD covTMatrixD(bestFit.size() - numFixed, bestFit.size() - numFixed);
     for (ParameterDict::iterator parIt = bestFit.begin(); parIt != bestFit.end(); ++parIt)
     {
       // Fixed params won't be in the covariance matrix
-      if(fixedPars[parIt->first]){
+      if (fixedPars[parIt->first])
+      {
         continue;
       }
 
