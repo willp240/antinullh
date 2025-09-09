@@ -148,7 +148,16 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     syst->SetDistributionObs(systDistObs[systIt->first]);
     syst->Construct();
     for (std::vector<std::string>::iterator dsIt = systDataSets[systIt->first].begin(); dsIt != systDataSets[systIt->first].end(); ++dsIt)
-      systMap[*dsIt][systIt->first] = syst;
+    {
+      // Check if dsIt == a ds that exists in dsPDFMap
+      if (dsPDFMap.find(*dsIt) == dsPDFMap.end())
+      {
+        std::cout << "ERROR: SystConfig defines systematic " << systIt->first << " applying to dataset " << *dsIt << " that is not defined in EventConfig" << std::endl;
+        throw;
+      }
+      else
+        systMap[*dsIt][systIt->first] = syst;
+    }
   }
 
   // Check we've got the oscillation parameters we need, and whether theta is sin-ed or not
