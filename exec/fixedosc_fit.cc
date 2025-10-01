@@ -255,7 +255,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<int>> genRates;
   std::map<std::string, std::vector<NormFittingStatus> *> normFittingStatuses;
 
-  // Now we're going to loop over datasets and build the asimov datsets
+  // Now we're going to loop over datasets and build the asimov datasets
   for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
   {
     std::cout << "Building Asimov for dataset: " << dsIt->first << std::endl;
@@ -485,7 +485,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     dataDists[dsIt->first] = dataDist;
 
     // Now build the likelihood
-    BinnedNLLH lh;
+    BinnedNLLH &lh = testStats.emplace_back();
     lh.SetBuffer("energy", 1, 20);
     // Add our data
     lh.SetDataDist(dataDist);
@@ -497,9 +497,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     // Add our pdfs
     lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
 
-    // And finally bring it all together
-    lh.RegisterFitComponents();
-
     // Initialise to nominal values
     for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
     {
@@ -509,8 +506,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     }
     // Set to these initial values
     lh.SetParameters(parameterValues[dsIt->first]);
-    testStats.push_back(std::move(lh));
-    std::cout << "Made LLH for Datset: " << dsIt->first << std::endl
+
+    // And finally bring it all together
+    lh.RegisterFitComponents();
+
+    std::cout << "Made LLH for Dataset: " << dsIt->first << std::endl
               << std::endl;
   } // End loop over datasets
 
@@ -536,28 +536,28 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
   // Add constraints
   std::vector<std::string> corrPairs;
-  for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
-  {
-    fullLLH.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
-                          constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
-    corrPairs.push_back(constrCorrParName.at(corrIt->first));
-  }
-  for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-  {
+   for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+   {
+     fullLLH.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                           constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+     corrPairs.push_back(constrCorrParName.at(corrIt->first));
+   }
+   for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+   {
 
-    // Only add single parameter constraint if correlation hasn't already been applied
-    if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
-      fullLLH.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
-  }
-  for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
-  {
+     // Only add single parameter constraint if correlation hasn't already been applied
+     if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+       fullLLH.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+   }
+   for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+   {
 
-    fullLLH.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
-  }
+     fullLLH.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+   }
 
-  fullLLH.RegisterFitComponents();
+   fullLLH.RegisterFitComponents();
 
-  TStopwatch timer;
+   TStopwatch timer;
   timer.Start(true);
   fullLLH.Evaluate();
   timer.Stop();
