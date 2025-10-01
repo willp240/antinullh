@@ -203,6 +203,81 @@ namespace antinufit
         return fOscProb;
       };
 
+      // The bin-by-bin efficiencies scaling for the alpha,n classifier on the reactor IBD PDF
+      ShapeFunction AlphaNClassIBD = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        // Nominal efficiency scaling for each bin
+        std::vector<double> efficiencies = {0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8};
+
+        // Current value of the fit parameter (S in these slides https://www.snolab.ca/snoplus/private/DocDB/0088/008836/008/AmBe.pdf)
+        double scale = params.at("alphanclassibd");
+
+        // Only applies < 3.5 MeV
+        if (obs_vals.at(0) < 3.5)
+        {
+          // Convert energy to bin nuber to get nominal efficiency
+          int bin = (obs_vals.at(0) - 1.0) / 0.05;
+          double eff = efficiencies[bin];
+
+          // And scale the nominal efficiency accordingly
+          double scaledeff = scale * eff;
+
+          // But scaled efficiency must still be between 0 and 1
+          if (scaledeff < 0)
+            scaledeff = 0;
+          else if (scaledeff > 1.0)
+            scaledeff = 1.0;
+
+          return scaledeff;
+        }
+        else
+        {
+          return 1.0;
+        }
+      };
+
+      // The bin-by-bin efficiencies scaling for the alpha,n classifier on the proton recoil alpha,n PDF
+      ShapeFunction AlphaNClassAlphaN = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        // Nominal efficiency scaling for each bin
+        std::vector<double> efficiencies = {0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8,
+                                            0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8};
+
+        // Current value of the fit parameter (a in these slides https://www.snolab.ca/snoplus/private/DocDB/0088/008836/008/AmBe.pdf)
+        double a = params.at("alphanclassalphan");
+
+        // Only applies < 3.5 MeV
+        if (obs_vals.at(0) < 3.5)
+        {
+          // Convert energy to bin nuber to get nominal efficiency
+          int bin = (obs_vals.at(0) - 1.0) / 0.05;
+          double eff = efficiencies[bin];
+
+          // And scale the nominal efficiency accordingly
+          double scale = 1 + pow(a,2) * pow(obs_vals.at(0), 3);
+          double scaledeff = scale * eff;
+
+          // But scaled efficiency must still be between 0 and 1
+          if (scaledeff < 0)
+            scaledeff = 0;
+          else if (scaledeff > 1.0)
+            scaledeff = 1.0;
+
+          return scaledeff;
+        }
+        else
+        {
+          return 1.0;
+        }
+      };
+
       Shape *shape = new Shape("shape");
 
       if (function == "OscProbGrid")
@@ -219,6 +294,20 @@ namespace antinufit
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
         shape->RenameParameter(paramnamevec_.at(1), "theta12");
         ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "AlphaNClassIBD")
+      {
+        shape->SetShapeFunction(AlphaNClassIBD, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "alphanclassibd");
+        ParameterDict params({{"alphanclassibd", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "AlphaNClassAlphaN")
+      {
+        shape->SetShapeFunction(AlphaNClassAlphaN, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "alphanclassalphan");
+        ParameterDict params({{"alphanclassalphan", paramvals_[paramnamevec_.at(0)]}});
         shape->SetParameters(params);
       }
       else
