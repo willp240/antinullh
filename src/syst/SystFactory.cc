@@ -261,7 +261,7 @@ namespace antinufit
           double eff = efficiencies[bin];
 
           // And scale the nominal efficiency accordingly
-          double scale = 1 + pow(a,2) * pow(obs_vals.at(0), 3);
+          double scale = 1 + pow(a, 2) * pow(obs_vals.at(0), 3);
           double scaledeff = scale * eff;
 
           // But scaled efficiency must still be between 0 and 1
