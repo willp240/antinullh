@@ -18,7 +18,7 @@ namespace antinufit
 
     if (numDimensions > config_.GetAxisCount())
     {
-      throw ValueError("Number of axes required is fewer than number declared in config");
+      throw ValueError("Number of axes required is more than number declared in config");
     }
 
     // Build the axes
