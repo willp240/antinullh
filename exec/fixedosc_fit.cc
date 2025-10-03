@@ -255,7 +255,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<int>> genRates;
   std::map<std::string, std::vector<NormFittingStatus> *> normFittingStatuses;
 
-  // Now we're going to loop over datasets and build the asimov datsets
+  // Now we're going to loop over datasets and build the asimov datasets
   for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
   {
     std::cout << "Building Asimov for dataset: " << dsIt->first << std::endl;
@@ -485,7 +485,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     dataDists[dsIt->first] = dataDist;
 
     // Now build the likelihood
-    BinnedNLLH lh;
+    BinnedNLLH &lh = testStats.emplace_back();
     lh.SetBuffer("energy", 1, 20);
     // Add our data
     lh.SetDataDist(dataDist);
@@ -497,9 +497,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     // Add our pdfs
     lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
 
-    // And finally bring it all together
-    lh.RegisterFitComponents();
-
     // Initialise to nominal values
     for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
     {
@@ -509,8 +506,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     }
     // Set to these initial values
     lh.SetParameters(parameterValues[dsIt->first]);
-    testStats.push_back(std::move(lh));
-    std::cout << "Made LLH for Datset: " << dsIt->first << std::endl
+
+    // And finally bring it all together
+    lh.RegisterFitComponents();
+
+    std::cout << "Made LLH for Dataset: " << dsIt->first << std::endl
               << std::endl;
   } // End loop over datasets
 
