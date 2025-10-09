@@ -86,6 +86,41 @@ namespace antinufit
     return dsMap;
   }
 
+  std::map<std::string, std::map<std::string, EventConfig>>
+  EventConfigLoader::LoadActiveAndData() const
+  {
+    typedef std::set<std::string> StringSet;
+    std::map<std::string, std::map<std::string, EventConfig>> activeEvs = LoadActive();
+
+    StringSet dataSets;
+    std::string baseDir;
+    std::string prunedDir;
+    std::vector<std::string> dataFilename;
+
+    ConfigLoader::Load("summary", "datasets", dataSets);
+
+    for (StringSet::iterator itDS = dataSets.begin(); itDS != dataSets.end(); ++itDS)
+    {
+
+      std::string dataset = *itDS;
+
+      ConfigLoader::Load(dataset, "data_file", dataFilename);
+      ConfigLoader::Load(dataset, "orig_base_dir", baseDir);
+      ConfigLoader::Load(dataset, "pruned_ntup_dir", prunedDir);
+
+      EventConfig dataEveCfg;
+      dataEveCfg.SetNtupFiles(dataFilename);
+      dataEveCfg.SetName("data");
+      dataEveCfg.SetNtupBaseDir(baseDir);
+      dataEveCfg.SetPrunedPath(prunedDir + "/data.root");
+
+      std::map<std::string, EventConfig> evMap;
+      evMap["data"] = dataEveCfg;
+
+      activeEvs[dataset] = evMap;
+    }
+  }
+
   EventConfigLoader::~EventConfigLoader()
   {
     ConfigLoader::Close();
