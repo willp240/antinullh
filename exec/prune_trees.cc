@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
   typedef std::map<std::string, antinufit::EventConfig> EvMap;
   typedef std::vector<std::string> StringVec;
   typedef std::map<std::string, std::map<std::string, EventConfig>> DSMap;
-  DSMap dsPDFMap = eveLoader.LoadActive();
+  DSMap dsPDFMap = eveLoader.LoadActiveAndData();
 
   struct stat st = {0};
   if (stat(outDir.c_str(), &st) == -1)
