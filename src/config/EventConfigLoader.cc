@@ -77,8 +77,9 @@ namespace antinufit
       }
 
       EventConfigMap evMap;
-      for (StringSet::iterator itEv = toLoad.begin(); itEv != toLoad.end(); ++itEv)
+      for (StringSet::iterator itEv = toLoad.begin(); itEv != toLoad.end(); ++itEv){
         evMap[*itEv] = LoadOne(*itEv, *itDS);
+      }
 
       dsMap[*itDS] = evMap;
     }
@@ -104,9 +105,9 @@ namespace antinufit
 
       std::string dataset = *itDS;
 
+      ConfigLoader::Load(dataset, "pruned_ntup_dir", prunedDir);
       ConfigLoader::Load(dataset, "data_file", dataFilename);
       ConfigLoader::Load(dataset, "orig_base_dir", baseDir);
-      ConfigLoader::Load(dataset, "pruned_ntup_dir", prunedDir);
 
       EventConfig dataEveCfg;
       dataEveCfg.SetNtupFiles(dataFilename);
@@ -117,8 +118,9 @@ namespace antinufit
       std::map<std::string, EventConfig> evMap;
       evMap["data"] = dataEveCfg;
 
-      activeEvs[dataset] = evMap;
+      activeEvs[dataset]["data"] = dataEveCfg;
     }
+    return activeEvs;
   }
 
   EventConfigLoader::~EventConfigLoader()
