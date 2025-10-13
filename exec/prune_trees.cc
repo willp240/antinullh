@@ -48,7 +48,7 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
   TNtuple nt("pruned", "", "energy:nu_energy:reactorIndex:alphaNClassifier");
 
   // Read the original data
-  const std::string treeName = "output";
+  const std::string treeName = "PromptT";
   for (size_t iFile = 0; iFile < filenames_.size(); iFile++)
   {
     std::string fileName = baseDir_ + "/" + filenames_.at(iFile);
@@ -65,8 +65,8 @@ void MakeDataSet(const std::vector<std::string> &filenames_,
     Double_t distance;
     Double_t neutrinoEnergy;
 
-    chain.SetBranchAddress("energy", &energy);
-    chain.SetBranchAddress("alphaNReactorIBD", &alphaNClassifier);
+    chain.SetBranchAddress("promptEcorr", &energy);
+    chain.SetBranchAddress("Prompt_alphaNReactorIBD", &alphaNClassifier);
     chain.SetBranchAddress("parentKE1", &neutrinoEnergy);
     chain.SetBranchAddress("parentMeta1", &reactorName);
 
@@ -121,26 +121,26 @@ int main(int argc, char *argv[])
   std::unordered_map<std::string, int> reactorNameIndex = LoadNameIndexMap(reactorsJSONFile);
 
   // Create the results directory if it doesn't already exist
-  std::string outDir;
   std::string eveConfigFile(argv[1]);
   ConfigLoader::Open(eveConfigFile);
-  ConfigLoader::Load("summary", "pruned_ntup_dir", outDir);
   ConfigLoader::Close();
   EventConfigLoader eveLoader(eveConfigFile);
   typedef std::map<std::string, antinufit::EventConfig> EvMap;
   typedef std::vector<std::string> StringVec;
   typedef std::map<std::string, std::map<std::string, EventConfig>> DSMap;
   DSMap dsPDFMap = eveLoader.LoadActiveAndData();
-
-  struct stat st = {0};
-  if (stat(outDir.c_str(), &st) == -1)
-  {
-    mkdir(outDir.c_str(), 0700);
-  }
-  std::cout << "Made " << outDir << std::endl;
-
   for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
   {
+    const std::string &dsname = dsIt->first;
+    std::string outDir;
+    ConfigLoader::Load(dsIt->first, "pruned_ntup_dir", outDir);
+
+    struct stat st = {0};
+    if (stat(outDir.c_str(), &st) == -1)
+    {
+      mkdir(outDir.c_str(), 0700);
+    }
+    std::cout << "Made " << outDir << std::endl;
 
     for (EvMap::iterator evIt = dsIt->second.begin(); evIt != dsIt->second.end(); ++evIt)
     {
