@@ -34,8 +34,8 @@ energy to determine which alpha-n process an event was
 
 using namespace antinufit;
 
-double precoil_cscatter_bound = 3.8;
-double cscatter_oscatter_bound = 5.1;
+double precoil_cscatter_bound = 4.0;
+double cscatter_oscatter_bound = 5.2;
 
 void MakeDataSet(const std::vector<std::string> &filenames_,
                  const std::string &baseDir_,
