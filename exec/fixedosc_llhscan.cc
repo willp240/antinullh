@@ -563,8 +563,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     dataDists[dsIt->first] = dataDist;
 
     // Now build the likelihood
-    BinnedNLLH lh;
-    lh.SetBuffer("energy", 1, 20);
+    BinnedNLLH &lh = testStats.emplace_back();
+    lh.SetBuffer("energy", 8, 20);
     // Add our data
     lh.SetDataDist(dataDist);
     // Set whether or not to use Beeston Barlow
@@ -575,64 +575,20 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     // Add our pdfs
     lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
 
-    // And constraints
-    std::vector<std::string> corrPairs;
-    for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
-    {
-      // If either parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
-          std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
-        continue;
-      lh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
-                       constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
-      corrPairs.push_back(constrCorrParName.at(corrIt->first));
-    }
-    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-    {
-      // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-        continue;
-
-      // Only add single parameter constraint if correlation hasn't already been applied
-      if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
-        lh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
-    }
-
-    for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
-    {
-      // If parameter doesn't exist for this dataset, move along
-      if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
-        continue;
-
-      lh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
-    }
-
-    // And finally bring it all together
-    lh.RegisterFitComponents();
-
     // Initialise to nominal values
     for (ParameterDict::iterator parIt = mins.begin(); parIt != mins.end(); ++parIt)
     {
       if (std::find(datasetPars[parIt->first].begin(), datasetPars[parIt->first].end(), dsIt->first) == datasetPars[parIt->first].end())
         continue;
       parameterValues[dsIt->first][parIt->first] = noms[parIt->first];
-      if (isFakeData)
-      {
-        parameterValues[dsIt->first][parIt->first] = fdValues[parIt->first];
-      }
     }
 
-    // If we have constraints, initialise to those
-    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-    {
-      if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-        continue;
-      parameterValues[dsIt->first][constrIt->first] = constrMeans[constrIt->first];
-    }
+    // And finally bring it all together
+    lh.RegisterFitComponents();
 
     // Set to these initial values
     lh.SetParameters(parameterValues[dsIt->first]);
-    testStats.push_back(std::move(lh));
+
   } // End loop over datasets
 
   // Now combine the LLH for each dataset
@@ -651,6 +607,28 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     rawllhptrs.push_back(&lh);
   }
   StatisticSum fullLLH = Sum(rawllhptrs);
+
+  // Add constraints
+  std::vector<std::string> corrPairs;
+  for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+  {
+    fullLLH.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                          constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+    corrPairs.push_back(constrCorrParName.at(corrIt->first));
+  }
+  for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+  {
+
+    // Only add single parameter constraint if correlation hasn't already been applied
+    if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+      fullLLH.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+  }
+  for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+  {
+
+    fullLLH.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+  }
+
   fullLLH.RegisterFitComponents();
 
   // Calculate the nominal LLH
@@ -685,6 +663,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     TH1D *hScan = new TH1D((name + "_full").c_str(), (labelName[name] + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
     hScan->SetTitle(std::string(htitle + ";" + labelName[name] + " (rel. to Asimov); -(ln L_{full})").c_str());
 
+    std::cout << "Scanning for " << name << std::endl;
     // Now loop from min to max in npoint steps
     for (int i = 0; i < npoints; i++)
     {
@@ -732,8 +711,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     std::vector<BinnedNLLH> oscTestStats;
     for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
-      BinnedNLLH osclh;
-      osclh.SetBuffer("energy", 1, 20);
+      BinnedNLLH &osclh = oscTestStats.emplace_back();
+      osclh.SetBuffer("energy", 8, 20);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);
 
@@ -755,44 +734,12 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       }
       osclh.AddPdfs(pdfvec, pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
 
-      // And constraints
-      std::vector<std::string> corrPairs;
-      for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
-      {
-        // If either parameter doesn't exist for this dataset, move along
-        if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
-            std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
-          continue;
-        osclh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
-                            constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
-        corrPairs.push_back(constrCorrParName.at(corrIt->first));
-      }
-      for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-      {
-        // If parameter doesn't exist for this dataset, move along
-        if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-          continue;
-
-        // Only add single parameter constraint if correlation hasn't already been applied
-        if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
-          osclh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
-      }
-      for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
-      {
-        // If parameter doesn't exist for this dataset, move along
-        if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
-          continue;
-
-        osclh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
-      }
-
       if (iDeltaM % countwidth == 0)
         std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
 
       // Bring it all together
       osclh.RegisterFitComponents();
       osclh.SetParameters(parameterValues[dsIt->first]);
-      oscTestStats.push_back(std::move(osclh));
     }
 
     std::vector<TestStatistic *> rawoscllhptrs;
@@ -801,6 +748,28 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       rawoscllhptrs.push_back(&oscllh);
     }
     StatisticSum fullOscLLH = Sum(rawoscllhptrs);
+
+    // Add constraints
+    std::vector<std::string> corrPairs;
+    for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+    {
+      fullOscLLH.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                               constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+      corrPairs.push_back(constrCorrParName.at(corrIt->first));
+    }
+    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+    {
+
+      // Only add single parameter constraint if correlation hasn't already been applied
+      if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+        fullOscLLH.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+    }
+    for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+    {
+
+      fullOscLLH.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+    }
+
     fullOscLLH.RegisterFitComponents();
 
     // Evaluate LLH and set histogram bin content
@@ -830,8 +799,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     std::vector<BinnedNLLH> oscTestStats;
     for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
-      BinnedNLLH osclh;
-      osclh.SetBuffer("energy", 1, 20);
+      BinnedNLLH &osclh = oscTestStats.emplace_back();
+      osclh.SetBuffer("energy", 8, 20);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);
 
@@ -890,7 +859,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       // Bring it all together
       osclh.RegisterFitComponents();
       osclh.SetParameters(parameterValues[dsIt->first]);
-      oscTestStats.push_back(std::move(osclh));
+
     }
 
     std::vector<TestStatistic *> rawoscllhptrs;
@@ -899,6 +868,29 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       rawoscllhptrs.push_back(&oscllh);
     }
     StatisticSum fullOscLLH = Sum(rawoscllhptrs);
+
+    // Add constraints
+    std::vector<std::string> corrPairs;
+    for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
+    {
+      fullOscLLH.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
+                               constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
+      corrPairs.push_back(constrCorrParName.at(corrIt->first));
+    }
+    for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
+    {
+
+      // Only add single parameter constraint if correlation hasn't already been applied
+      if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
+        fullOscLLH.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
+
+      for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
+      {
+
+        fullOscLLH.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+      }
+    }
+
     fullOscLLH.RegisterFitComponents();
 
     // Evaluate LLH and set histogram bin content
