@@ -169,7 +169,7 @@ namespace antinufit
     {
 
       std::string dataPath;
-      ConfigLoader::Load(*itDS, "datafile", dataPath);
+      ConfigLoader::Load(*itDS, "data_file", dataPath);
       dataPathMap[*itDS] = dataPath;
     }
 
