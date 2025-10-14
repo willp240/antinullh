@@ -335,10 +335,16 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
         maxs[evIt->first] = maxs[evIt->first] * reactorRatio;
         fdValues[evIt->first] = fdValues[evIt->first] * reactorRatio;
 
+        // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
+        double width = (deltam21_max - deltam21_min) / (npoints);
+        int numStepsBelowNom = floor((deltam21_nom - deltam21_min) / width);
+        int numStepsAboveNom = floor((deltam21_max - deltam21_nom) / width);
+        double min = deltam21_nom - numStepsBelowNom * width;
+        double max = deltam21_nom + numStepsAboveNom * width;
         // Now loop over deltam points and make a new pdf for each
         for (int iDeltaM = 0; iDeltaM < npoints; iDeltaM++)
         {
-          double deltam21 = deltam21_min + (double)iDeltaM * (deltam21_max - deltam21_min) / (npoints - 1);
+          double deltam21 = min + (iDeltaM * width);
           // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
           double theta12_param = theta12_nom;
           if (hasSinTheta12)
@@ -367,9 +373,17 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           oscDatasets.at(iDeltaM).Add(oscDist);
         }
         // And do the same for theta
+
+        // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
+        width = (theta12_max - theta12_min) / (npoints);
+        numStepsBelowNom = floor((theta12_nom - theta12_min) / width);
+        numStepsAboveNom = floor((theta12_max - theta12_nom) / width);
+        min = theta12_nom - numStepsBelowNom * width;
+        max = theta12_nom + numStepsAboveNom * width;
+
         for (int iTheta = 0; iTheta < npoints; iTheta++)
         {
-          double theta12 = theta12_min + (double)iTheta * (theta12_max - theta12_min) / (npoints - 1);
+          double theta12 = min + (iTheta * width);
           // Whichever form of theta12 we have, let's make a sin^2(theta12) to hand to the oscillated dist builder
           double theta12_param = theta12;
           if (hasSinTheta12)
@@ -821,37 +835,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           pdfvec.push_back(oscPDFsMap[dsIt->first].at(iTheta12 + npoints));
       }
       osclh.AddPdfs(pdfvec, pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
-
-      // And constraints
-      std::vector<std::string> corrPairs;
-      for (ParameterDict::iterator corrIt = constrCorrs.begin(); corrIt != constrCorrs.end(); ++corrIt)
-      {
-        // If either parameter doesn't exist for this dataset, move along
-        if (std::find(datasetPars[corrIt->first].begin(), datasetPars[corrIt->first].end(), dsIt->first) == datasetPars[corrIt->first].end() ||
-            std::find(datasetPars[constrCorrParName.at(corrIt->first)].begin(), datasetPars[constrCorrParName.at(corrIt->first)].end(), dsIt->first) == datasetPars[constrCorrParName.at(corrIt->first)].end())
-          continue;
-        osclh.SetConstraint(corrIt->first, constrMeans.at(corrIt->first), constrSigmas.at(corrIt->first), constrCorrParName.at(corrIt->first),
-                            constrMeans.at(constrCorrParName.at(corrIt->first)), constrSigmas.at(constrCorrParName.at(corrIt->first)), corrIt->second);
-        corrPairs.push_back(constrCorrParName.at(corrIt->first));
-      }
-      for (ParameterDict::iterator constrIt = constrMeans.begin(); constrIt != constrMeans.end(); ++constrIt)
-      {
-        // If parameter doesn't exist for this dataset, move along
-        if (std::find(datasetPars[constrIt->first].begin(), datasetPars[constrIt->first].end(), dsIt->first) == datasetPars[constrIt->first].end())
-          continue;
-
-        // Only add single parameter constraint if correlation hasn't already been applied
-        if (constrCorrs.find(constrIt->first) == constrCorrs.end() && std::find(corrPairs.begin(), corrPairs.end(), constrIt->first) == corrPairs.end())
-          osclh.SetConstraint(constrIt->first, constrIt->second, constrSigmas.at(constrIt->first));
-      }
-      for (ParameterDict::iterator ratioIt = constrRatioMeans.begin(); ratioIt != constrRatioMeans.end(); ++ratioIt)
-      {
-        // If parameter doesn't exist for this dataset, move along
-        if (std::find(datasetPars[ratioIt->first].begin(), datasetPars[ratioIt->first].end(), dsIt->first) == datasetPars[ratioIt->first].end())
-          continue;
-
-        osclh.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
-      }
 
       if (iTheta12 % countwidth == 0)
         std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;
