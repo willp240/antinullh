@@ -504,11 +504,12 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         continue;
       parameterValues[dsIt->first][parIt->first] = noms[parIt->first];
     }
-    // Set to these initial values
-    lh.SetParameters(parameterValues[dsIt->first]);
 
     // And finally bring it all together
     lh.RegisterFitComponents();
+
+    // Set to these initial values
+    lh.SetParameters(parameterValues[dsIt->first]);
 
     std::cout << "Made LLH for Dataset: " << dsIt->first << std::endl
               << std::endl;
