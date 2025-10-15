@@ -46,37 +46,18 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
     std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{"deltam21",
                                                                              theta12name,
                                                                              "reactor_nubar",
-                                                                             "reactor_nubar2",
                                                                              "geonu_U",
-                                                                             "geonu_U2",
                                                                              "geonu_Th",
-                                                                             "geonu_Th2",
                                                                              "alphan_CScatter",
-                                                                             "alphan_CScatter2",
                                                                              "alphan_OExcited",
-                                                                             "alphan_OExcited2",
                                                                              "alphan_PRecoil",
-                                                                             "alphan_PRecoil2",
+									                                         "bipolike",
+									                                         "atmospheric",
                                                                              "energy_scale",
-                                                                             "energy_scale2",
                                                                              "energy_conv",
-                                                                             "energy_conv2",
                                                                              "birks_constant",
-                                                                             "birks_constant2",
                                                                              "p_recoil_energy_scale",
-                                                                             "p_recoil_energy_scale2"};
-    /*std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{"deltam21",
-                                                                             theta12name,
-                                                                             "reactor_nubar",
-                                                                             "geonu_U",
-                                                                             "geonu_Th",
-                                                                             "alphan_CScatter",
-                                                                             "alphan_OExcited",
-                                                                             "alphan_PRecoil",
-                                                                             "energy_scale",
-                                                                             "energy_conv",
-                                                                             "birks_constant",
-                                                                             "p_recoil_energy_scale"};*/
+                                                                             };
 
     std::vector<double> *tempNomsVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempErrVec = new std::vector<double>(nParams, 0.0);
@@ -353,7 +334,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         // So we need to multiply by the ratio saved in outputted fit file
         if (paramNames->at(iParam).find(reactorpar1) != std::string::npos)
         {
-            nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar1 + "_ratio"];
+	        nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar1 + "_ratio"];
             constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues[reactorpar1 + "_ratio"];
             constrErr->at(iParam) = constrErr->at(iParam) * branchValues[reactorpar1 + "_ratio"];
         }

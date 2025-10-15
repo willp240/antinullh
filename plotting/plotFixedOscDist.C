@@ -30,9 +30,9 @@
 // Configurable parameter sets
 const std::vector<std::string> baseParams1{
     "postfitdist", "data", "reactor_nubar", "alphan_PRecoil", "alphan_CScatter",
-    "alphan_OExcited", "geonu_Th", "geonu_U"};
+    "alphan_OExcited", "geonu_Th", "geonu_U", "bipolike", "atmospheric"};
 
-const std::string datasetname1 = "dataset1";
+const std::string datasetname1 = "2p2ppodataset";
 
 const std::vector<std::string> baseParams2{
     "postfitdist", "data", "reactor_nubar2", "alphan_PRecoil2", "alphan_CScatter2",
@@ -48,8 +48,16 @@ const std::vector<std::string> geoGroup2 = {"geonu_Th2", "geonu_U2"};
 const std::vector<std::string> alphaGroup2 = {"alphan_PRecoil2", "alphan_CScatter2", "alphan_OExcited2"};
 
 // Define colours for histograms
-std::vector<int> lineColours = {kBlue + 2, kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3};
-std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5};
+std::vector<int> lineColours = {kBlue + 2, kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3, kOrange + 2};
+std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5, kOrange + 1};
+
+// Axis ranges
+double xmin = 0.9;
+double xmax = 8.0;
+// Ymax gets multiplied by number of datasets (to roughly account for having more events in more datasets)
+double ymin = 0.0;
+double ymax = 2.5;
+
 
 void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1)
 {
@@ -291,8 +299,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         if (paramOrders.at(0).at(iPar) == "postfitdist")
             continue;
 
-        histMap[paramOrders.at(0).at(iPar)]->GetYaxis()->SetRangeUser(0, 1.6 * paramOrders.size());
-
         if (paramOrders.at(0).at(iPar) == "data")
         {
             hData->Add(histMap[paramOrders.at(0).at(iPar)]);
@@ -350,8 +356,19 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     c1->cd();
 
     upper->cd();
-    hStack->SetMaximum(1.6 * paramOrders.size());
-    hStack->Draw("hist");
+    TH1F* frame = upper->DrawFrame(xmin, ymin, xmax, ymax*paramOrders.size());
+    frame->SetTitle(";Reconstructed Energy, MeV;Events");
+    frame->GetXaxis()->SetLabelOffset(1.2);
+    frame->GetXaxis()->SetTitleFont(42);
+    frame->GetYaxis()->SetTitleFont(42);
+    frame->GetXaxis()->SetLabelFont(42);
+    frame->GetYaxis()->SetLabelFont(42);
+    frame->GetXaxis()->SetLabelSize(0.06);
+    frame->GetYaxis()->SetLabelSize(0.06);
+    frame->GetXaxis()->SetTitleSize(0.06);
+    frame->GetYaxis()->SetTitleSize(0.06);
+    frame->GetYaxis()->SetTitleOffset(0.8);
+    hStack->Draw("histsame");
     histMap["data"]->SetFillStyle(0);
     histMap["data"]->Draw("histsame");
     hStack->GetXaxis()->SetLabelOffset(1.2);
@@ -366,12 +383,15 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     hStack->GetYaxis()->SetTitleOffset(0.8);
     t1->SetTextFont(42);
     t1->Draw();
+    upper->Modified();
+    upper->Update();
     c1->Update();
 
     lower->cd();
     hMC->Divide(histMap["data"]);
     hMC->SetFillStyle(0);
     hMC->GetYaxis()->SetRangeUser(0.9, 1.1);
+    hMC->GetXaxis()->SetRangeUser(xmin,xmax);
     hMC->GetXaxis()->SetTitleFont(42);
     hMC->GetYaxis()->SetTitleFont(42);
     hMC->GetXaxis()->SetLabelFont(42);
@@ -422,16 +442,28 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     t2->AddEntry(hData, "Data", "l");
     hGroupStack->Add(hReactor);
     t2->AddEntry(hReactor, "Reactor #bar{#nu}", "f");
-    hGroupStack->Add(hAlpha);
-    t2->AddEntry(hAlpha, "#alpha-n", "f");
     hGroupStack->Add(hGeo);
     t2->AddEntry(hGeo, "Geo #bar{#nu}", "f");
+    hGroupStack->Add(hAlpha);
+    t2->AddEntry(hAlpha, "#alpha-n", "f");
     hGroupStack->Add(hOther);
     t2->AddEntry(hOther, "Other", "f");
 
     upper2->cd();
-    hGroupStack->SetMaximum(1.6 * paramOrders.size());
-    hGroupStack->Draw("hist");
+    TH1F* frame2 = upper->DrawFrame(xmin, ymin, xmax, ymax*paramOrders.size());
+    frame2->SetTitle(";Reconstructed Energy, MeV;Events");
+    frame2->GetXaxis()->SetLabelOffset(1.2);
+    frame2->GetXaxis()->SetTitleFont(42);
+    frame2->GetYaxis()->SetTitleFont(42);
+    frame2->GetXaxis()->SetLabelFont(42);
+    frame2->GetYaxis()->SetLabelFont(42);
+    frame2->GetXaxis()->SetLabelSize(0.06);
+    frame2->GetYaxis()->SetLabelSize(0.06);
+    frame2->GetXaxis()->SetTitleSize(0.06);
+    frame2->GetYaxis()->SetTitleSize(0.06);
+    frame2->GetYaxis()->SetTitleOffset(0.8);
+    frame2->SetTitle(";Reconstructed Energy, MeV;Events");
+    hGroupStack->Draw("histsame");
     histMap["data"]->Draw("histsame");
     hGroupStack->GetXaxis()->SetLabelOffset(1.2);
     hGroupStack->GetXaxis()->SetTitleFont(42);
@@ -445,6 +477,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     hGroupStack->GetYaxis()->SetTitleOffset(0.8);
     t2->SetTextFont(42);
     t2->Draw();
+    upper2->Modified();
+    upper2->Update();
     c2->Update();
 
     lower2->cd();
