@@ -52,7 +52,7 @@ std::vector<int> lineColours = {kBlue + 2, kBlack, kBlue, kMagenta + 2, kMagenta
 std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5, kOrange + 1};
 
 // Axis ranges
-double xmin = 1.0;
+double xmin = 0.9;
 double xmax = 8.0;
 // Ymax gets multiplied by number of datasets (to roughly account for having more events in more datasets)
 double ymin = 0.0;
@@ -391,7 +391,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     hMC->Divide(histMap["data"]);
     hMC->SetFillStyle(0);
     hMC->GetYaxis()->SetRangeUser(0.9, 1.1);
-    hMC->GetXaxis()->SetRangeUser(1,8);
+    hMC->GetXaxis()->SetRangeUser(xmin,xmax);
     hMC->GetXaxis()->SetTitleFont(42);
     hMC->GetYaxis()->SetTitleFont(42);
     hMC->GetXaxis()->SetLabelFont(42);
