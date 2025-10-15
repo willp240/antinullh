@@ -21,16 +21,9 @@ void plot1DPDFs(std::string dirname)
 {
     gStyle->SetOptStat(0);
 
-    std::vector<std::filesystem::path> pdfFiles;
-    std::string outputfilename = dirname + "/pdfplots.pdf";
+    std::string outputfilename  = dirname + "/pdfplots.pdf";
     std::string outrootfilename = dirname + "/pdfplots.root";
     TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
-
-    // Add files from the pdfs directory
-    for (const auto &entry : std::filesystem::directory_iterator(dirname.c_str()))
-    {
-        pdfFiles.push_back(entry.path());
-    }
 
     // Print file name to first page
     TCanvas *c1 = new TCanvas("c1", "c1", 1500, 1080);
@@ -43,19 +36,23 @@ void plot1DPDFs(std::string dirname)
     c1->Print((outputfilename + "[").c_str());
     c1->cd();
 
-    // Loop over each file
-    for (const auto &entry : pdfFiles)
+    // Loop over files in the directory
+    for (const auto &dirent : std::filesystem::directory_iterator(dirname))
     {
+        const fs::path p = dirent.path();
+        if (!dirent.is_regular_file()) continue;
+        if (p.extension() != ".root")  continue;
 
-        std::string filePath = entry.string();
-        std::filesystem::path pathObj(filePath);
+        const std::string filePath = p.string();
 
-        // Check if it's a .root file
-        if (filePath.find(".root") == std::string::npos)
-            continue;
+        std::string histName = p.stem().string();
 
-        std::string histName = pathObj.filename().replace_extension("");
+        // Base name before the last underscore (if any)
+        std::string hname = histName;
+        if (auto pos = histName.rfind('_'); pos != std::string::npos)
+            hname.erase(pos);
 
+        // Open ROOT file
         TFile *file = TFile::Open(filePath.c_str(), "READ");
         if (!file || file->IsZombie())
         {
@@ -64,33 +61,46 @@ void plot1DPDFs(std::string dirname)
             continue;
         }
 
-        // Get histogram
+        // Try to get histogram by full stem, then by base (before last '_')
         TH1D *h1 = nullptr;
         file->GetObject(histName.c_str(), h1);
+        if (!h1 && hname != histName)
+            file->GetObject(hname.c_str(), h1);
 
         if (!h1)
         {
-            std::cerr << "No histogram " << histName << " found in file: " << filePath << std::endl;
+            std::cerr << "No histogram named '" << histName
+                      << "' or '" << hname
+                      << "' found in file: " << filePath << std::endl;
             file->Close();
             delete file;
             continue;
         }
 
+        // Draw and save page
         h1->SetLineWidth(2);
         h1->GetXaxis()->SetTitleSize(0.055);
         h1->GetYaxis()->SetTitleSize(0.055);
         h1->GetXaxis()->SetLabelSize(0.045);
         h1->GetYaxis()->SetLabelSize(0.045);
         h1->GetYaxis()->SetTitle("Probability");
-        h1->SetTitle(histName.c_str());
+        h1->SetTitle(h1->GetName());
         h1->Draw();
         gPad->SetGrid(1);
         gPad->Update();
         c1->Print(outputfilename.c_str());
+
+        // Write the canvas into the output ROOT file
         outfile->cd();
-        c1->Write(histName.c_str());
+        c1->Write(h1->GetName());
+
+        // Clean up
+        file->Close();
+        delete file;
     }
 
     c1->Print((outputfilename + "]").c_str());
     c1->Close();
+    outfile->Close();
+    delete outfile;
 }
