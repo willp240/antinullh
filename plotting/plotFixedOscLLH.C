@@ -277,8 +277,6 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     pathObj.replace_filename("plots/");
     if (stat(pathObj.string().c_str(), &st) == -1)
         mkdir(pathObj.string().c_str(), 0700);
-    pathObj.replace_filename("LLH2D.pdf");
-    c1->SaveAs(pathObj.string().c_str());
     pathObj.replace_filename("LLH.root");
     TFile *outfile = new TFile(pathObj.string().c_str(), "RECREATE");
     outfile->cd();
@@ -288,6 +286,9 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     hLLH->SetContour(1, contours);
     hLLH->Draw("cont3 same");
     hLLH->SetLineColor(kRed);
+    pathObj.replace_filename("LLH2D.pdf");
+    c1->SaveAs(pathObj.string().c_str());
+    hLLH->Write("hLLH");
     c1->Write("c1");
 
     // Now we're going to make the profile LLH plots
