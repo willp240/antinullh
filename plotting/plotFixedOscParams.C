@@ -334,8 +334,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         // So we need to multiply by the ratio saved in outputted fit file
         if (paramNames->at(iParam).find(reactorpar1) != std::string::npos)
         {
-	  std::cout << nomVals->at(iParam) << " " << branchValues[reactorpar1 + "_ratio"] << std::endl;
-	  nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar1 + "_ratio"];
+	        nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar1 + "_ratio"];
             constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues[reactorpar1 + "_ratio"];
             constrErr->at(iParam) = constrErr->at(iParam) * branchValues[reactorpar1 + "_ratio"];
         }
