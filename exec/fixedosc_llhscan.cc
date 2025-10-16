@@ -579,6 +579,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     // Now build the likelihood
     BinnedNLLH &lh = testStats.emplace_back();
     lh.SetBuffer("energy", 8, 20);
+    lh.SetBufferAsOverflow(true);
     // Add our data
     lh.SetDataDist(dataDist);
     // Set whether or not to use Beeston Barlow
@@ -727,6 +728,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     {
       BinnedNLLH &osclh = oscTestStats.emplace_back();
       osclh.SetBuffer("energy", 8, 20);
+      osclh.SetBufferAsOverflow(true);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);
 
@@ -815,6 +817,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     {
       BinnedNLLH &osclh = oscTestStats.emplace_back();
       osclh.SetBuffer("energy", 8, 20);
+      osclh.SetBufferAsOverflow(true);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);
 
