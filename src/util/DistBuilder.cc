@@ -112,7 +112,6 @@ namespace antinufit
     {
       dist.SetBinContent(ibin, 1 / dist.GetNBins());
     }
-    std::cout << name_ << " " << numDimensions_ << " " << dist.GetNBins() << std::endl;
 
     return dist;
   }

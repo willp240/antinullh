@@ -29,8 +29,8 @@
 
 // Configurable parameter sets
 const std::vector<std::string> baseParams1{
-    "postfitdist", "data", "reactor_nubar", "alphan_PRecoil", "alphan_CScatter",
-    "alphan_OExcited", "geonu_Th", "geonu_U", "bipolike", "atmospheric"};
+    "postfitdist", "data", "reactor_nubar", "geonu_U", "geonu_Th", "alphan_PRecoil", "alphan_CScatter",
+    "alphan_OExcited", "bipolike", "atmospheric"};
 
 const std::string datasetname1 = "2p2ppodataset";
 
@@ -48,8 +48,8 @@ const std::vector<std::string> geoGroup2 = {"geonu_Th2", "geonu_U2"};
 const std::vector<std::string> alphaGroup2 = {"alphan_PRecoil2", "alphan_CScatter2", "alphan_OExcited2"};
 
 // Define colours for histograms
-std::vector<int> lineColours = {kBlue + 2, kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 3, kRed + 2, kRed + 1, kGreen + 3, kOrange + 2};
-std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 1, kRed - 2, kRed - 9, kGreen - 5, kOrange + 1};
+std::vector<int> lineColours = {kBlue + 2, kBlack, kBlue, kMagenta + 2, kMagenta + 4, kRed + 1, kRed + 2, kRed + 3, kGreen + 3, kOrange + 2};
+std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMagenta - 5, kRed - 9, kRed - 2, kRed - 1, kGreen - 5, kOrange + 1};
 
 // Axis ranges
 double xmin = 0.9;
