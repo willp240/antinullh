@@ -293,7 +293,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
       // If it's the reactor PDF, two things are different from the others. Firstly we use the BuildOscillatedDist rather than just Build.
       // Also, we're going to loop over oscillation scan points to make the reactor's PDF for that point as well
-      if (evIt->first.find("reactor_nubar") != std::string::npos)
+      if (evIt->second.GetOscillated())
       {
         reacPDFNum[dsIt->first] = pdfMap[dsIt->first].size();
 
@@ -411,6 +411,12 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           // We'll Add the rest of the PDFs later
           oscDatasets.at(npoints + iTheta).Add(oscDist);
         }
+      }
+      else if (evIt->second.GetFlat())
+      {
+        dist = DistBuilder::BuildFlatDist(evIt->first, num_dimensions, pdfConfig);
+        fakeDataDist = DistBuilder::BuildFlatDist(evIt->first, num_dimensions, pdfConfig);
+
       }
       else
       {

@@ -64,7 +64,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double sinsqth12_, std::unordered_map<int, double> indexDistance_, double& ratio)
+  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double sinsqth12_, std::unordered_map<int, double> indexDistance_, double &ratio)
   {
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
@@ -83,7 +83,7 @@ namespace antinufit
       double nuEnergy = ev.GetDatum("nu_energy");
       int reacIndex = ev.GetDatum("reactorIndex");
       double baseline = indexDistance_[reacIndex];
-      //double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sin(M_PI*theta12_/180)*sin(M_PI*theta12_/180));
+      // double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sin(M_PI*theta12_/180)*sin(M_PI*theta12_/180));
       double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sinsqth12_);
       double r = rndm->Rndm();
       if (r > oscprob)
@@ -93,6 +93,26 @@ namespace antinufit
     }
 
     ratio = dist.Integral() / data_->GetNEntries();
+
+    return dist;
+  }
+
+  BinnedED
+  DistBuilder::BuildFlatDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_)
+  {
+    // Create the axes
+    AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
+    // put it all together and return
+    BinnedED dist(name_, axes);
+    const std::vector<std::string> p = pdfConfig_.GetBranchNames(numDimensions_);
+    dist.SetObservables(p);
+
+    // fill it up
+    for (size_t ibin = 0; ibin < dist.GetNBins(); ibin++)
+    {
+      dist.SetBinContent(ibin, 1 / dist.GetNBins());
+    }
+    std::cout << name_ << " " << numDimensions_ << " " << dist.GetNBins() << std::endl;
 
     return dist;
   }

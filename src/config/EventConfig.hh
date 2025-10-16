@@ -30,6 +30,12 @@ namespace antinufit
     int GetNumDimensions() const;
     void SetNumDimensions(const int &);
 
+    bool GetOscillated() const;
+    void SetOscillated(const bool &);
+
+    bool GetFlat() const;
+    void SetFlat(const bool &);
+
   private:
     std::vector<std::string> fNtupFiles;
     std::string fNtupBaseDir; // The originals
@@ -37,6 +43,8 @@ namespace antinufit
     std::string fName;
     std::vector<std::string> fGroup;
     int fNumDimensions;
+    bool fOscillated = false;
+    bool fFlat = false;
   };
 }
 

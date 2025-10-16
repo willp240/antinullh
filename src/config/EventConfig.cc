@@ -75,4 +75,30 @@ namespace antinufit
     fNumDimensions = i_;
   }
 
+  bool
+  EventConfig::GetOscillated() const
+  {
+    return fOscillated;
+  }
+
+  void
+  EventConfig::SetOscillated(const bool &b_)
+  {
+    fOscillated = b_;
+  }
+
+  bool
+  EventConfig::GetFlat() const
+  {
+    return fFlat;
+  }
+
+
+  void
+  EventConfig::SetFlat(const bool &b_)
+  {
+    fFlat = b_;
+  }
+
+
 }

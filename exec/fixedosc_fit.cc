@@ -92,6 +92,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::string> dataPath = evLoader.GetDataPaths();
   std::map<std::string, BinnedED> dataDists;
 
+
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
   PDFConfigLoader pdfLoader(pdfConfigFile_);
   PDFConfig pdfConfig = pdfLoader.Load();
@@ -295,7 +296,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       BinnedED unscaledPDF;
       int num_dimensions = evIt->second.GetNumDimensions();
 
-      if (evIt->first.find("reactor_nubar") != std::string::npos)
+      if (evIt->second.GetOscillated())
       {
         reactorRatio[evIt->first];
         reactorRatioFD[evIt->first];
@@ -328,6 +329,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         maxs[evIt->first] = maxs[evIt->first] * reactorRatio[evIt->first];
 
         fdValues[evIt->first] = fdValues[evIt->first] * reactorRatioFD[evIt->first];
+      }
+      else if (evIt->second.GetFlat())
+      {
+        dist = DistBuilder::BuildFlatDist(evIt->first, num_dimensions, pdfConfig);
+        fakeDataDist = DistBuilder::BuildFlatDist(evIt->first, num_dimensions, pdfConfig);
       }
       else
       {
