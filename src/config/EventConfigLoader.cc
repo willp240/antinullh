@@ -11,7 +11,6 @@ namespace antinufit
   EventConfig
   EventConfigLoader::LoadOne(const std::string &name_, const std::string dataset_) const
   {
-
     ConfigLoader::Open(fPath);
 
     std::vector<std::string> ntupFiles;
@@ -19,20 +18,45 @@ namespace antinufit
     std::vector<std::string> groups;
     std::string baseDir;
     std::string prunedDir;
+    bool oscillated;
+    bool flat;
+
+    try
+    {
+      ConfigLoader::Load(name_, "oscillated", oscillated);
+    }
+    catch (const std::exception& e)
+    {
+      oscillated = false;
+    }
+    
+    try
+    {
+      ConfigLoader::Load(name_, "flat", flat);
+    }
+    catch (const std::exception& e)
+    {
+      flat = false;
+    }
+
+    if (oscillated && flat)
+    {
+      std::cout << "WARNING: " << name_ << " is set to be oscillated and flat in the event config. Default to Oscillated (not flat)" << std::endl;
+      flat = false;
+    }
 
     ConfigLoader::Load(name_, "ntup_files", ntupFiles);
-    ConfigLoader::Load(name_, "dimensions", numDimensions);
-
     ConfigLoader::Load(dataset_, "orig_base_dir", baseDir);
     ConfigLoader::Load(dataset_, "pruned_ntup_dir", prunedDir);
+    ConfigLoader::Load(name_, "dimensions", numDimensions);
 
     try
     {
       ConfigLoader::Load(name_, "groups", groups);
     }
-    catch (...)
+    catch(const std::exception& e)
     {
-      groups.push_back("");
+      std::cerr << e.what() << '\n';
     }
 
     if (groups.size() == 0)
@@ -45,6 +69,8 @@ namespace antinufit
     retVal.SetPrunedPath(prunedDir + "/" + name_ + ".root");
     retVal.SetGroup(groups);
     retVal.SetNumDimensions(numDimensions);
+    retVal.SetOscillated(oscillated);
+    retVal.SetFlat(flat);
     return retVal;
   }
 
