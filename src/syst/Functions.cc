@@ -19,16 +19,16 @@ namespace antinufit
     // use distance to determine oscgrid name
     // load up osc grid
     // calc prob
-    // retuurn prob
+    // return prob
 
     // antinufit::OscGrid osc1(oscgridFile1);
 
     Double_t nuE_parent = obs_vals.at(1);
 
     Double_t fDmSqr21 = params.at("deltam21");
-    Double_t fDmSqr32 = 2.453e-3;
+    Double_t fDmSqr32 = 2.451e-3;
     Double_t fSSqrTheta12 = sin(params.at("theta12")) * sin(params.at("theta12"));
-    Double_t fSSqrTheta13 = 0.0220;
+    Double_t fSSqrTheta13 = 0.0216;
 
     // Declare quantities to use in loops
     Double_t scale;
@@ -104,8 +104,8 @@ namespace antinufit
 
     Double_t nuE_parent = nuEnergy;
 
-    Double_t fDmSqr32 = 2.453e-3;
-    Double_t fSSqrTheta13 = 0.0220;
+    Double_t fDmSqr32 = 2.451e-3;
+    Double_t fSSqrTheta13 = 0.0216;
 
     // Declare quantities to use in loops
     Double_t scale;
