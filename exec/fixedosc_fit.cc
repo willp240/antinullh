@@ -492,7 +492,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
     // Now build the likelihood
     BinnedNLLH &lh = testStats.emplace_back();
-    lh.SetBuffer("energy", 8, 20);
+    lh.SetBuffer("energy", 8, 28);
     lh.SetBufferAsOverflow(true);
     // Add our data
     lh.SetDataDist(dataDist);

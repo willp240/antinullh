@@ -584,7 +584,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
     // Now build the likelihood
     BinnedNLLH &lh = testStats.emplace_back();
-    lh.SetBuffer("energy", 8, 20);
+    lh.SetBuffer("energy", 8, 28);
     lh.SetBufferAsOverflow(true);
     // Add our data
     lh.SetDataDist(dataDist);
@@ -733,7 +733,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
       BinnedNLLH &osclh = oscTestStats.emplace_back();
-      osclh.SetBuffer("energy", 8, 20);
+      osclh.SetBuffer("energy", 8, 28);
       osclh.SetBufferAsOverflow(true);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);
@@ -822,7 +822,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
       BinnedNLLH &osclh = oscTestStats.emplace_back();
-      osclh.SetBuffer("energy", 8, 20);
+      osclh.SetBuffer("energy", 8, 28);
       osclh.SetBufferAsOverflow(true);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);
