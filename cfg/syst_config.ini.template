@@ -6,6 +6,7 @@ dist_obs=energy
 trans_obs=energy
 type=Scale
 group=1d
+dataset=dataset1
 
 [energy_scale_3d]
 param_names=energy_scale
@@ -13,12 +14,14 @@ dist_obs=energy,distance,nu_energy
 trans_obs=energy
 type=Scale
 group=3d
+dataset=dataset1
 
 [energy_conv]
 dist_obs=energy
 trans_obs=energy
 type=Conv:Gaussian:SquareRootScale
 group=1d
+dataset=dataset1
 
 [energy_conv_3d]
 param_names=energy_conv
@@ -26,12 +29,14 @@ dist_obs=energy,distance,nu_energy
 trans_obs=energy
 type=Conv:Gaussian:SquareRootScale
 group=3d
+dataset=dataset1
 
 [energy_nonlin]
 dist_obs=energy
 trans_obs=energy
 type=ScaleFunction:BirksLaw
 group=1d
+dataset=dataset1
 
 [energy_nonlin_3d]
 param_names=energy_nonlin
@@ -39,12 +44,14 @@ dist_obs=energy,distance,nu_energy
 trans_obs=energy
 type=ScaleFunction:BirksLaw
 group=3d
+dataset=dataset1
 
 [p_recoil_energy_scale]
 dist_obs=energy
 trans_obs=energy
 type=Scale
 group=p_recoil
+dataset=dataset1
 
 [osc_prob]
 dist_obs=energy,distance,nu_energy
@@ -52,3 +59,4 @@ trans_obs=energy,distance,nu_energy
 type=Shape:OscProb
 param_names=deltam21,theta12
 group=osc_group
+dataset=dataset1
