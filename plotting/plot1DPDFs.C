@@ -39,7 +39,7 @@ void plot1DPDFs(std::string dirname)
     // Loop over files in the directory
     for (const auto &dirent : std::filesystem::directory_iterator(dirname))
     {
-        const fs::path p = dirent.path();
+        const std::filesystem::path p = dirent.path();
         if (!dirent.is_regular_file()) continue;
         if (p.extension() != ".root")  continue;
 

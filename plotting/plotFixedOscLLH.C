@@ -393,7 +393,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     latex.SetTextColor(kBlack);
     left_sigma = dmSigmas["bestfit"] - dmSigmas["left"];
     right_sigma = dmSigmas["right"] - dmSigmas["bestfit"];
-    latex.DrawLatex(dmSigmas["left"] - 0.000033, yMaxCanvas * 0.9, Form("#Deltam^{2}_{21} = (%.3f^{+%.3f}_{-%.3f}) #times10^{-5} eV^{2}", dmSigmas["bestfit"] * 1E5, right_sigma * 1E5, left_sigma * 1E5));
+    latex.DrawLatex(dmSigmas["left"] - 0.000029, yMaxCanvas * 0.9, Form("#Deltam^{2}_{21} = (%.3f^{+%.3f}_{-%.3f}) #times10^{-5} eV^{2}", dmSigmas["bestfit"] * 1E5, right_sigma * 1E5, left_sigma * 1E5));
 
     pathObj.replace_filename("deltam21LLHDiff.pdf");
     c3->SaveAs(pathObj.string().c_str());
