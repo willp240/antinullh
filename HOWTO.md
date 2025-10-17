@@ -2,7 +2,7 @@
 
 This file is a guide on how to run the most commonly used apps in the antinu oxo likelihood analysis.  
 
-The first thing you'll want to do is get the environment variable in `env.sh` pointing to your `OXO` install. It's recommended you make a copy of this env.sh to avoid merge conflicts down the line.
+The first thing you'll want to do is get the environment variable in `env.sh` pointing to your `OXO` install. It's recommended you make a copy of this `env.sh` to avoid merge conflicts down the line.
 
 Most of the executables live within the `exec` directory. Within `./src`, there is code for interfacing with config files and some other useful classes. Templates of the config files themselves live in `./cfg`.
 
@@ -23,7 +23,7 @@ The systematic factory, when given a systematic name, type, and list of associat
 - `Conv:Gaussian:SquareRootScale`: A Convolution with a Gaussian function where the width of the Gaussian runs with the square root of the axis in question
 - `ScaleFunction:BirksLaw`: A ScaleFunction systematic where the function used modifies Birk's Constant
 - `Shape:OscProb`: A Shape systematic, where the function used modifies the oscillation probability. The probability is calculated directly
-- `Shape:OscProbGrid`: A Shape systematic, where the function used modifies the oscillation probability. The probability is obtained from OscGrids
+- `Shape:OscProbGrid`: A Shape systematic, where the function used modifies the oscillation probability. The probability is obtained from OscGrids (more on these later)
 
 <h4>Functions</h4>
 
@@ -31,7 +31,7 @@ Functions that can be passed to systematics are defined in here. Currently they 
 
 <h4>OscGrids</h4>
 
-The oscillation probability calculation can be quite slow to do on the fly, so instead we can produce an "Oscillation Grid" (<code>OscGrid</code>). The probability of oscillation depends on the true neutrino energy, the distance travelled, and the oscillation parameters $\Delta m^2_{21}$ and $\theta_{12}$, so we can pre-calculate the probabilities for different values of each of those variables, and the linearly interpolate between them. As the distances to reactor cores are all fixed distinct values, rather than interpolate, we can produce a 3D grid for each reactor core distance.
+The oscillation probability calculation can be quite slow to do on the fly, so instead we can produce an "Oscillation Grid" (<code>OscGrid</code>). The probability of oscillation depends on the true neutrino energy, the distance travelled, and the oscillation parameters $\Delta m^2_{21}$ and $\theta_{12}$, so we can pre-calculate the probabilities for different values of each of those variables, and then linearly interpolate between them. As the distances to reactor cores are all fixed distinct values, rather than interpolate, we can produce a 3D grid for each reactor core distance.
 
 The `OscGrid` class has attributes for the min and max values and number of grid points for each dimension (true neutrino energy, $\Delta m^2_{21}$ and $\theta_{12}$), along with a vector of probabilities where each element represents the probability at a single point on the grid. An `OscGrid` can be constructed using just the axis ranges and number of points, along with the filename the grid will be written to and the distance it applies for. You can then calculate the probabilities at each grid point using the `CalcGrid` method. This can be written to the output file with the `Write` method. Alternatively you can load up a pre-written and calculated grid with the `Load` method. You can then obtain the probability for a given set of parameters with the `Evaluate` method. There are also 'Getters' for the probability vector, and vectors containing the grid points for each dimension. The calculation of the probability uses code copied from the RAT-tools/AntinuTools repo. We will look at making that code portable so we can call it rather than copy it in the future. The interpolation for calculating probabilities between grid points is done using functions which are stolen from the `OXO` Solar Analysis (https://github.com/dcookman/solar_analysis/). 
 
@@ -43,7 +43,7 @@ This file contains utility functions, mostly related to the Oscillation Grids. T
 
 <h4>DistBuilder</h4>
 
-The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset.
+The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. There are methods to build directly from events in the dataset, oscillate events from the dataset, or produce just a flat distribution.
 
 <h3>Configs (src/config)</h3>
 
@@ -63,7 +63,7 @@ This file should contain information on the types of events you want to include 
 - `inactive`: Event types defined in the config that aren't being used for this dataset at this time
 - `orig_base_dir`: The directory where the original (unpruned) MC files have been downloaded to
 - `pruned_ntup_dir`: The directory where the pruned MC files should be written to, and later read from
-- `datafile`: The file containing the data events for this dataset
+- `data_file`: The file containing the data events for this dataset
 
 <h5>Event Type Tables</h5>
 
@@ -71,6 +71,8 @@ The name of these tables should be the name of the event type.
 - `ntup_files`: File path for the original unpruned files, relative to `orig_base_dir`
 - `dimensions`: Number of dimensions the PDF should have
 - `groups`: The groups the PDFs are part of. Each systematic is applied to one group (or all event types)
+- `oscillated`: Should the events be oscillated before making the PDF. Defaults to false
+- `flat`: Should the PDF ignore the MC events and make a flat uniform distribution
 
 <h4>Fit</h4>
 
@@ -161,6 +163,7 @@ The name of these tables should be the name of the systematic.
 <h4>Oscillation Grid</h4>
 
 This file should contain information about the oscillation grids you want to use in the analysis, both for producing them, and reading them.
+Note, the oscillation grid calculation of the survival probability is still slow, so we tend to run fits at fixed oscillation parameter values. In this case the info in this file is often not used, apart from the `reactorsjson` to apply the one-time oscillation at the start of a fit, and the bounds of the oscillation parameters (so the range we will run individual fits over).
 
 <h5>Summary</h5>
 
@@ -182,13 +185,13 @@ These above classes and config files, along with all the OXO classes, are brough
 
 <h3>Calculating Reactor Distances</h3>
 
-To calculate the oscillation probability for an MC reactor IBD event, we need to know how far it has travelled, so we need to know the distance from the reactor it was produced in to SNO+. Rather than we do this calculation on the fly at every event for every iteration of a fit, we precalculate the distance for each reactor core. You can do this by running:
+To calculate the oscillation probability for an MC reactor IBD event, we need to know how far it has travelled, so we need to know the distance from the reactor it was produced in to SNO+. Rather than do this calculation on the fly at every event for every iteration of a fit, we precalculate the distance for each reactor core. You can do this by running:
 
 > ./bin/make_reactor_json osc_grid_config_file
 
-This will loop over cores defined in the REACTORS RATDB table, and calculate the distance from it to SNO+. This gets saved in a JSON file, along with the reactor's name, and a unique integer assigned to the core. The integer is used as a numerical dimension for the reactor neutrino PDFs.
+This will loop over cores defined in the `REACTORS` RATDB table, and calculate the distance from it to SNO+. This gets saved in a JSON file, along with the reactor's name, and a unique integer assigned to the core. The integer is used as a numerical dimension for the reactor neutrino PDFs.
 
-The output json file path is set in the oscillation grid config. These are likely not to change very often (only when cores come online, or an error in the locations in the RATDB table is fixed. If a reactor's distance to SNO+ physically changes we probably have more pressing issues!), so they can be saved and committed in the `reacttorjsons` directory to avoid having to reproduce them. It will be good practise to indicate in the filename the RAT version it was produced with, and which cores it contains. For RAT 8.0.0, there is a committed json file with all cores, and another one with just Bruce 1 for quicker testing of the machinery.
+The output json file path is set in the oscillation grid config. These are likely not to change very often (only when cores come online, or an error in the locations in the RATDB table is fixed. If a reactor's distance to SNO+ physically changes we probably have more pressing issues!), so they can be saved and committed in the `reacttorjsons` directory to avoid having to reproduce them. It will be good practice to indicate in the filename the RAT version it was produced with, and which cores it contains. For RAT 8.0.0, there is a committed json file with all cores, and another one with just Bruce 1 for quicker testing of the machinery.
 
 <h3>Making Oscillation Grids</h3>
 
@@ -208,7 +211,7 @@ The `prune_trees` app does this for us. Having set your filepaths for each datas
 
 This looks for ntuple files for each of the event types specified in the `event` config (you can select/deselect event types with the active/inactive fields) and produces a new set of files containing only the relevant trees for the analysis (energy, position, fit validity, pulse shape discrimination values, and true neutrino energy and reactor name for reactor neutrinos). Be warned, if using all event types, this will take some time! (of order several hours).
 
-This app also divides the three alpha-n processes into different files. They are all simulated at once, and so each of the three alpha-n processes gets events from the same files. For each alpha-n process, we loop over all alpha-n events, and select the events of that specific alpha-n process using the reconstructed energy.
+This app also divides the three (#alpha,n) processes into different files. They are all simulated at once, and so each of the three (#alpha,n) processes gets events from the same files. For each (#alpha,n) process, we loop over all (#alpha,n) events, and select the events of that specific (#alpha,n) process using the reconstructed energy.
 
 <h3>LLH Scans</h3>
 
@@ -304,7 +307,7 @@ A lot of the postfit analysis will be done using scripts that reside in `util` (
 
 <h4>makeFixedOscTree</h4>
 
-The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `exec/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will be handled by the usual Makefile). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit constraints are also saved in vectors. You can run it with:
+The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `exec/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will be handled by the usual `Makefile`). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit constraints are also saved in vectors. You can run it with:
 
 > ./bin/makeFixedOscTree cfg/fit_config.ini cfg/oscgrid_config.ini
 
@@ -312,7 +315,7 @@ The config files should be ones you've used to run one of the fits. If this take
 
 > python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
 
-Once the tree is made, the it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true and Minuit settings updated to do a more rigorous fit. The covariance matrix from this fit is saved along with the tree of fit results.
+Once the tree is made, it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true and Minuit settings updated to do a more rigorous fit. The covariance matrix from this fit is saved along with the tree of fit results.
 
 <h4>plotFixedOscLLH</h4>
 
@@ -322,25 +325,19 @@ Also plotted are profile LLHs for both $\Delta m^2_{21}$ and $\theta_{12}$. Each
 
 It can be run by doing:
 
-> root -l 'plotting/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output")'
+> root -l 'plotting/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output.root")'
 
 <h4>plotFixedOscDist</h4>
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
 
-Currently, the user hard codes the parameter names for each dataset in the top of this file. When running, the user supplies an option as the second argument. `1` plots the distributions for the first dataset, `2` plots the distributions for the second dataset, and `0` plots the summed distributions for both datasets. Obviously it would be nice if this wasn't hardcoded, and you could use N datasets, but for expedience this is how it is at the moment.
+Currently, the user hard codes the parameter names for each dataset in the top of this file. When running, the user supplies an option as the second argument: `1` plots the distributions for the first dataset, `2` plots the distributions for the second dataset, and `0` plots the summed distributions for both datasets. Obviously it would be nice if this wasn't hardcoded, and you could use N datasets, but for expedience this is how it is at the moment.
 
 Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
 > root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output", dataset_option)'
 
-In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three #alpha-ns, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
-
-<h4>compare3FixedOscDists</h4>
-
-This script is similar to `plotFixedOscDist`, but plots the total postfit scaled MC for 3 fits (without each scaled component PDF). It loops through the entries in the output `TTrees` from `makeFixedOscTree`, and finds the fit with the minimum best LLH for each. The distributions plotted are the data for the first fit, and the total MC (sum of all scaled PDFs with systematics applied) for each of the three fits, and a panel showing the ratio of each total MC postfit prediction to the data for the first fit.
-
-> root -l 'plotting/compare3FixedOscDists.C("/path/to/fit1/params.root", "/path/to/fit2/params.root", "/path/to/fit3/params.root", "fit 1 label", "fit 2 label", "fit 3 label")'
+In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three (#alpha,n)s, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
 
 <h4>plotFixedOscParams</h4>
 
@@ -354,17 +351,7 @@ You can run it with:
 
 > root -l 'plotting/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
 
-<h4>compareFixedOscParams</h4>
-
-This script opens the outputted root file from `plotFixedOscParams` for two different fits, and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
-
-> root -l 'plotting/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
-
-<h4>compare3FixedOscParams</h4>
-
-This is just like `compareFixedOscParams` but it runs over 3 fits:
-
-> root -l 'plotting/compare3FixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'. 
+<h3>Prefit Plots</h3>
 
 <h4>compare2LLHScans</h4>
 
@@ -398,15 +385,41 @@ This script loops through all the 2D unscaled PDF files in a directory, and plot
 
 <h4>projectPDFs</h4>
 
-This script loops through all the 2D unscaled PDF files in a directory, and plots the projection of each on the y-axis (likely to be the #alpha-n classifier axis) on a different page of a PDF file, and in a root file. You can run it with:
+This script loops through all the 2D unscaled PDF files in a directory, and plots the projection of each on the y-axis (likely to be the (#alpha,n) classifier axis) on a different page of a PDF file, and in a root file. You can run it with:
 
 > root -l 'plotting/projectPDFs("/path/to/dir/")'
+
+<h3>Fit Comparisons</h3>
+
+<h4>compareFixedOscParams</h4>
+
+This script opens the outputted root file from `plotFixedOscParams` for two different fits, and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
+
+> root -l 'plotting/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
+
+<h4>compare3FixedOscParams</h4>
+
+This is just like `compareFixedOscParams` but it runs over 3 fits:
+
+> root -l 'plotting/compare3FixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'.
+
+<h4>compare3FixedOscDists</h4>
+
+This script is similar to `plotFixedOscDist`, but plots the total postfit scaled MC for 3 fits (without each scaled component PDF). It loops through the entries in the output `TTrees` from `makeFixedOscTree`, and finds the fit with the minimum best LLH for each. The distributions plotted are the data for the first fit, and the total MC (sum of all scaled PDFs with systematics applied) for each of the three fits, and a panel showing the ratio of each total MC postfit prediction to the data for the first fit.
+
+> root -l 'plotting/compare3FixedOscDists.C("/path/to/fit1/params.root", "/path/to/fit2/params.root", "/path/to/fit3/params.root", "fit 1 label", "fit 2 label", "fit 3 label")'
 
 <h4>compareContours</h4>
 
 This script uses the files created by `plotFixedOscLLH` and draws the 1 $\sigma$ contours for two fits. The user inputs the two file paths and labels for the legend, along with the name (without file type suffix) of the outputted files.
 
-> root -l 'plotting/compareContours("/path/to/fitdir1/plots/LLH.root", "/path/to/fitdir2/plots/LLH.root", "label1", "label2", "/path/to/output/file")'
+> root -l 'plotting/compareContours("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/output/file")'
+
+<h4>compare3Contours</h4>
+
+This script is just like `compareContours`, but compares three contours instead of two:
+
+> root -l 'plotting/compare3Contours("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/fitdir3/plots/LLH.root", "label3", "/path/to/output/file")'
 
 <h3>MCMC</h3>
 

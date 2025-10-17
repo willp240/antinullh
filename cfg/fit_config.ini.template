@@ -9,12 +9,9 @@ fit_dists = all
 save_outputs = 0
 output_directory =
 
-n_steps = 35
-epsilon = 0.025
-hmc_iterations = 1
-hmc_burn_in = 0
-
-sigma_scale = 0.01
+minuit_strategy = 0
+minuit_tolerance = 0.1
+minuit_method = "Migrad"
 beeston_barlow = 0
 
 [reactor_nubar]
