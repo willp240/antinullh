@@ -233,7 +233,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     double maxDeltamBin = maxDeltam+(stepDm/2);
 
     // Make the histogram with those edges:
-    TH2D* hLLH = new TH2D("hLLH", ("#Delta LLH;#Delta m^{2}, MeV;" + theta12labelunit).c_str(),
+    TH2D* hLLH = new TH2D("hLLH", ("#Delta LLH;#Delta m^{2}, eV^{2};" + theta12labelunit).c_str(),
 			  nBinsX, minThetaBin, maxThetaBin,
 			  nBinsY, minDeltamBin, maxDeltamBin);
     
@@ -255,7 +255,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     gStyle->SetOptStat(0);
 
     hLLH->GetXaxis()->SetTitle(theta12labelunit.c_str());
-    hLLH->GetYaxis()->SetTitle("#Delta m^{2}_{21}, MeV");
+    hLLH->GetYaxis()->SetTitle("#Delta m^{2}_{21}, eV^{2}");
     hLLH->GetYaxis()->SetTitleOffset(1.2);
     hLLH->GetZaxis()->SetTitle("2#Deltaln(L)");
     hLLH->SetTitle("");
@@ -360,7 +360,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
 
     Profile.second->Draw();
     Profile.second->SetLineColor(kBlack);
-    Profile.second->GetXaxis()->SetTitle("#Delta m^{2}_{21}, 10^{-5}MeV");
+    Profile.second->GetXaxis()->SetTitle("#Delta m^{2}_{21}, 10^{-5}eV^{2}");
     Profile.second->GetYaxis()->SetTitle("2#Deltaln(L)");
     Profile.second->GetYaxis()->SetTitleOffset(1.2);
     Profile.second->SetTitle("");
