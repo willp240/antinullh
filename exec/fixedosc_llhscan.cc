@@ -233,6 +233,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<BinnedED>> pdfMap;
   std::map<std::string, std::vector<std::vector<std::string>>> pdfGroups;
   std::vector<BinnedNLLH> testStats;
+  testStats.reserve(dsPDFMap.size()); 
   std::map<std::string, ParameterDict> parameterValues;
   std::map<std::string, std::vector<BinnedED>> oscPDFsMap;
   double reactorRatio = 1.0; // Ratio of oscillated to unoscillated number of reactor IBDs
@@ -584,7 +585,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
     // Now build the likelihood
     BinnedNLLH &lh = testStats.emplace_back();
-    lh.SetBuffer("energy", 8, 28);
+    lh.SetBuffer("energy", 8, 20);
     lh.SetBufferAsOverflow(true);
     // Add our data
     lh.SetDataDist(dataDist);
@@ -592,7 +593,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     lh.SetBarlowBeeston(beestonBarlowFlag);
     // Add the systematics and any prior constraints
     for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
-      lh.AddSystematic(systIt->second, systGroup[systIt->first]);
+          lh.AddSystematic(systIt->second, systGroup[systIt->first]);
     // Add our pdfs
     lh.AddPdfs(pdfMap[dsIt->first], pdfGroups[dsIt->first], genRates[dsIt->first], normFittingStatuses[dsIt->first]);
 
@@ -702,6 +703,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       double llh = fullLLH.Evaluate();
       // Set bin contents
       hScan->SetBinContent(i + 1, llh - nomllh);
+      std::cout << name << " " << parval << " " << llh - nomllh << std::endl;
 
       // Return to nominal value
       allParVals[name] = tempval;
@@ -730,10 +732,11 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
 
     std::vector<BinnedNLLH> oscTestStats;
+    oscTestStats.reserve(dsPDFMap.size());
     for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
       BinnedNLLH &osclh = oscTestStats.emplace_back();
-      osclh.SetBuffer("energy", 8, 28);
+      osclh.SetBuffer("energy", 8, 20);
       osclh.SetBufferAsOverflow(true);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);
@@ -819,10 +822,11 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     // If we use the same one we have problems because the most PDFs are shrunk but the reactor one isn't
 
     std::vector<BinnedNLLH> oscTestStats;
+    oscTestStats.reserve(dsPDFMap.size());
     for (DSMap::iterator dsIt = dsPDFMap.begin(); dsIt != dsPDFMap.end(); ++dsIt)
     {
       BinnedNLLH &osclh = oscTestStats.emplace_back();
-      osclh.SetBuffer("energy", 8, 28);
+      osclh.SetBuffer("energy", 8, 20);
       osclh.SetBufferAsOverflow(true);
       // Add our 'data'
       osclh.SetDataDist(dataDists[dsIt->first]);

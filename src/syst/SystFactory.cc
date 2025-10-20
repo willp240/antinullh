@@ -38,7 +38,7 @@ namespace antinufit
 
     else if (type == "Shift")
     {
-      Shift *shift = new Shift("shift");
+      Shift *shift = new Shift(name);
       shift->RenameParameter("shift", paramnamevec_.at(0));
       shift->SetShift(paramvals_[paramnamevec_.at(0)]);
       syst = shift;
@@ -73,7 +73,7 @@ namespace antinufit
         throw ValueError("Unknown ploy, " + ploy + ", for systematic type: " + type);
       }
 
-      Convolution *conv = new Convolution("conv");
+      Convolution *conv = new Convolution(name);
       conv->SetConditionalPDF(smearer);
       syst = conv;
     }
@@ -94,7 +94,7 @@ namespace antinufit
         return ((1 + (birks_const * obs_val)) / (1 + (params.at("birks_constant2") * obs_val))) * obs_val;
       };
 
-      ScaleFunction *scale_func = new ScaleFunction("scale_function");
+      ScaleFunction *scale_func = new ScaleFunction(name);
 
       if (function == "BirksLaw")
       {
@@ -278,7 +278,55 @@ namespace antinufit
         }
       };
 
-      Shape *shape = new Shape("shape");
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction reac_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("reactor_nubar_norm");
+      };
+
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction geou_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("geonu_U_norm");
+      };
+
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction geoth_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("geonu_Th_norm");
+      };
+
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction alphanpr_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("alphan_PRecoil_norm");
+      };
+
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction alphancs_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("alphan_CScatter_norm");
+      };
+
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction alphanoe_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("alphan_OExcited_norm");
+      };
+
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction bipolike_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("bipolike_norm");
+      };
+
+      // Shape function to just scale pdfs up or down on top of their normalisations
+      ShapeFunction atmospheric_norm = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+        return params.at("atmospheric_norm");
+      };
+
+      Shape *shape = new Shape(name);
 
       if (function == "OscProbGrid")
       {
@@ -308,6 +356,62 @@ namespace antinufit
         shape->SetShapeFunction(AlphaNClassAlphaN, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "alphanclassalphan");
         ParameterDict params({{"alphanclassalphan", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "reactor_nubar_norm")
+      {
+        shape->SetShapeFunction(reac_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "reactor_nubar_norm");
+        ParameterDict params({{"reactor_nubar_norm", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "geonu_U_norm")
+      {
+        shape->SetShapeFunction(geou_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "geonu_U_norm");
+        ParameterDict params({{"geonu_U_norm", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "geonu_Th_norm")
+      {
+        shape->SetShapeFunction(geoth_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "geonu_Th_norm");
+        ParameterDict params({{"geonu_Th_norm", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "alphan_PRecoil_norm")
+      {
+        shape->SetShapeFunction(alphanpr_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "alphan_PRecoil_norm");
+        ParameterDict params({{"alphan_PRecoil_norm", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "alphan_CScatter_norm")
+      {
+        shape->SetShapeFunction(alphancs_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "alphan_CScatter_norm");
+        ParameterDict params({{"alphan_CScatter_norm", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "alphan_OExcited_norm")
+      {
+        shape->SetShapeFunction(alphanoe_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "alphan_OExcited_norm");
+        ParameterDict params({{"alphan_OExcited_norm", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "bipolike_norm")
+      {
+        shape->SetShapeFunction(bipolike_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "bipolike_norm");
+        ParameterDict params({{"bipolike_norm", paramvals_[paramnamevec_.at(0)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "atmospheric_norm")
+      {
+        shape->SetShapeFunction(atmospheric_norm, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "atmospheric_norm");
+        ParameterDict params({{"atmospheric_norm", paramvals_[paramnamevec_.at(0)]}});
         shape->SetParameters(params);
       }
       else
