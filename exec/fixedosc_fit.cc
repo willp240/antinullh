@@ -250,6 +250,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<BinnedED>> pdfMap;
   std::map<std::string, std::vector<std::vector<std::string>>> pdfGroups;
   std::vector<BinnedNLLH> testStats;
+  testStats.reserve(dsPDFMap.size());
   std::map<std::string, ParameterDict> parameterValues;
   std::map<std::string, double> reactorRatio;   // Ratio of oscillated to unoscillated number of reactor IBDs
   std::map<std::string, double> reactorRatioFD; // Ratio of oscillated to unoscillated number of reactor IBDs for the fake dataset if we're making one
