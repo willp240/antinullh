@@ -614,11 +614,14 @@ void fixedosc_fit(const std::string &fitConfigFile_,
     TFile *outFile = new TFile((outDir + "/fit_result.root").c_str(), "RECREATE");
     DenseMatrix covMatrix = res.GetCovarianceMatrix();
     std::vector<std::string> paramNames;
+    std::vector<std::string> allParamNames;
     std::vector<double> paramVals;
     std::vector<double> paramErr;
     TMatrixD covTMatrixD(bestFit.size() - numFixed, bestFit.size() - numFixed);
     for (ParameterDict::iterator parIt = bestFit.begin(); parIt != bestFit.end(); ++parIt)
     {
+      allParamNames.push_back(parIt->first);
+
       // Fixed params won't be in the covariance matrix
       if (fixedPars[parIt->first])
       {
@@ -626,7 +629,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       }
 
       paramNames.push_back(parIt->first);
-      paramVals.push_back(parIt->second);
+      paramVals.push_back(bestFit[parIt->first]);
       if (validFit)
       {
         paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1)));
@@ -637,11 +640,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         }
       }
     }
-    paramNames.push_back("LLH");
-    paramVals.push_back(finalLLH);
-    paramNames.push_back("FitValid");
-    paramVals.push_back(validFit);
-    outFile->WriteObject(&paramNames, "paramNames");
+    outFile->WriteObject(&paramNames, "paramNames"); // Non-fixed parameters
+    outFile->WriteObject(&allParamNames, "allParamNames"); // All parameters
     outFile->WriteObject(&paramVals, "paramVals");
     outFile->WriteObject(&paramErr, "paramErr");
     outFile->WriteObject(&covTMatrixD, "covMatrix");

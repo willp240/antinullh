@@ -432,6 +432,16 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         return;
     }
 
+    // Get the all-parameter name vector
+    std::vector<std::string> *allParamNameVec = nullptr;
+    fitfile->GetObject("allParamNames", allParamNameVec);
+    if (!allParamNameVec)
+    {
+        std::cerr << "Error: Could not find 'allParamNames' in file " << fitfilename.str() << std::endl;
+        fitfile->Close();
+        return;
+    }
+
     // Get the parameter name vector
     std::vector<std::string> *paramNameVec = nullptr;
     fitfile->GetObject("paramNames", paramNameVec);
@@ -441,8 +451,6 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         fitfile->Close();
         return;
     }
-    // Remove LLH and FitValid elements
-    paramNameVec->resize(paramNameVec->size()-2);
 
     // Get the parameter values vector
     std::vector<double> *paramVals = nullptr;
@@ -453,9 +461,6 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         fitfile->Close();
         return;
     }
-    // Remove LLH and FitValid elements
-    paramVals->resize(paramVals->size()-2);
-
 
     // Get the parameter errors vector
     std::vector<double> *paramErrs = nullptr;
@@ -473,6 +478,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     std::vector<double> constrMeansVals;
     std::vector<double> constrSigmaVals;
     std::vector<std::string> labelsVec;
+    std::vector<std::string> allLabelsVec;
     branchMap = noms;
 
     // Loop over paramNames
@@ -482,6 +488,12 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         labelsVec.push_back(labels[paramNameVec->at(iPar)]);
         constrMeansVals.push_back(constrMeans[paramNameVec->at(iPar)]);
         constrSigmaVals.push_back(constrSigmas[paramNameVec->at(iPar)]);
+    }
+
+    // Loop over allParamNameVec
+    for (int iPar = 0; iPar < allParamNameVec->size(); iPar++)
+    {
+        allLabelsVec.push_back(labels[allParamNameVec->at(iPar)]);
     }
 
     // Now we have all the vectors are in the same order as the covariance matrix, 
@@ -499,6 +511,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     constrSigmaVals.push_back(constrSigmas["deltam21"]);
     constrSigmaVals.push_back(constrSigmas[theta12name]);
 
+    outputFile.WriteObject(allParamNameVec, "all_param_names");
     outputFile.WriteObject(paramNameVec, "param_names");
     outputFile.WriteObject(paramVals, "param_fit_values");
     outputFile.WriteObject(paramErrs, "param_fit_err");
@@ -506,6 +519,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     outputFile.WriteObject(&constrMeansVals, "constr_mean_values");
     outputFile.WriteObject(&constrSigmaVals, "constr_sigma_values");
     outputFile.WriteObject(&labelsVec, "tex_labels");
+    outputFile.WriteObject(&allLabelsVec, "all_tex_labels");
 
     outputFile.cd();
     covMatrix->Write("covMatrix");

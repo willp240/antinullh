@@ -41,23 +41,56 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
 {
 
     int nParams = namesVec->size();
-
     // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
-    std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{"deltam21",
-                                                                             theta12name,
-                                                                             "reactor_nubar",
-                                                                             "geonu_U",
-                                                                             "geonu_Th",
-                                                                             "alphan_CScatter",
-                                                                             "alphan_OExcited",
-                                                                             "alphan_PRecoil",
-									                                         "bipolike",
-									                                         "atmospheric",
-                                                                             "energy_scale",
-                                                                             "energy_conv",
-                                                                             "birks_constant",
-                                                                             "p_recoil_energy_scale",
-                                                                             };
+    std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
+        "deltam21",
+        theta12name,
+        "reactor_nubar",
+        "geonu_U",
+        "geonu_Th",
+        "alphan_CScatter",
+        "alphan_OExcited",
+        "alphan_PRecoil",
+        "bipolike",
+        "atmospheric",
+        "energy_scale",
+        "energy_conv",
+        "birks_constant",
+        "p_recoil_energy_scale",
+        "reactor_nubar2",
+        "geonu_U2",
+        "geonu_Th2",
+        "alphan_CScatter2",
+        "alphan_OExcited2",
+        "alphan_PRecoil2",
+        "bipolike2",
+        "atmospheric2",
+        "energy_scale2",
+        "energy_conv2",
+        "birks_constant2",
+        "p_recoil_energy_scale2",
+    };
+    /*
+    std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
+        "deltam21",
+        theta12name,
+        "reactor_nubar_norm",
+        "geonu_U_norm",
+        "geonu_Th_norm",
+        "alphan_CScatter_norm",
+        "alphan_OExcited_norm",
+        "alphan_PRecoil_norm",
+        "bipolike_norm",
+        "atmospheric_norm",
+        "energy_scale",
+        "energy_conv",
+        "birks_constant",
+        "p_recoil_energy_scale",
+        "energy_scale2",
+        "energy_conv2",
+        "birks_constant2",
+        "p_recoil_energy_scale2"
+    };*/
 
     std::vector<double> *tempNomsVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempErrVec = new std::vector<double>(nParams, 0.0);
@@ -66,7 +99,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
     std::vector<std::string> *tempLabelsVec = new std::vector<std::string>(nParams, "");
     TMatrixT<double> *tempCovMatrix = new TMatrixT<double>(nParams, nParams);
 
-    // Map original parameter names to their new indices
+    // Map original parameter names to their old indices
     std::unordered_map<std::string, int> nameToOldIndex;
     for (int iParam = 0; iParam < nParams; ++iParam)
     {
@@ -332,13 +365,13 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     {
         // For reactor nubar, rate in fit config is unoscillated, but postfit value is oscillated.
         // So we need to multiply by the ratio saved in outputted fit file
-        if (paramNames->at(iParam).find(reactorpar1) != std::string::npos)
+        if (paramNames->at(iParam) == reactorpar1)
         {
-	        nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar1 + "_ratio"];
+            nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar1 + "_ratio"];
             constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues[reactorpar1 + "_ratio"];
             constrErr->at(iParam) = constrErr->at(iParam) * branchValues[reactorpar1 + "_ratio"];
         }
-        else if (paramNames->at(iParam).find(reactorpar2) != std::string::npos)
+        else if (paramNames->at(iParam) == reactorpar2)
         {
             nomVals->at(iParam) = nomVals->at(iParam) * branchValues[reactorpar2 + "_ratio"];
             constrMeans->at(iParam) = constrMeans->at(iParam) * branchValues[reactorpar2 + "_ratio"];
@@ -359,7 +392,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     }
 
     // Draw the histograms
-    TCanvas *c1 = new TCanvas("c1", "Params", 800, 600);
+    TCanvas *c1 = new TCanvas("c1", "Params", 1500, 800);
     c1->SetBottomMargin(0.18);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
@@ -445,7 +478,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     gStyle->SetNumberContours(NCont);
 
     // And make the plot
-    TCanvas *c2 = new TCanvas("c2", "Correlations", 800, 600);
+    TCanvas *c2 = new TCanvas("c2", "Correlations", 1500, 800);
     c2->SetBottomMargin(0.18);
     c2->SetRightMargin(0.15);
     c2->SetLeftMargin(0.15);
