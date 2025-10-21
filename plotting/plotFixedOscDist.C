@@ -32,13 +32,13 @@ const std::vector<std::string> baseParams1{
     "postfitdist", "data", "reactor_nubar", "geonu_U", "geonu_Th", "alphan_PRecoil", "alphan_CScatter",
     "alphan_OExcited", "bipolike", "atmospheric"};
 
-const std::string datasetname1 = "2p2ppodataset";
+const std::string datasetname1 = "2p2ppo";
 
 const std::vector<std::string> baseParams2{
-    "postfitdist", "data", "reactor_nubar2", "alphan_PRecoil2", "alphan_CScatter2",
-    "alphan_OExcited2", "geonu_Th2", "geonu_U2"};
+    "postfitdist", "data", "reactor_nubar2", "geonu_U2", "geonu_Th2", "alphan_PRecoil2", "alphan_CScatter2",
+    "alphan_OExcited2", "bipolike2", "atmospheric2"};
 
-const std::string datasetname2 = "dataset2";
+const std::string datasetname2 = "bismsb";
 
 const std::vector<std::string> reactorGroup = {"reactor_nubar"};
 const std::vector<std::string> geoGroup = {"geonu_Th", "geonu_U"};
@@ -56,7 +56,7 @@ double xmin = 0.9;
 double xmax = 8.0;
 // Ymax gets multiplied by number of datasets (to roughly account for having more events in more datasets)
 double ymin = 0.0;
-double ymax = 2.5;
+double ymax = 5.0;
 
 
 void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1)
@@ -176,10 +176,10 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     std::map<std::string, std::string> labelMap;
     std::vector<std::string> *paramNames = nullptr;
     std::vector<std::string> *labelsVec = nullptr;
-    file->GetObject("param_names", paramNames);
-    file->GetObject("tex_labels", labelsVec);
+    file->GetObject("all_param_names", paramNames);
+    file->GetObject("all_tex_labels", labelsVec);
 
-    for (int iParam = 0; iParam < paramNames->size(); iParam++)
+    for (int iParam = 0; iParam < labelsVec->size(); iParam++)
     {
         labelMap[paramNames->at(iParam)] = labelsVec->at(iParam);
     }
