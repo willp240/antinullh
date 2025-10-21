@@ -139,7 +139,7 @@ namespace antinufit
       dataEveCfg.SetNtupFiles(dataFilename);
       dataEveCfg.SetName("data");
       dataEveCfg.SetNtupBaseDir(baseDir);
-      dataEveCfg.SetPrunedPath(prunedDir + "/data.root");
+      dataEveCfg.SetPrunedPath(prunedDir + "/data_" + dataset + ".root");
 
       std::map<std::string, EventConfig> evMap;
       evMap["data"] = dataEveCfg;
