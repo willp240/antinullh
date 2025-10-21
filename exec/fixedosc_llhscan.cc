@@ -173,7 +173,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   std::cout << std::endl;
 
   // Define the number of points
-  int npoints = 10;
+  int npoints = 150;
   int countwidth = double(npoints) / double(5);
 
   // A parameter could have been defined in the fit config but isn't associated with a pdf or systematic
