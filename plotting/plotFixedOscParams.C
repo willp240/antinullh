@@ -42,7 +42,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
 
     int nParams = namesVec->size();
     // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
-    std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
+    /*std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
         "deltam21",
         theta12name,
         "reactor_nubar",
@@ -69,8 +69,8 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
         "energy_conv2",
         "birks_constant2",
         "p_recoil_energy_scale2",
-    };
-    /*
+    };*/
+    
     std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
         "deltam21",
         theta12name,
@@ -90,7 +90,7 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
         "energy_conv2",
         "birks_constant2",
         "p_recoil_energy_scale2"
-    };*/
+    };
 
     std::vector<double> *tempNomsVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempErrVec = new std::vector<double>(nParams, 0.0);
@@ -392,8 +392,9 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     }
 
     // Draw the histograms
-    TCanvas *c1 = new TCanvas("c1", "Params", 1500, 800);
+    TCanvas *c1 = new TCanvas("c1", "Params", 1500, 1000);
     c1->SetBottomMargin(0.18);
+    c1->SetRightMargin(0.13);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -417,6 +418,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     hConstr->GetYaxis()->SetTitleFont(42);
     hConstr->GetXaxis()->SetLabelFont(42);
     hConstr->GetYaxis()->SetLabelFont(42);
+    hConstr->GetXaxis()->SetLabelSize(0.03);
     hConstr->SetTitleFont(42);
 
     hConstr->Draw("E1");
@@ -478,10 +480,10 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     gStyle->SetNumberContours(NCont);
 
     // And make the plot
-    TCanvas *c2 = new TCanvas("c2", "Correlations", 1500, 800);
+    TCanvas *c2 = new TCanvas("c2", "Correlations", 1500, 1000);
     c2->SetBottomMargin(0.18);
-    c2->SetRightMargin(0.15);
-    c2->SetLeftMargin(0.15);
+    c2->SetLeftMargin(0.16);
+    c2->SetRightMargin(0.13);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -491,6 +493,8 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     hCorrMatrix->GetYaxis()->SetLabelFont(42);
     hCorrMatrix->GetZaxis()->SetLabelFont(42);
     hCorrMatrix->GetZaxis()->SetRangeUser(-1, 1);
+    hCorrMatrix->GetXaxis()->SetLabelSize(0.03);
+    hCorrMatrix->GetYaxis()->SetLabelSize(0.03);
     hCorrMatrix->SetTitle("");
     hCorrMatrix->Draw("colz");
 

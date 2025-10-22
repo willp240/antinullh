@@ -56,8 +56,7 @@ double xmin = 0.9;
 double xmax = 8.0;
 // Ymax gets multiplied by number of datasets (to roughly account for having more events in more datasets)
 double ymin = 0.0;
-double ymax = 5.0;
-
+double ymax = 3.5;
 
 void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1)
 {
@@ -181,7 +180,24 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
     for (int iParam = 0; iParam < labelsVec->size(); iParam++)
     {
-        labelMap[paramNames->at(iParam)] = labelsVec->at(iParam);
+        std::string lab = labelsVec->at(iParam);
+        // if we're plotting two datasets, assume last bit of label refers to dataset name so we'll remove it now
+        if (datasetChoice == 0)
+        {
+            while (!lab.empty() && std::isspace(static_cast<unsigned char>(lab.back()))) {
+                lab.pop_back();
+            }
+            size_t pos = lab.find_last_of(' ');
+            if (pos != std::string::npos)
+            {
+                std::string last_word = lab.substr(pos + 1);
+                if (last_word == "PPO" || last_word == "bisMSB")
+                {
+                    lab.erase(pos); 
+                }
+            }
+        }
+        labelMap[paramNames->at(iParam)] = lab;
     }
     labelMap["data"] = "Data";
 
@@ -356,7 +372,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     c1->cd();
 
     upper->cd();
-    TH1F* frame = upper->DrawFrame(xmin, ymin, xmax, ymax*paramOrders.size());
+    TH1F *frame = upper->DrawFrame(xmin, ymin, xmax, ymax * paramOrders.size());
     frame->SetTitle(";Reconstructed Energy, MeV;Events");
     frame->GetXaxis()->SetLabelOffset(1.2);
     frame->GetXaxis()->SetTitleFont(42);
@@ -391,7 +407,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     hMC->Divide(histMap["data"]);
     hMC->SetFillStyle(0);
     hMC->GetYaxis()->SetRangeUser(0.9, 1.1);
-    hMC->GetXaxis()->SetRangeUser(xmin,xmax);
+    hMC->GetXaxis()->SetRangeUser(xmin, xmax);
     hMC->GetXaxis()->SetTitleFont(42);
     hMC->GetYaxis()->SetTitleFont(42);
     hMC->GetXaxis()->SetLabelFont(42);
@@ -450,7 +466,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     t2->AddEntry(hOther, "Other", "f");
 
     upper2->cd();
-    TH1F* frame2 = upper->DrawFrame(xmin, ymin, xmax, ymax*paramOrders.size());
+    TH1F *frame2 = upper->DrawFrame(xmin, ymin, xmax, ymax * paramOrders.size());
     frame2->SetTitle(";Reconstructed Energy, MeV;Events");
     frame2->GetXaxis()->SetLabelOffset(1.2);
     frame2->GetXaxis()->SetTitleFont(42);
