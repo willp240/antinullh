@@ -377,6 +377,12 @@ This script loops through all the unscaled PDF files in a directory, and plots e
 
 > root -l 'plotting/compare1DPDFs("/path/to/dir1/", "/path/to/dir2/", "label1", "label2")'
 
+<h4>compare1DDatasetPDFs</h4>
+
+This script loops through all the unscaled PDF files in a directory, and finds the files with the siffix for one dataset, and looks for files for the same event type for the second dataset. If they both exist, it plots them both on the same page, and saves each plot on a different page of a PDF file, and in a root file. The user inputs the directory path, two dataset suffixes, and labels for the legend. You can run it with:
+
+> root -l 'plotting/compare1DDatasetPDFs("/path/to/dir/", "dataset_syffix1", "dataset_syffix2", "label1", "label2")'
+
 <h4>plot2DPDFs</h4>
 
 This script loops through all the 2D unscaled PDF files in a directory, and plots each (with colz) on a different page of a PDF file, and in a root file. You can run it with:
