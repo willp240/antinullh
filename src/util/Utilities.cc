@@ -203,7 +203,7 @@ namespace antinufit
         for (int iParam = 0; iParam < tempNamesVec->size(); iParam++)
         {
 
-            if (!noms[tempNamesVec->at(iParam)])
+            if (noms.find(tempNamesVec->at(iParam))== noms.end())
                 continue;
 
             std::cout << "| ";
