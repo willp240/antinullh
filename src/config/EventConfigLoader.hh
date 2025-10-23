@@ -22,6 +22,7 @@ namespace antinufit
     std::map<std::string, std::map<std::string, EventConfig>> LoadActive() const;
     std::map<std::string, EventConfig> LoadAll(const std::set<std::string> &except_, const std::string dataset_) const;
     std::map<std::string, std::string> GetDataPaths() const;
+    std::map<std::string, std::string> GetPrunedDataPaths() const;
     std::map<std::string, std::map<std::string, EventConfig>> LoadActiveAndData() const;
 
   private:

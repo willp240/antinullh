@@ -201,4 +201,25 @@ namespace antinufit
 
     return dataPathMap;
   }
+
+  std::map<std::string, std::string>
+  EventConfigLoader::GetPrunedDataPaths() const
+  {
+    std::map<std::string, std::string> dataPathMap;
+    typedef std::set<std::string> StringSet;
+    ConfigLoader::Open(fPath);
+
+    StringSet dataSets;
+    ConfigLoader::Load("summary", "datasets", dataSets);
+
+    for (StringSet::iterator itDS = dataSets.begin(); itDS != dataSets.end(); ++itDS)
+    {
+      std::string prunedDir;
+      ConfigLoader::Load(*itDS, "pruned_ntup_dir", prunedDir);
+      std::string dataPath = prunedDir + "/data_" + *itDS + ".root";
+      dataPathMap[*itDS] = dataPath;
+    }
+
+    return dataPathMap;
+  }
 }
