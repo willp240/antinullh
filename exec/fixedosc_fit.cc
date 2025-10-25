@@ -674,9 +674,9 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
           // Apply bestfit systematic variables
           // First loop over groups that apply to the dist
-          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].back().size(); iGroup++)
+          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].at(i).size(); iGroup++)
           {
-            std::string grp = pdfGroups[dsIt->first].back().at(iGroup);
+            std::string grp = pdfGroups[dsIt->first].at(i).at(iGroup);
 
             // Now loop over all systematics, and find the ones in this group
             for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
@@ -712,10 +712,10 @@ void fixedosc_fit(const std::string &fitConfigFile_,
           std::string name = pdfMap[dsIt->first].at(i).GetName();
           pdfMap[dsIt->first][i].Normalise();
           // First loop over groups that apply to the dist
-          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].back().size(); iGroup++)
+          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].at(i).size(); iGroup++)
           {
 
-            std::string grp = pdfGroups[dsIt->first].back().at(iGroup);
+            std::string grp = pdfGroups[dsIt->first].at(i).at(iGroup);
             // Now loop over all systematics, and find the ones in this group
             for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
             {
