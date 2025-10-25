@@ -69,6 +69,10 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
         "energy_conv2",
         "birks_constant2",
         "p_recoil_energy_scale2",
+	"class_a_ppo",
+        "class_a_bismsb",
+        "class_s_ppo",
+        "class_s_bismsb"
     };
     /*
     std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
@@ -378,12 +382,28 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
             constrErr->at(iParam) = constrErr->at(iParam) * branchValues[reactorpar2 + "_ratio"];
         }
 
-        hNom->SetBinContent(iParam + 1, nomVals->at(iParam) / nomVals->at(iParam));
+        double nom = 1;
+        double constrmean = 1;
+        double postfit = 1;
+        if(nomVals->at(iParam) == 0)
+          {
+            nom = 1.0;
+            constrmean = constrMeans->at(iParam) + 1;
+            postfit = branchValues[paramNames->at(iParam)] + 1;
+          }
+        else
+          {
+            nom = nomVals->at(iParam);
+            constrmean = constrMeans->at(iParam);
+            postfit = branchValues[paramNames->at(iParam)];
+          }
+
+        hNom->SetBinContent(iParam + 1, nom / nom);
         hConstr->GetXaxis()->SetBinLabel(iParam + 1, labelsVec->at(iParam).c_str());
-        hConstr->SetBinContent(iParam + 1, constrMeans->at(iParam) / nomVals->at(iParam));
-        hConstr->SetBinError(iParam + 1, constrErr->at(iParam) / nomVals->at(iParam));
-        hPostFit->SetBinContent(iParam + 1, branchValues[paramNames->at(iParam)] / nomVals->at(iParam));
-        hPostFit->SetBinError(iParam + 1, paramErr->at(iParam) / nomVals->at(iParam));
+        hConstr->SetBinContent(iParam + 1, constrmean / nom);
+        hConstr->SetBinError(iParam + 1, constrErr->at(iParam) / nom);
+        hPostFit->SetBinContent(iParam + 1, postfit / nom);
+        hPostFit->SetBinError(iParam + 1, paramErr->at(iParam) / nom);
         std::cout << "Par: " << paramNames->at(iParam) << std::endl;
         std::cout << "Nom Mean: " << nomVals->at(iParam) << std::endl;
         std::cout << "Constr: " << constrMeans->at(iParam) << " " << constrErr->at(iParam) << std::endl;
