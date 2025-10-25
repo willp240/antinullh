@@ -56,9 +56,9 @@ double xmin = 0.9;
 double xmax = 8.0;
 // Ymax gets multiplied by number of datasets (to roughly account for having more events in more datasets)
 double ymin = 0.0;
-double ymax = 3.5;
+double ymax = 40.0;
 
-void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1)
+void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1, const bool datafit = 1)
 {
 
     // Open the ROOT file
@@ -180,24 +180,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
     for (int iParam = 0; iParam < labelsVec->size(); iParam++)
     {
-        std::string lab = labelsVec->at(iParam);
-        // if we're plotting two datasets, assume last bit of label refers to dataset name so we'll remove it now
-        if (datasetChoice == 0)
-        {
-            while (!lab.empty() && std::isspace(static_cast<unsigned char>(lab.back()))) {
-                lab.pop_back();
-            }
-            size_t pos = lab.find_last_of(' ');
-            if (pos != std::string::npos)
-            {
-                std::string last_word = lab.substr(pos + 1);
-                if (last_word == "PPO" || last_word == "bisMSB")
-                {
-                    lab.erase(pos); 
-                }
-            }
-        }
-        labelMap[paramNames->at(iParam)] = lab;
+        labelMap[paramNames->at(iParam)] = labelsVec->at(iParam);
     }
     labelMap["data"] = "Data";
 
@@ -261,6 +244,22 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
                 }
             }
             h1->SetDirectory(nullptr);
+
+            if (paramOrders.at(iFile).at(iPar) != "data")
+            {
+
+                for (int i = 1; i <= h1->GetNbinsX(); ++i)
+                {
+                    double binWidth = h1->GetBinWidth(i);
+                    double content = h1->GetBinContent(i);
+                    double error = h1->GetBinError(i);
+
+                    double scale = 0.4 / binWidth;
+                    h1->SetBinContent(i, content * scale);
+                    h1->SetBinError(i, error * scale);
+                }
+            }
+
             if (iFile == 0)
             {
                 histMap[paramOrders.at(iFile).at(iPar)] = h1;
@@ -319,6 +318,19 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         {
             hData->Add(histMap[paramOrders.at(0).at(iPar)]);
             t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "l");
+            if (datafit)
+                histMap["data"]->Rebin(10);
+            for (int i = 1; i <= histMap["data"]->GetNbinsX(); ++i)
+            {
+                double binWidth = histMap["data"]->GetBinWidth(i);
+                double content = histMap["data"]->GetBinContent(i);
+                double error = histMap["data"]->GetBinError(i);
+
+                double scale = 0.4 / binWidth;
+                std::cout << binWidth << " " << scale << std::endl;
+                histMap["data"]->SetBinContent(i, content * scale);
+                histMap["data"]->SetBinError(i, error * scale);
+            }
         }
         else if (std::find(reacGrp.begin(), reacGrp.end(), paramOrders.at(0).at(iPar)) != reacGrp.end())
         {
@@ -373,7 +385,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
     upper->cd();
     TH1F *frame = upper->DrawFrame(xmin, ymin, xmax, ymax * paramOrders.size());
-    frame->SetTitle(";Reconstructed Energy, MeV;Events");
+    frame->SetTitle(";Reconstructed Energy, MeV;Events / 0.4 MeV");
     frame->GetXaxis()->SetLabelOffset(1.2);
     frame->GetXaxis()->SetTitleFont(42);
     frame->GetYaxis()->SetTitleFont(42);
@@ -386,7 +398,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     frame->GetYaxis()->SetTitleOffset(0.8);
     hStack->Draw("histsame");
     histMap["data"]->SetFillStyle(0);
-    histMap["data"]->Draw("histsame");
+    histMap["data"]->Draw("e1same");
     hStack->GetXaxis()->SetLabelOffset(1.2);
     hStack->GetXaxis()->SetTitleFont(42);
     hStack->GetYaxis()->SetTitleFont(42);
@@ -478,9 +490,9 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     frame2->GetXaxis()->SetTitleSize(0.06);
     frame2->GetYaxis()->SetTitleSize(0.06);
     frame2->GetYaxis()->SetTitleOffset(0.8);
-    frame2->SetTitle(";Reconstructed Energy, MeV;Events");
+    frame2->SetTitle(";Reconstructed Energy, MeV;Events / 0.4 MeV");
     hGroupStack->Draw("histsame");
-    histMap["data"]->Draw("histsame");
+    histMap["data"]->Draw("e1same");
     hGroupStack->GetXaxis()->SetLabelOffset(1.2);
     hGroupStack->GetXaxis()->SetTitleFont(42);
     hGroupStack->GetYaxis()->SetTitleFont(42);
