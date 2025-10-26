@@ -333,9 +333,13 @@ This script will loop over all entries in the output `TTree` from `makeFixedOscT
 
 Currently, the user hard codes the parameter names for each dataset in the top of this file. When running, the user supplies an option as the second argument: `1` plots the distributions for the first dataset, `2` plots the distributions for the second dataset, and `0` plots the summed distributions for both datasets. Obviously it would be nice if this wasn't hardcoded, and you could use N datasets, but for expedience this is how it is at the moment.
 
+The user can also choose to supply a data directory. It will then look for files with the names `data_datasetname.root` where `datasetname` is set at the top of the script. Data from that file(s) will then be looped over and binned, with the binning also set at the top of the file. The MC distributions will then be scaled to match the 'per MeV' scaling of the data bin width.
+
 Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
-> root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output", dataset_option)'
+> root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output", dataset_option, data_directory)'
+
+with the last two arguments being optional, defaulting to `1` and `""`.
 
 In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three (#alpha,n)s, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
 
@@ -376,6 +380,12 @@ This script loops through all the unscaled PDF files in a directory, and plots e
 This script loops through all the unscaled PDF files in a directory, and plots each on a different page of a PDF file, and in a root file. The user inputs the two directory paths, and labels for the legend. You can run it with:
 
 > root -l 'plotting/compare1DPDFs("/path/to/dir1/", "/path/to/dir2/", "label1", "label2")'
+
+<h4>compare1DDatasetPDFs</h4>
+
+This script loops through all the unscaled PDF files in a directory, and finds the files with the siffix for one dataset, and looks for files for the same event type for the second dataset. If they both exist, it plots them both on the same page, and saves each plot on a different page of a PDF file, and in a root file. The user inputs the directory path, two dataset suffixes, and labels for the legend. You can run it with:
+
+> root -l 'plotting/compare1DDatasetPDFs("/path/to/dir/", "dataset_syffix1", "dataset_syffix2", "label1", "label2")'
 
 <h4>plot2DPDFs</h4>
 

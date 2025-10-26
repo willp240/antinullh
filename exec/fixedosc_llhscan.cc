@@ -74,7 +74,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   typedef std::map<std::string, std::map<std::string, EventConfig>> DSMap;
   EventConfigLoader evLoader(evConfigFile_);
   DSMap dsPDFMap = evLoader.LoadActive();
-  std::map<std::string, std::string> dataPath = evLoader.GetDataPaths();
+  std::map<std::string, std::string> dataPath = evLoader.GetPrunedDataPaths();
   std::map<std::string, BinnedED> dataDists;
 
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
