@@ -356,16 +356,24 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
           oscDist.Normalise();
           oscPDFsMap[dsIt->first].push_back(oscDist);
+
           // Apply nominal systematic variables to the oscillated distribution
-          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+          // First loop over groups that apply to the dist
+          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].back().size(); iGroup++)
           {
-            // If group is "", we apply to all groups
-            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+            std::string grp = pdfGroups[dsIt->first].back().at(iGroup);
+
+            // Now loop over all systematics, and find the ones in this group
+            for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
             {
-              double norm;
-              oscDist = systIt->second->operator()(oscDist, &norm);
+              // If group is "", we apply to all groups
+              if (systGroup[systIt->first] == "" || systGroup[systIt->first] == grp)
+              {
+                double norm;
+                oscDist = systIt->second->operator()(oscDist, &norm);
+              }
             }
-          }
+          } // End loop over groups
           // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
           oscDist.Scale(noms[evIt->first]);
           // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
@@ -395,16 +403,24 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           oscDist.AddPadding();
           oscDist.Normalise();
           oscPDFsMap[dsIt->first].push_back(oscDist);
-          // Apply nominal systematic variables to the oscillated distribution
-          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+
+          // Apply nominal systematic variables
+          // First loop over groups that apply to the dist
+          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].back().size(); iGroup++)
           {
-            // If group is "", we apply to all groups
-            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+            std::string grp = pdfGroups[dsIt->first].back().at(iGroup);
+
+            // Now loop over all systematics, and find the ones in this group
+            for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
             {
-              double norm;
-              oscDist = systIt->second->operator()(oscDist, &norm);
+              // If group is "", we apply to all groups
+              if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+              {
+                double norm;
+                oscDist = systIt->second->operator()(oscDist, &norm);
+              }
             }
-          }
+          } // End loop over groups
           // oscDist is just the reactor PDF for this point in the oscillation scan, so we scale that by the expected reactor rate
           oscDist.Scale(noms[evIt->first]);
           // oscDatasets is a vector of oscillated "asimov" distributions, so will be the sum of all scaled pdfs (after applying nominal systematics)
@@ -416,7 +432,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       {
         dist = DistBuilder::BuildFlatDist(evIt->first, num_dimensions, pdfConfig);
         fakeDataDist = DistBuilder::BuildFlatDist(evIt->first, num_dimensions, pdfConfig);
-
       }
       else
       {
@@ -443,25 +458,30 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       normFittingStatuses[dsIt->first]->push_back(INDIRECT);
 
       // Apply nominal systematic variables
-      for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+      // First loop over groups that apply to the dist
+      for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].back().size(); iGroup++)
       {
+        std::string grp = pdfGroups[dsIt->first].back().at(iGroup);
 
-        // If group is "", we apply to all groups
-        if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+        // Now loop over all systematics, and find the ones in this group
+        for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
         {
-          double norm;
-          dist = systIt->second->operator()(dist, &norm);
-          // Set syst parameter to fake data value, and apply to fake data dist and rescale
-          std::set<std::string> systParamNames = systIt->second->GetParameterNames();
-          for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+          // If group is "", we apply to all groups
+          if (systGroup[systIt->first] == "" || systGroup[systIt->first] == grp)
           {
-            systIt->second->SetParameter(*itSystParam, fdValues[*itSystParam]);
+            double norm;
+            dist = systIt->second->operator()(dist, &norm);
+            // Set syst parameter to fake data value, and apply to fake data dist and rescale
+            std::set<std::string> systParamNames = systIt->second->GetParameterNames();
+            for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+            {
+              systIt->second->SetParameter(*itSystParam, fdValues[*itSystParam]);
+            }
+            systIt->second->Construct();
+            fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
           }
-          systIt->second->Construct();
-          fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
         }
-      }
-
+      } // End loop over groups
       // Now scale the Asimov component by expected count, and also save pdf as a histo
       dist.Scale(noms[evIt->first]);
       fakeDataDist.Scale(fdValues[evIt->first]);
