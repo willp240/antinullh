@@ -58,9 +58,16 @@ std::vector<int> fillColours = {kBlue + 2, kBlack, kBlue - 9, kMagenta - 8, kMag
 // Axis ranges
 double xmin = 0.9;
 double xmax = 8.0;
-// Ymax gets multiplied by number of datasets (to roughly account for having more events in more datasets)
-double ymin = 0.0;
-double ymax = 25.0;
+
+// Depeding on your 'datasetChoice', the yrange is either the 0 (both datasets), 1 (dataset1/ppo), or 2 (dataset2/bismsb) choice of these ranges
+double ymin;
+double ymax;
+double ymin0 = 0.0;
+double ymax0 = 7.0;
+double ymin1 = 0.0;
+double ymax1 = 2.5;
+double ymin2 = 0.0;
+double ymax2 = 4.5;
 
 // If you are plotting real data, what bin width to use for data
 double databinwidth = 0.3;
@@ -231,6 +238,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         atmosphericGrp = atmosphericGroup;
         atmosphericGrp.insert(atmosphericGrp.end(), atmosphericGroup2.begin(), atmosphericGroup2.end());
         outsuffix = "_all";
+        ymin = ymin0;
+        ymax = ymax0;
     }
     else if (datasetChoice == 1)
     {
@@ -242,6 +251,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         bipolikeGrp = bipolikeGroup;
         atmosphericGrp = atmosphericGroup;
         outsuffix = "_" + datasetname1;
+        ymin = ymin1;
+        ymax = ymax1;
     }
     else if (datasetChoice == 2)
     {
@@ -253,6 +264,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         bipolikeGrp = bipolikeGroup2;
         atmosphericGrp = atmosphericGroup2;
         outsuffix = "_" + datasetname2;
+        ymin = ymin2;
+        ymax = ymax2;
     }
 
     // Declare group histos and stacks
@@ -488,7 +501,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         c1->cd();
 
         upper->cd();
-        TH1F *frame = upper->DrawFrame(xmin, ymin, xmax, ymax * paramOrders.size());
+        TH1F *frame = upper->DrawFrame(xmin, ymin, xmax, ymax);
         frame->SetTitle(";Reconstructed Energy, MeV;Events");
         frame->GetXaxis()->SetLabelOffset(1.2);
         frame->GetXaxis()->SetTitleFont(42);
@@ -584,7 +597,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         t2->AddEntry(hAtmospheric, "Atmospheric", "f");
 
         upper2->cd();
-        TH1F *frame2 = upper->DrawFrame(xmin, ymin, xmax, ymax * paramOrders.size());
+        TH1F *frame2 = upper->DrawFrame(xmin, ymin, xmax, ymax);
         frame2->SetTitle(";Reconstructed Energy, MeV;Events");
         frame2->GetXaxis()->SetLabelOffset(1.2);
         frame2->GetXaxis()->SetTitleFont(42);
@@ -631,7 +644,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         c1->SetFrameLineWidth(2);
         c1->SetBottomMargin(0.15);
 
-        TH1F *frame = c1->DrawFrame(xmin, ymin, xmax, ymax * paramOrders.size());
+        TH1F *frame = c1->DrawFrame(xmin, ymin, xmax, ymax);
         TString titles = Form(";Reconstructed Energy, MeV;Events / %.1f MeV",databinwidth);
         frame->SetTitle(titles);
         frame->GetXaxis()->SetTitleFont(42);
@@ -689,7 +702,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         hGroupStack->Add(hAtmospheric);
         t2->AddEntry(hAtmospheric, "Atmospheric", "f");
 
-        TH1F *frame2 = c2->DrawFrame(xmin, ymin, xmax, ymax * paramOrders.size());
+        TH1F *frame2 = c2->DrawFrame(xmin, ymin, xmax, ymax);
         frame2->SetTitle(titles);
         frame2->GetXaxis()->SetTitleFont(42);
         frame2->GetYaxis()->SetTitleFont(42);
