@@ -331,7 +331,7 @@ It can be run by doing:
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
 
-Currently, the user hard codes the parameter names for each dataset in the top of this file. When running, the user supplies an option as the second argument: `1` plots the distributions for the first dataset, `2` plots the distributions for the second dataset, and `0` plots the summed distributions for both datasets. Obviously it would be nice if this wasn't hardcoded, and you could use N datasets, but for expedience this is how it is at the moment.
+Currently, the user hard codes the parameter names, dataset names, and axis ranges for each dataset in the top of this file. When running, the user supplies an option as the second argument: `1` plots the distributions for the first dataset, `2` plots the distributions for the second dataset, and `0` plots the summed distributions for both datasets. Obviously it would be nice if this wasn't hardcoded, and you could use N datasets, but for expedience this is how it is at the moment.
 
 The user can also choose to supply a data directory. It will then look for files with the names `data_datasetname.root` where `datasetname` is set at the top of the script. Data from that file(s) will then be looped over and binned, with the binning also set at the top of the file. The MC distributions will then be scaled to match the 'per MeV' scaling of the data bin width.
 
@@ -356,6 +356,18 @@ You can run it with:
 > root -l 'plotting/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
 
 <h3>Prefit Plots</h3>
+
+<h4>plotLLHScans</h4>
+
+This script loops through the objects in a LLH scan output file and prints each histogram to a canvas. Each canvas is saved as one page in a PDF file, and in a root file. The output file is saved in the same location as the input file. You can run it with:
+
+> root -l 'plotting/plotLLHScans.C("/path/to/llhscan/llhscan.root")'
+
+<h4>plotLLHScanPairs</h4>
+
+This script loops through the objects in a LLH scan output file and prints each histogram to a canvas. If a parameter exists for two datasets, the two scans for those parameters are plotted on the same canvas. If the parameter only exists for one dataset, it is plotted alone. Each canvas is saved as one page in a PDF file, and in a root file. The output file is saved in the same location as the input file. You can run it with:
+
+> root -l 'plotting/plotLLHScanPairs.C("/path/to/llhscan/llhscan.root")'
 
 <h4>compare2LLHScans</h4>
 

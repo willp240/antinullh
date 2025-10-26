@@ -101,7 +101,7 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         h1->GetXaxis()->SetLabelSize(0.045);
         h1->GetYaxis()->SetLabelSize(0.045);
         h1->GetYaxis()->SetTitle("Probability");
-        h1->SetTitle(histName.c_str());
+        h1->SetTitle("");
         h1->Draw();
         h2->Draw("same");
         h2->SetLineWidth(2);

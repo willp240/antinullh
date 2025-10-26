@@ -1,3 +1,16 @@
+/* ///////////////////////////////////////////////////////////////////
+///
+/// Script for plotting LLH scans.
+///
+/// The user inputs the root file made by fixedOscLLHScan.
+///
+/// Histograms in the input file is looped through and drawn.
+///
+/// The plots are drawn and saved in a pdf and root
+/// file.
+///
+/////////////////////////////////////////////////////////////////// */
+
 #include <iostream>
 #include <filesystem>
 #include <string>
