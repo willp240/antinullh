@@ -1,3 +1,21 @@
+/* ///////////////////////////////////////////////////////////////////
+///
+/// Script for plotting LLH scans, with the same parameters for
+/// different datasets plotted on the same canvas.
+///
+/// The user inputs the root file made by fixedOscLLHScan.
+///
+/// Histograms in the input file for the first dataset are looped
+/// through and drawn. If a corresponding parameter exists for the
+/// second dataset, the scan for it is drawn on the same canvas.
+/// For parameters without a corresponding parameter in the other
+/// dataset, the scan is drawn alone on a canvas.
+///
+/// The plots are drawn and saved in a pdf and root
+/// file.
+///
+/////////////////////////////////////////////////////////////////// */
+
 #include <TFile.h>
 #include <TH1D.h>
 #include <TCanvas.h>
