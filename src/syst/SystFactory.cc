@@ -622,8 +622,8 @@ namespace antinufit
       {
         shape->SetShapeFunction(OscProbGrid, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
-        shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
-        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"sinsqtheta12", paramvals_[paramnamevec_.at(1)]}});
+        shape->RenameParameter(paramnamevec_.at(1), "theta12");
+        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
         shape->SetParameters(params);
       }
       else if (function == "OscProb")
