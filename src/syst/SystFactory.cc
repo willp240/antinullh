@@ -123,6 +123,25 @@ namespace antinufit
     {
 
       // First declare possible functions
+      ShapeFunction GeoOscProb = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      {
+
+        double fDmSqr21 = params.at("deltam21");
+        double fSSqrTheta12 = params.at("sinsqtheta12");
+        double fDmSqr32 = 2.451e-3;
+        double fSSqrTheta13 = 0.0216;
+
+        // prob = s13^4 + c13^4 * (1 - (1/2) * sin^2(2 * theta_12))
+        // First get fCSqrTheta13 (cos^2(theta_12)) via cos^2 = (1 - sin^2)
+        double fCSqrTheta13 = (1 - fSSqrTheta13) * (1 - fSSqrTheta13);
+        // Now let's get sin^2(2 * theta_12) from sin^(2x) = 4*sin^2(x) * (1 - sin^2(x))
+        double fSSqr2Theta_12 = 4 * fSSqrTheta12 * ( 1 - fSSqrTheta12);
+        // Finally bring it all together
+        double prob = (fSSqrTheta13 * fSSqrTheta13) + (fCSqrTheta13 * fCSqrTheta13) * ( 1 - 0.5 * fSSqr2Theta_12);
+
+        return prob;
+      };
+
       ShapeFunction OscProbGrid = [&oscgridmap_, &indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
         double distance = indexdistancemap_[obs_vals.at(1)];
@@ -613,6 +632,14 @@ namespace antinufit
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
         shape->RenameParameter(paramnamevec_.at(1), "theta12");
         ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        shape->SetParameters(params);
+      }
+      else if (function == "GeoOscProb")
+      {
+        shape->SetShapeFunction(GeoOscProb, paramnamevec_);
+        shape->RenameParameter(paramnamevec_.at(0), "deltam21");
+        shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
+        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"sinsqtheta12", paramvals_[paramnamevec_.at(1)]}});
         shape->SetParameters(params);
       }
 
