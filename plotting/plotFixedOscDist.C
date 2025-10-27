@@ -438,7 +438,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
                 t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "lep");
                 histMap["data"] = rebinData(dataDir, datasetChoice);
             }
-            t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "l");
+            else
+                t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "l");
  
         }
         else if (std::find(reacGrp.begin(), reacGrp.end(), paramOrders.at(0).at(iPar)) != reacGrp.end())
