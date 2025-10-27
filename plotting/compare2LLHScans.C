@@ -6,9 +6,8 @@
 ///
 /// Script for comparing 2 LLH scans.
 ///
-/// The user inputs the root files made by fixedOscLLHScan for
-/// along with labels to be printed in the legend for
-/// each.
+/// The user inputs the root files made by fixedOscLLHScan for each
+/// scan along with labels to be printed in the legend for each.
 ///
 /// Histograms in the input files are looped through and drawn.
 ///

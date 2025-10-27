@@ -92,7 +92,6 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   std::map<std::string, std::string> dataPath = evLoader.GetPrunedDataPaths();
   std::map<std::string, BinnedED> dataDists;
 
-
   // Load up the PDF information (skeleton axis details, rather than the distributions themselves)
   PDFConfigLoader pdfLoader(pdfConfigFile_);
   PDFConfig pdfConfig = pdfLoader.Load();
@@ -361,24 +360,31 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       normFittingStatuses[dsIt->first]->push_back(INDIRECT);
 
       // Apply nominal systematic variables
-      for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+      // First loop over groups that apply to the dist
+      for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].back().size(); iGroup++)
       {
-        // If group is "", we apply to all groups
-        if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
-        {
-          double norm;
-          dist = systIt->second->operator()(dist, &norm);
+        std::string grp = pdfGroups[dsIt->first].back().at(iGroup);
 
-          // Set syst parameter to fake data value, and apply to fake data dist and rescale
-          std::set<std::string> systParamNames = systIt->second->GetParameterNames();
-          for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        // Now loop over all systematics, and find the ones in this group
+        for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+        {
+          // If group is "", we apply to all groups
+          if (systGroup[systIt->first] == "" || systGroup[systIt->first] == grp)
           {
-            systIt->second->SetParameter(*itSystParam, fdValues[*itSystParam]);
+            double norm;
+            dist = systIt->second->operator()(dist, &norm);
+
+            // Set syst parameter to fake data value, and apply to fake data dist and rescale
+            std::set<std::string> systParamNames = systIt->second->GetParameterNames();
+            for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+            {
+              systIt->second->SetParameter(*itSystParam, fdValues[*itSystParam]);
+            }
+            systIt->second->Construct();
+            fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
           }
-          systIt->second->Construct();
-          fakeDataDist = systIt->second->operator()(fakeDataDist, &norm);
         }
-      }
+      } // End loop over groups
 
       // Now scale the Asimov component by expected count, and also save pdf as a histo
       dist.Scale(noms[evIt->first]);
@@ -640,7 +646,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         }
       }
     }
-    outFile->WriteObject(&paramNames, "paramNames"); // Non-fixed parameters
+    outFile->WriteObject(&paramNames, "paramNames");       // Non-fixed parameters
     outFile->WriteObject(&allParamNames, "allParamNames"); // All parameters
     outFile->WriteObject(&paramVals, "paramVals");
     outFile->WriteObject(&paramErr, "paramErr");
@@ -665,22 +671,31 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         {
           std::string name = pdfMap[dsIt->first].at(i).GetName();
           pdfMap[dsIt->first][i].Normalise();
+
           // Apply bestfit systematic variables
-          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+          // First loop over groups that apply to the dist
+          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].at(i).size(); iGroup++)
           {
-            // If group is "", we apply to all groups
-            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+            std::string grp = pdfGroups[dsIt->first].at(i).at(iGroup);
+
+            // Now loop over all systematics, and find the ones in this group
+            for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
             {
-              std::set<std::string> systParamNames = systIt->second->GetParameterNames();
-              for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+              // If group is "", we apply to all groups
+              if (systGroup[systIt->first] == "" || systGroup[systIt->first] == grp)
               {
-                systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
+                std::set<std::string> systParamNames = systIt->second->GetParameterNames();
+                for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+                {
+                  systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
+                }
+                double norm;
+                systIt->second->Construct();
+                pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
               }
-              double norm;
-              systIt->second->Construct();
-              pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
             }
-          }
+          } // End loop over groups
+
           pdfMap[dsIt->first][i].Scale(bestFit[name]);
           IO::SaveHistogram(pdfMap[dsIt->first][i].GetHistogram(), postfitDistDir + "/" + name + "_" + dsIt->first + ".root");
           // Sum all scaled distributions to get full postfit "dataset"
@@ -696,21 +711,27 @@ void fixedosc_fit(const std::string &fitConfigFile_,
         {
           std::string name = pdfMap[dsIt->first].at(i).GetName();
           pdfMap[dsIt->first][i].Normalise();
-          // Apply bestfit systematic variables
-          for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
+          // First loop over groups that apply to the dist
+          for (int iGroup = 0; iGroup < pdfGroups[dsIt->first].at(i).size(); iGroup++)
           {
-            // If group is "", we apply to all groups
-            if (systGroup[systIt->first] == "" || std::find(pdfGroups[dsIt->first].back().begin(), pdfGroups[dsIt->first].back().end(), systGroup[systIt->first]) != pdfGroups[dsIt->first].back().end())
+
+            std::string grp = pdfGroups[dsIt->first].at(i).at(iGroup);
+            // Now loop over all systematics, and find the ones in this group
+            for (std::map<std::string, Systematic *>::iterator systIt = systMap[dsIt->first].begin(); systIt != systMap[dsIt->first].end(); ++systIt)
             {
-              std::set<std::string> systParamNames = systIt->second->GetParameterNames();
-              for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+              // If group is "", we apply to all groups
+              if (systGroup[systIt->first] == "" || systGroup[systIt->first] == grp)
               {
-                systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
+                std::set<std::string> systParamNames = systIt->second->GetParameterNames();
+                for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+                {
+                  systIt->second->SetParameter(*itSystParam, bestFit[*itSystParam]);
+                }
+                double norm;
+                systIt->second->Construct();
+                pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
               }
-              double norm;
-              systIt->second->Construct();
-              pdfMap[dsIt->first][i] = systIt->second->operator()(pdfMap[dsIt->first][i], &norm);
-            }
+            } // End loop over groups
           }
           pdfMap[dsIt->first][i].Scale(bestFit[name]);
 
