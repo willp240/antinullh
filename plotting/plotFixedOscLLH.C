@@ -163,6 +163,8 @@ std::map<std::string, double> calc1Sigma(TH1D *hist1D)
 void plotFixedOscLLH(const char *filename = "fit_results.root")
 {
 
+    gStyle->SetPalette(57);
+  
     // Open the ROOT file
     TFile *file = TFile::Open(filename, "READ");
     if (!file || file->IsZombie())

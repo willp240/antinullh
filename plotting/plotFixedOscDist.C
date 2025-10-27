@@ -150,8 +150,19 @@ TH1D* rebinData(std::string dataDir, const int datasetChoice)
     return h1;
 }
 
+std::string RemoveDSName(const std::string& input) {
+    std::string result = input;
+    // Remove "PPO" or "bisMSB" with optional leading/trailing spaces
+    result = std::regex_replace(result, std::regex("\\s*(PPO|bisMSB)\\s*"), " ");
+    // Trim any extra whitespace that might be left at the ends
+    result = std::regex_replace(result, std::regex("^\\s+|\\s+$"), "");
+    return result;
+}
+
 void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1, std::string dataDir = "")
 {
+
+    gROOT->SetStyle("snoplus");
 
     // Open the ROOT file
     TFile *file = TFile::Open(filename, "READ");
@@ -290,6 +301,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     for (int iParam = 0; iParam < labelsVec->size(); iParam++)
     {
         labelMap[paramNames->at(iParam)] = labelsVec->at(iParam);
+        if(datasetChoice == 0)
+            labelMap[paramNames->at(iParam)] = RemoveDSName(labelMap[paramNames->at(iParam)]);
     }
     labelMap["data"] = "Data";
 
@@ -385,6 +398,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
     // Intialise group histos
     // Assumes we have a data and postfitdist (full fitted MC) but let's assume we always want to plot these
+    histMap["data"]->SetMarkerStyle(21);
     hData = (TH1D *)histMap["data"]->Clone("hData");
     hData->Reset();
     hMC = (TH1D *)histMap["postfitdist"]->Clone("hMC");
@@ -436,7 +450,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
                 t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "lep");
                 histMap["data"] = rebinData(dataDir, datasetChoice);
             }
-            t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "l");
+            else
+                t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "l");
  
         }
         else if (std::find(reacGrp.begin(), reacGrp.end(), paramOrders.at(0).at(iPar)) != reacGrp.end())
