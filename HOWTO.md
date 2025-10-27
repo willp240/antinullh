@@ -337,7 +337,7 @@ Canvases are saved in both `.root` and `.pdf` files, in the top level output dir
 
 > root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output", dataset_option)'
 
-In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three (#alpha,n)s, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change.
+In this script Latex labels are made for each PDF (currently reactor IBDs, Geo U, Geo Th, the three (#alpha,n)s, and Sideband). If more PDFs are used, these will be added to the backgrounds group without a Latex label. It is recommended this script gets updated if the fit parameters change. Also, the script assumes you have a TStyle called `snoplus` defined in your `rootlogon.C` file.
 
 <h4>plotFixedOscParams</h4>
 

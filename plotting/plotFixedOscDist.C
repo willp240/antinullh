@@ -61,6 +61,8 @@ double ymax = 3.5;
 void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1)
 {
 
+    gROOT->SetStyle("snoplus");
+
     // Open the ROOT file
     TFile *file = TFile::Open(filename, "READ");
     if (!file || file->IsZombie())
