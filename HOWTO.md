@@ -443,6 +443,19 @@ This script is just like `compareContours`, but compares three contours instead 
 
 > root -l 'plotting/compare3Contours("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/fitdir3/plots/LLH.root", "label3", "/path/to/output/file")'
 
+<h3>Postfit Utils</h3>
+
+Inside `./util`, there are (among other things) several scripts useful for combining postfit results.
+
+<h4>Get Integrals</h4>
+There are two scripts for getting the integral of scaled PDFs over a certain range. These are particularly useful for calculating postfit event rates, where the quoted fit result may include events inside the buffer region. There are two scripts, one for looking at Asimov scaled PDFs and one comparing postfit scaled PDFs.
+
+They are with:
+
+> python get_integrals.py /path/to/postfit_dists
+> python get_asimov_integrals.py /path/to/asimov_dists
+
+
 <h3>MCMC</h3>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is! The non-fixed osc fits and llh scans are deprecated for now, and are not compiled by default.
