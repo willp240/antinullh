@@ -448,12 +448,21 @@ This script is just like `compareContours`, but compares three contours instead 
 Inside `./util`, there are (among other things) several scripts useful for combining postfit results.
 
 <h4>Get Integrals</h4>
-There are two scripts for getting the integral of scaled PDFs over a certain range. These are particularly useful for calculating postfit event rates, where the quoted fit result may include events inside the buffer region. There are two scripts, one for looking at Asimov scaled PDFs and one comparing postfit scaled PDFs.
+
+There are two scripts for getting the integral of scaled PDFs over a certain range. These are particularly useful for calculating postfit event rates, where the quoted fit result may include events inside the buffer region. There are two scripts, one for looking at Asimov scaled PDFs and one comparing postfit scaled PDFs. These could obviously easily be combined into one script in the future.
 
 They are with:
 
 > python get_integrals.py /path/to/postfit_dists
 > python get_asimov_integrals.py /path/to/asimov_dists
+
+<h4>Combine Fit Results</h4>
+
+This script uses the above 'get integral' scripts to get the postfit parameter event rates and proportional uncertainties, along with the postfit values and uncertainties for all other parameters, including the geoneutrino ratio. It also sums event rates over datasets to get the total number of each event rate. This is very hard coded for the parameters for the current analysis, but is useful for what it does. It outputs a CSV file of all parameter values and uncertainties. It runs `plotFixedOscParams`, so make sure `plotFixedOscLLH` has been run to get the correct oscillation parameter uncertainties. You can run it with:
+
+> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool
+
+where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `correlated-fit-bool` and `(alpha,n)-classifier-bool` are whether the fit used correlated normalisations and the (alpha,n) classifier. It would be nice if it automatically could determine the two bools but this is how it is for now. Also note the parameters are hard-coded inside `combine_postfit_results`. This really is meant as a handy helper for the specific current analysis than a general tool.
 
 
 <h3>MCMC</h3>

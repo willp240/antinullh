@@ -10,7 +10,7 @@ import csv
 # Run get_integrals.py and plotFixedOscParams
 # --------------------------------------------------------------
 def run_get_integrals(postfit_dir):
-    cmd = ["python", "get_integrals.py", postfit_dir]
+    cmd = ["python", "util/get_integrals.py", postfit_dir]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print("❌ Error running get_integrals.py:\n", result.stderr)
@@ -29,7 +29,6 @@ def run_get_integrals(postfit_dir):
 
 def run_plot_fixed_osc_params(fit_result_tree, corr, alphan):
     cmd = ["root", "-l", "-b", "-q", f'plotting/plotFixedOscParams.C("{fit_result_tree}",{corr},{alphan})']
-    print(cmd)
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print("❌ Error running plotFixedOscParams:\n", result.stderr)
@@ -97,7 +96,7 @@ def combine_results_normstyle(integrals, fit_params, geo_corr):
     systematics = {
         "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
         "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2"
-        #"class_a_ppo", "class_a_bismsb", "class_s_ppo", "class_s_bismsb"
+        "class_a_ppo", "class_a_bismsb", "class_s_ppo", "class_s_bismsb"
     }
     for p, (val, err) in fit_params.items():
         if p in oscillation_params or p in systematics:
@@ -202,7 +201,7 @@ def add_geo_ratios(central, uncert, corr_ppo, corr_bi=None):
 
         def ratio_and_unc(n, n_unc, d, d_unc, corr):
             r = n / d
-            rel = math.sqrt((n_unc / n)**2 + (d_unc / d)**2 + (n_unc / n)*(d_unc / d)*corr)
+            rel = math.sqrt((n_unc / n)**2 + (d_unc / d)**2 - (n_unc / n)*(d_unc / d)*corr)
             return r, r * rel
 
         r_ppo, r_ppo_unc = ratio_and_unc(geo_u_ppo, geo_u_ppo_unc, geo_th_ppo, geo_th_ppo_unc, corr_ppo)
@@ -245,8 +244,8 @@ def write_csv(outdir, central, uncert, mode):
             ("birks_constant", "Birk's PPO"), ("birks_constant2", "Birk's bisMSB"),
             ("energy_conv", "E Conv PPO"), ("energy_conv2", "E Conv bisMSB"),
             ("p_recoil_energy_scale", "E Scale PR PPO"), ("p_recoil_energy_scale2", "E Scale PR bisMSB")
-            #("class_a_ppo", "Classifier A PPO"), ("class_a_bismsb", "Classifier A bisMSB"),
-            #("class_s_ppo", "Classifier S PPO"), ("class_s_bismsb", "Classifier S bisMSB"),
+            ("class_a_ppo", "Classifier A PPO"), ("class_a_bismsb", "Classifier A bisMSB"),
+            ("class_s_ppo", "Classifier S PPO"), ("class_s_bismsb", "Classifier S bisMSB"),
     ]
 
     csv_path = os.path.join(outdir, "postfit_summary.csv")
@@ -267,7 +266,7 @@ def write_csv(outdir, central, uncert, mode):
 # --------------------------------------------------------------
 def main():
     if len(sys.argv) != 3 and len(sys.argv) != 5:
-        print("Usage: python combine_postfit_results_v10.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool")
+        print("Usage: python combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool")
         sys.exit(1)
 
     postfit_dir, fit_result_tree, corr, alphan = sys.argv[1:5]
