@@ -460,9 +460,16 @@ They are with:
 
 This script uses the above 'get integral' scripts to get the postfit parameter event rates and proportional uncertainties, along with the postfit values and uncertainties for all other parameters, including the geoneutrino ratio. It also sums event rates over datasets to get the total number of each event rate. This is very hard coded for the parameters for the current analysis, but is useful for what it does. It outputs a CSV file of all parameter values and uncertainties. It runs `plotFixedOscParams`, so make sure `plotFixedOscLLH` has been run to get the correct oscillation parameter uncertainties. You can run it with:
 
-> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool
+> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated-fit-bool> <(alpha,n)-classifier-bool>
 
 where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `correlated-fit-bool` and `(alpha,n)-classifier-bool` are whether the fit used correlated normalisations and the (alpha,n) classifier. It would be nice if it automatically could determine the two bools but this is how it is for now. Also note the parameters are hard-coded inside `combine_postfit_results`. This really is meant as a handy helper for the specific current analysis than a general tool.
+
+<h4>Run Postfit Scripts</h4>
+This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. It is run with:
+
+> ./run_postfit_scripts.sh /path/to/fit/dir/ <correlated-fit-bool> <(alpha,n)-classifier-bool> <datafit-bool>
+
+<h4>Make Latex Tables</h4>
 
 
 <h3>MCMC</h3>
