@@ -198,11 +198,11 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
         for (int jParam = 0; jParam < nParams; ++jParam)
         {
             if (orderedNamesVec->at(jParam) == "geonu_U_norm" && orderedNamesVec->at(iParam) == "geonu_Th_norm")
-                std::cout << "Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam) * sqrt((*tempCovMatrix)(jParam, jParam)))) << std::endl;
+                std::cout << "Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam)) * sqrt((*tempCovMatrix)(jParam, jParam))) << std::endl;
             else if (orderedNamesVec->at(jParam) == "geonu_U" && orderedNamesVec->at(iParam) == "geonu_Th")
-                std::cout << "PPO Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam) * sqrt((*tempCovMatrix)(jParam, jParam)))) << std::endl;
+                std::cout << "PPO Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam)) * sqrt((*tempCovMatrix)(jParam, jParam))) << std::endl;
             else if (orderedNamesVec->at(jParam) == "geonu_U2" && orderedNamesVec->at(iParam) == "geonu_Th2")
-                std::cout << "bisMSB Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam) * sqrt((*tempCovMatrix)(jParam, jParam)))) << std::endl;
+                std::cout << "bisMSB Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam)) * sqrt((*tempCovMatrix)(jParam, jParam))) << std::endl;
         }
     }
     namesVec = orderedNamesVec;
@@ -590,7 +590,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root", bool corr = t
     // And make the plot
     TCanvas *c2 = new TCanvas("c2", "Correlations", 1500, 1000);
     c2->SetBottomMargin(0.18);
-    c2->SetRightMargin(0.155);
+    c2->SetRightMargin(0.16);
     c2->SetLeftMargin(0.16);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);

@@ -346,7 +346,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     else
         labelpos = 0.42;
 
-    latex.DrawLatex(labelpos, yMaxCanvas * 0.9, Form("%s = (%.2f ^{+%.2f}_{-%.2f}) %s", theta12label.c_str(), thSigmas["bestfit"], right_sigma, left_sigma, theta12unit.c_str()));
+    latex.DrawLatex(labelpos, yMaxCanvas * 0.9, Form("%s = (%.3f ^{+%.3f}_{-%.3f}) %s", theta12label.c_str(), thSigmas["bestfit"], right_sigma, left_sigma, theta12unit.c_str()));
     pathObj.replace_filename("theta12LLHDiff.pdf");
     c2->SaveAs(pathObj.string().c_str());
     outfile->cd();

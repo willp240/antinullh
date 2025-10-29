@@ -152,7 +152,7 @@ def build_table(data, table_type):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python make_asimov_tables_multiline.py <csvfile>")
+        print("Usage: python make_prior_tables.py <csvfile>")
         sys.exit(1)
 
     data = read_csv(sys.argv[1])
