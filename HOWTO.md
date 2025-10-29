@@ -327,6 +327,12 @@ It can be run by doing:
 
 > root -l 'plotting/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output.root")'
 
+<h4>plotFixedOscFullLLH</h4>
+
+This python script makes a plot similar to `plotFixedOscLLH` but with the 1D profiles attached in the same canvas. It is run with:
+
+> python plotting/plotFixedOscFullLLH.py -i /path/to/makeFixedOscTree/output.root
+
 <h4>plotFixedOscDist</h4>
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
@@ -467,10 +473,17 @@ where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `co
 <h4>Run Postfit Scripts</h4>
 This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. It is run with:
 
-> ./run_postfit_scripts.sh /path/to/fit/dir/ <correlated-fit-bool> <(alpha,n)-classifier-bool> <datafit-bool>
+> ./util/run_postfit_scripts.sh /path/to/fit/dir/ <correlated-fit-bool> <(alpha,n)-classifier-bool> <datafit-bool>
 
 <h4>Make Latex Tables</h4>
+There are two scripts for making the style of tables in the latex report. The first has three fit results (one for each oscillation parameter prior case), along with the nominal values. The second has two fit results (one for correlated normalisations, one for uncorrelated normalisations), along with the nominal values. The inputs are CSV files, which you make by combining the outputs of `combine_postfit_results`. They are run with:
 
+>python make_prior_table.py combined_input.csv
+>python make_corr_nocorr_table.py combined_input.csv
+
+These are very hard-coded, but at some point that's unavoidable.
+
+The outputs are two tables for each script, one with the oscillation and normalisation parameters, and one with the systematic parameters.
 
 <h3>MCMC</h3>
 
