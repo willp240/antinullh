@@ -107,7 +107,7 @@ void compare3Contours(std::string filename1, std::string label1, std::string fil
     hLLH2->Draw("cont3 SAME");
     hLLH3->Draw("cont3 SAME");
 
-    TLegend *t1 = new TLegend(0.165, 0.17, 0.83, 0.34);
+    TLegend *t1 = new TLegend(0.16, 0.17, 0.84, 0.34);
     t1->AddEntry(hLLH1, label1.c_str(), "l");
     t1->AddEntry(hLLH2, label2.c_str(), "l");
     t1->AddEntry(hLLH3, label3.c_str(), "l");

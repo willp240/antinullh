@@ -68,6 +68,12 @@ double ymin1 = 0.0;
 double ymax1 = 2.5;
 double ymin2 = 0.0;
 double ymax2 = 4.5;
+double ymin0dat = 0.0;
+double ymax0dat = 55.0;
+double ymin1dat = 0.0;
+double ymax1dat = 20.0;
+double ymin2dat = 0.0;
+double ymax2dat = 35.0;
 
 // If you are plotting real data, what bin width to use for data
 double databinwidth = 0.3;
@@ -249,8 +255,15 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         atmosphericGrp = atmosphericGroup;
         atmosphericGrp.insert(atmosphericGrp.end(), atmosphericGroup2.begin(), atmosphericGroup2.end());
         outsuffix = "_all";
-        ymin = ymin0;
-        ymax = ymax0;
+        if(dataDir == "")
+        {
+            ymin = ymin0;
+            ymax = ymax0;
+        }
+        else{
+            ymin = ymin0dat;
+            ymax = ymax0dat;
+        }
     }
     else if (datasetChoice == 1)
     {
@@ -262,8 +275,15 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         bipolikeGrp = bipolikeGroup;
         atmosphericGrp = atmosphericGroup;
         outsuffix = "_" + datasetname1;
-        ymin = ymin1;
-        ymax = ymax1;
+        if(dataDir == "")
+        {
+            ymin = ymin1;
+            ymax = ymax1;
+        }
+        else{
+            ymin = ymin1dat;
+            ymax = ymax1dat;
+        }
     }
     else if (datasetChoice == 2)
     {
@@ -275,8 +295,15 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         bipolikeGrp = bipolikeGroup2;
         atmosphericGrp = atmosphericGroup2;
         outsuffix = "_" + datasetname2;
-        ymin = ymin2;
-        ymax = ymax2;
+        if(dataDir == "")
+        {
+            ymin = ymin2;
+            ymax = ymax2;
+        }
+        else{
+            ymin = ymin2dat;
+            ymax = ymax2dat;
+        }
     }
 
     // Declare group histos and stacks
@@ -498,7 +525,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     {
         // Draw stack of all event types
         TCanvas *c1 = new TCanvas("c1", "Stacked", 1000, 600);
-        gPad->SetGrid();
         gStyle->SetOptStat(0);
         c1->SetFrameLineWidth(2);
         double uppermin = 0.3;
@@ -509,8 +535,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         lower->SetBottomMargin(0.4);
         upper->SetFrameLineWidth(2);
         lower->SetFrameLineWidth(2);
-        upper->SetGrid();
-        lower->SetGrid();
         upper->Draw();
         lower->Draw();
         c1->cd();
@@ -583,7 +607,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
         // Draw stack of grouped event types
         TCanvas *c2 = new TCanvas("c2", "Groups", 1000, 600);
-        gPad->SetGrid();
         gStyle->SetOptStat(0);
         c2->SetFrameLineWidth(2);
         TPad *lower2 = new TPad("lower2", "pad", 0, 0, 1, uppermin);
@@ -593,8 +616,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         lower2->SetBottomMargin(0.4);
         upper2->SetFrameLineWidth(2);
         lower2->SetFrameLineWidth(2);
-        upper2->SetGrid();
-        lower2->SetGrid();
         upper2->Draw();
         lower2->Draw();
         c2->cd();
@@ -605,9 +626,9 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         hGroupStack->Add(hGeo);
         t2->AddEntry(hGeo, "Geo #bar{#nu}", "f");
         hGroupStack->Add(hAlpha);
-        t2->AddEntry(hAlpha, "(#alpha,n)", "f");
+        t2->AddEntry(hAlpha, "(#alpha, n)", "f");
         hGroupStack->Add(hBiPoLike);
-        t2->AddEntry(hBiPoLike, "(#alpha,p)", "f");
+        t2->AddEntry(hBiPoLike, "(#alpha, p)", "f");
         hGroupStack->Add(hAtmospheric);
         t2->AddEntry(hAtmospheric, "Atmospheric", "f");
 
@@ -654,7 +675,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     {
         // Draw stack of all event types
         TCanvas *c1 = new TCanvas("c1", "Stacked", 1000, 600);
-        gPad->SetGrid();
         gStyle->SetOptStat(0);
         c1->SetFrameLineWidth(2);
         c1->SetBottomMargin(0.15);
@@ -699,7 +719,6 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
         // Draw stack of grouped event types
         TCanvas *c2 = new TCanvas("c2", "Groups", 1000, 600);
-        gPad->SetGrid();
         gStyle->SetOptStat(0);
         c2->SetFrameLineWidth(2);
         c2->SetBottomMargin(0.15);
@@ -711,9 +730,9 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         hGroupStack->Add(hGeo);
         t2->AddEntry(hGeo, "Geo #bar{#nu}", "f");
         hGroupStack->Add(hAlpha);
-        t2->AddEntry(hAlpha, "(#alpha,n)", "f");
+        t2->AddEntry(hAlpha, "(#alpha, n)", "f");
         hGroupStack->Add(hBiPoLike);
-        t2->AddEntry(hBiPoLike, "(#alpha,p)", "f");
+        t2->AddEntry(hBiPoLike, "(#alpha, p)", "f");
         hGroupStack->Add(hAtmospheric);
         t2->AddEntry(hAtmospheric, "Atmospheric", "f");
 

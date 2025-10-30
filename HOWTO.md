@@ -327,6 +327,12 @@ It can be run by doing:
 
 > root -l 'plotting/plotFixedOscLLH.C("/path/to/makeFixedOscTree/output.root")'
 
+<h4>plotFixedOscFullLLH</h4>
+
+This python script makes a plot similar to `plotFixedOscLLH` but with the 1D profiles attached in the same canvas. It is run with:
+
+> python plotting/plotFixedOscFullLLH.py -i /path/to/makeFixedOscTree/output.root
+
 <h4>plotFixedOscDist</h4>
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
@@ -442,6 +448,42 @@ This script uses the files created by `plotFixedOscLLH` and draws the 1 $\sigma$
 This script is just like `compareContours`, but compares three contours instead of two:
 
 > root -l 'plotting/compare3Contours("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/fitdir3/plots/LLH.root", "label3", "/path/to/output/file")'
+
+<h3>Postfit Utils</h3>
+
+Inside `./util`, there are (among other things) several scripts useful for combining postfit results.
+
+<h4>Get Integrals</h4>
+
+There are two scripts for getting the integral of scaled PDFs over a certain range. These are particularly useful for calculating postfit event rates, where the quoted fit result may include events inside the buffer region. There are two scripts, one for looking at Asimov scaled PDFs and one comparing postfit scaled PDFs. These could obviously easily be combined into one script in the future.
+
+They are with:
+
+> python get_integrals.py /path/to/postfit_dists
+> python get_asimov_integrals.py /path/to/asimov_dists
+
+<h4>Combine Fit Results</h4>
+
+This script uses the above 'get integral' scripts to get the postfit parameter event rates and proportional uncertainties, along with the postfit values and uncertainties for all other parameters, including the geoneutrino ratio. It also sums event rates over datasets to get the total number of each event rate. This is very hard coded for the parameters for the current analysis, but is useful for what it does. It outputs a CSV file of all parameter values and uncertainties. It runs `plotFixedOscParams`, so make sure `plotFixedOscLLH` has been run to get the correct oscillation parameter uncertainties. You can run it with:
+
+> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated-fit-bool> <(alpha,n)-classifier-bool>
+
+where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `correlated-fit-bool` and `(alpha,n)-classifier-bool` are whether the fit used correlated normalisations and the (alpha,n) classifier. It would be nice if it automatically could determine the two bools but this is how it is for now. Also note the parameters are hard-coded inside `combine_postfit_results`. This really is meant as a handy helper for the specific current analysis than a general tool.
+
+<h4>Run Postfit Scripts</h4>
+This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. It is run with:
+
+> ./util/run_postfit_scripts.sh /path/to/fit/dir/ <correlated-fit-bool> <(alpha,n)-classifier-bool> <datafit-bool>
+
+<h4>Make Latex Tables</h4>
+There are two scripts for making the style of tables in the latex report. The first has three fit results (one for each oscillation parameter prior case), along with the nominal values. The second has two fit results (one for correlated normalisations, one for uncorrelated normalisations), along with the nominal values. The inputs are CSV files, which you make by combining the outputs of `combine_postfit_results`. They are run with:
+
+>python make_prior_table.py combined_input.csv
+>python make_corr_nocorr_table.py combined_input.csv
+
+These are very hard-coded, but at some point that's unavoidable.
+
+The outputs are two tables for each script, one with the oscillation and normalisation parameters, and one with the systematic parameters.
 
 <h3>MCMC</h3>
 

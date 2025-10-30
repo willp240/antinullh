@@ -37,68 +37,130 @@ const std::string reactorpar2 = "reactor_nubar2";
 
 /// Function to sort vectors of names, nominals, and constraints into the order we want to plot them in.
 void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errVec, std::vector<std::string> *&labelsVec, std::vector<double> *&nomsVec,
-                 std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec, TMatrixT<double> *&covMatrix, std::string theta12name)
+                 std::vector<double> *&constrMeansVec, std::vector<double> *&constrErrsVec, TMatrixT<double> *&covMatrix, std::string theta12name, bool corr, bool alphanclass)
 {
 
     int nParams = namesVec->size();
-    // This is the order we want to plot them in (osc, signal, geo, alpha n, other bgs, systematics)
-    /*std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
-        "deltam21",
-        theta12name,
-        "reactor_nubar",
-        "geonu_U",
-        "geonu_Th",
-        "alphan_CScatter",
-        "alphan_OExcited",
-        "alphan_PRecoil",
-        "bipolike",
-        "atmospheric",
-        "energy_scale",
-        "energy_conv",
-        "birks_constant",
-        "p_recoil_energy_scale",
-        "reactor_nubar2",
-        "geonu_U2",
-        "geonu_Th2",
-        "alphan_CScatter2",
-        "alphan_OExcited2",
-        "alphan_PRecoil2",
-        "bipolike2",
-        "atmospheric2",
-        "energy_scale2",
-        "energy_conv2",
-        "birks_constant2",
-        "p_recoil_energy_scale2",
-	    "class_a_ppo",
-        "class_a_bismsb",
-        "class_s_ppo",
-        "class_s_bismsb"
-    };*/
+    std::vector<std::string> *orderedNamesVec;
 
-    std::vector<std::string> *orderedNamesVec = new std::vector<std::string>{
-        "deltam21",
-        theta12name,
-        "reactor_nubar_norm",
-        "geonu_U_norm",
-        "geonu_Th_norm",
-        "alphan_CScatter_norm",
-        "alphan_OExcited_norm",
-        "alphan_PRecoil_norm",
-        "bipolike_norm",
-        "atmospheric_norm",
-        "energy_scale",
-        "energy_conv",
-        "birks_constant",
-        "p_recoil_energy_scale",
-        "energy_scale2",
-        "energy_conv2",
-        "birks_constant2",
-        "p_recoil_energy_scale2",
-        "class_a_ppo",
-        "class_a_bismsb",
-        "class_s_ppo",
-        "class_s_bismsb"
-    };
+    if (alphanclass)
+    {
+        if (!corr)
+        {
+            orderedNamesVec = new std::vector<std::string>{
+                "deltam21",
+                theta12name,
+                "reactor_nubar",
+                "geonu_U",
+                "geonu_Th",
+                "alphan_CScatter",
+                "alphan_OExcited",
+                "alphan_PRecoil",
+                "bipolike",
+                "atmospheric",
+                "energy_scale",
+                "energy_conv",
+                "birks_constant",
+                "p_recoil_energy_scale",
+                "reactor_nubar2",
+                "geonu_U2",
+                "geonu_Th2",
+                "alphan_CScatter2",
+                "alphan_OExcited2",
+                "alphan_PRecoil2",
+                "bipolike2",
+                "atmospheric2",
+                "energy_scale2",
+                "energy_conv2",
+                "birks_constant2",
+                "p_recoil_energy_scale2",
+                "class_a_ppo",
+                "class_a_bismsb",
+                "class_s_ppo",
+                "class_s_bismsb"};
+        }
+        else
+        {
+            orderedNamesVec = new std::vector<std::string>{
+                "deltam21",
+                theta12name,
+                "reactor_nubar_norm",
+                "geonu_U_norm",
+                "geonu_Th_norm",
+                "alphan_CScatter_norm",
+                "alphan_OExcited_norm",
+                "alphan_PRecoil_norm",
+                "bipolike_norm",
+                "atmospheric_norm",
+                "energy_scale",
+                "energy_conv",
+                "birks_constant",
+                "p_recoil_energy_scale",
+                "energy_scale2",
+                "energy_conv2",
+                "birks_constant2",
+                "p_recoil_energy_scale2",
+                "class_a_ppo",
+                "class_a_bismsb",
+                "class_s_ppo",
+                "class_s_bismsb"};
+        }
+    }
+    else
+    {
+        if (!corr)
+        {
+            orderedNamesVec = new std::vector<std::string>{
+                "deltam21",
+                theta12name,
+                "reactor_nubar",
+                "geonu_U",
+                "geonu_Th",
+                "alphan_CScatter",
+                "alphan_OExcited",
+                "alphan_PRecoil",
+                "bipolike",
+                "atmospheric",
+                "energy_scale",
+                "energy_conv",
+                "birks_constant",
+                "p_recoil_energy_scale",
+                "reactor_nubar2",
+                "geonu_U2",
+                "geonu_Th2",
+                "alphan_CScatter2",
+                "alphan_OExcited2",
+                "alphan_PRecoil2",
+                "bipolike2",
+                "atmospheric2",
+                "energy_scale2",
+                "energy_conv2",
+                "birks_constant2",
+                "p_recoil_energy_scale2"};
+        }
+        else
+        {
+            orderedNamesVec = new std::vector<std::string>{
+                "deltam21",
+                theta12name,
+                "reactor_nubar_norm",
+                "geonu_U_norm",
+                "geonu_Th_norm",
+                "alphan_CScatter_norm",
+                "alphan_OExcited_norm",
+                "alphan_PRecoil_norm",
+                "bipolike_norm",
+                "atmospheric_norm",
+                "energy_scale",
+                "energy_conv",
+                "birks_constant",
+                "p_recoil_energy_scale",
+                "energy_scale2",
+                "energy_conv2",
+                "birks_constant2",
+                "p_recoil_energy_scale2"};
+        }
+    }
 
     std::vector<double> *tempNomsVec = new std::vector<double>(nParams, 0.0);
     std::vector<double> *tempErrVec = new std::vector<double>(nParams, 0.0);
@@ -131,7 +193,18 @@ void sortVectors(std::vector<std::string> *&namesVec, std::vector<double> *&errV
             (*tempCovMatrix)(iParam, jParam) = (*covMatrix)(iOriginal, jOriginal);
         }
     }
-
+    for (int iParam = 0; iParam < nParams; ++iParam)
+    {
+        for (int jParam = 0; jParam < nParams; ++jParam)
+        {
+            if (orderedNamesVec->at(jParam) == "geonu_U_norm" && orderedNamesVec->at(iParam) == "geonu_Th_norm")
+                std::cout << "Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam)) * sqrt((*tempCovMatrix)(jParam, jParam))) << std::endl;
+            else if (orderedNamesVec->at(jParam) == "geonu_U" && orderedNamesVec->at(iParam) == "geonu_Th")
+                std::cout << "PPO Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam)) * sqrt((*tempCovMatrix)(jParam, jParam))) << std::endl;
+            else if (orderedNamesVec->at(jParam) == "geonu_U2" && orderedNamesVec->at(iParam) == "geonu_Th2")
+                std::cout << "bisMSB Geo correlation: " << (*tempCovMatrix)(iParam, jParam) / (sqrt((*tempCovMatrix)(iParam, iParam)) * sqrt((*tempCovMatrix)(jParam, jParam))) << std::endl;
+        }
+    }
     namesVec = orderedNamesVec;
     labelsVec = tempLabelsVec;
     nomsVec = tempNomsVec;
@@ -178,7 +251,7 @@ TMatrixT<double> *appendVectorsToMatrix(const TMatrixT<double> *covMatrix, const
     return newCovMatrix;
 }
 
-void plotFixedOscParams(const char *filename = "fit_results.root")
+void plotFixedOscParams(const char *filename = "fit_results.root", bool corr = true, bool alphanclass = false)
 {
 
     // Open the ROOT file
@@ -363,7 +436,7 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     TMatrixT<double> *fullCovMatrix = appendVectorsToMatrix(covMatrix, dmCovVec, thCovVec);
 
     // Reorder vectors to the order we want to plot them
-    sortVectors(paramNames, paramErr, labelsVec, nomVals, constrMeans, constrErr, fullCovMatrix, theta12name);
+    sortVectors(paramNames, paramErr, labelsVec, nomVals, constrMeans, constrErr, fullCovMatrix, theta12name, corr, alphanclass);
 
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
@@ -389,18 +462,18 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         double nom = 1;
         double constrmean = 1;
         double postfit = 1;
-        if(nomVals->at(iParam) == 0)
-          {
+        if (nomVals->at(iParam) == 0)
+        {
             nom = 1.0;
             constrmean = constrMeans->at(iParam) + 1;
             postfit = branchValues[paramNames->at(iParam)] + 1;
-          }
+        }
         else
-          {
+        {
             nom = nomVals->at(iParam);
             constrmean = constrMeans->at(iParam);
             postfit = branchValues[paramNames->at(iParam)];
-          }
+        }
 
         hNom->SetBinContent(iParam + 1, nom / nom);
         hConstr->GetXaxis()->SetBinLabel(iParam + 1, labelsVec->at(iParam).c_str());
@@ -411,8 +484,19 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
         std::cout << "Par: " << paramNames->at(iParam) << std::endl;
         std::cout << "Nom Mean: " << nomVals->at(iParam) << std::endl;
         std::cout << "Constr: " << constrMeans->at(iParam) << " " << constrErr->at(iParam) << std::endl;
-        std::cout << "Fit: " << branchValues[paramNames->at(iParam)] << " " << paramErr->at(iParam) << std::endl
-                  << std::endl;
+        std::cout << "Fit: " << branchValues[paramNames->at(iParam)] << " " << paramErr->at(iParam) << std::endl;
+        if (paramNames->at(iParam) == reactorpar1)
+            std::cout << "Osc Ratio: " << branchValues[reactorpar1 + "_ratio"] << std::endl;
+        else if (paramNames->at(iParam) == reactorpar2)
+        {
+            std::cout << "Osc Ratio: " << branchValues[reactorpar2 + "_ratio"] << std::endl;
+        }
+        else if ((paramNames->at(iParam).find("reactor") != std::string::npos))
+        {
+            std::cout << "PPO Osc Ratio: " << branchValues[reactorpar1 + "_ratio"] << std::endl;
+            std::cout << "bisMSB Osc Ratio: " << branchValues[reactorpar2 + "_ratio"] << std::endl;
+        }
+        std::cout << std::endl;
     }
 
     // Draw the histograms
@@ -506,8 +590,8 @@ void plotFixedOscParams(const char *filename = "fit_results.root")
     // And make the plot
     TCanvas *c2 = new TCanvas("c2", "Correlations", 1500, 1000);
     c2->SetBottomMargin(0.18);
-    c2->SetRightMargin(0.155);
-    c2->SetLeftMargin(0.15);
+    c2->SetRightMargin(0.16);
+    c2->SetLeftMargin(0.16);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
