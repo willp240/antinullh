@@ -78,16 +78,16 @@ echo "---------------------------------------"
 root -l -b -q "plotting/plotFixedOscLLH.C(\"${ttree_path}\")"
 root -l -b -q "plotting/plotFixedOscParams.C(\"${ttree_path}\", ${corr}, ${alphan})"
 
-if [ "$data" = "false" ]; then
+if [ "$data" -eq 0 ]; then
     for i in 0 1 2; do
         root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i})"
     done
-elif [ "$data" = "true" ] && [ "$alphan" = "false" ]; then
+elif [ "$data" -eq 1 ] && [ "$alphan" -eq 0]; then
     pdfpath="/data/snoplus/weiiiiiii/antinuFit/all/prunepdfs"
     for i in 0 1 2; do
         root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
     done
-elif [ "$data" = "true" ] && [ "$alphan" = "true" ]; then
+elif [ "$data" -eq 1] && [ "$alphan" -eq 1]; then
     pdfpath="/data/snoplus/weiiiiiii/antinuFit/all_withANClassifer/prunepdfs"
     for i in 0 1 2; do
         root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
