@@ -98,7 +98,7 @@ echo "---------------------------------------"
 echo "Running Python post-processing"
 echo "---------------------------------------"
 
-python combine_postfit_results.py "${outputfitdir}/postfit_dists" "${ttree_path}" "${corr}" "${alphan}"
+python util/combine_postfit_results.py "${outputfitdir}/postfit_dists" "${ttree_path}" "${corr}" "${alphan}"
 python plotting/plotFixedOscFullLLH.py -i "${ttree_path}"
 
 echo "---------------------------------------"
