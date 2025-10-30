@@ -87,17 +87,24 @@ def parse_plot_params(lines):
 # --------------------------------------------------------------
 # Combine results (norm-style)
 # --------------------------------------------------------------
-def combine_results_normstyle(integrals, fit_params, geo_corr):
+def combine_results_normstyle(integrals, fit_params, geo_corr, alphan):
     postfit_central = {}
     postfit_uncert = {}
 
     # Oscillation and systematics (direct from fit)
     oscillation_params = {"deltam21", "sinsqtheta12"}
-    systematics = {
+    systematics = {}
+    if not alphan:
+        systematics = {
         "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
         "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2"
+        }
+    else:
+        systematics = {
+        "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
+        "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2",
         "class_a_ppo", "class_a_bismsb", "class_s_ppo", "class_s_bismsb"
-    }
+        }
     for p, (val, err) in fit_params.items():
         if p in oscillation_params or p in systematics:
             postfit_central[p] = val
@@ -137,15 +144,23 @@ def combine_results_normstyle(integrals, fit_params, geo_corr):
 # --------------------------------------------------------------
 # Combine results (direct-style)
 # --------------------------------------------------------------
-def combine_results_directstyle(integrals, fit_params, geo_corr):
+def combine_results_directstyle(integrals, fit_params, geo_corr, alphan):
     postfit_central = {}
     postfit_uncert = {}
 
     oscillation_params = {"deltam21", "sinsqtheta12"}
-    systematics = {
+    systematics = {}
+    if not alphan:
+        systematics = {
         "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
         "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2"
-    }
+        }
+    else:
+        systematics = {
+        "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
+        "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2",
+        "class_a_ppo", "class_a_bismsb", "class_s_ppo", "class_s_bismsb"
+        }
 
     for p, (val, err) in fit_params.items():
         if p in oscillation_params or p in systematics:
@@ -224,9 +239,12 @@ def add_geo_ratios(central, uncert, corr_ppo, corr_bi=None):
 # --------------------------------------------------------------
 # CSV writer (same as before)
 # --------------------------------------------------------------
-def write_csv(outdir, central, uncert, mode):
+def write_csv(outdir, central, uncert, mode, alphan):
 
-    ordered_labels = [
+    ordered_labels = []
+
+    if not alphan:
+        ordered_labels = [
             ("deltam21", "Deltam"),
             ("sinsqtheta12", "Theta"),
             ("reactor_nubar_2p2ppo", "Reac osc PPO"),
@@ -244,9 +262,29 @@ def write_csv(outdir, central, uncert, mode):
             ("birks_constant", "Birk's PPO"), ("birks_constant2", "Birk's bisMSB"),
             ("energy_conv", "E Conv PPO"), ("energy_conv2", "E Conv bisMSB"),
             ("p_recoil_energy_scale", "E Scale PR PPO"), ("p_recoil_energy_scale2", "E Scale PR bisMSB")
+        ]
+    else:
+        ordered_labels = [
+            ("deltam21", "Deltam"),
+            ("sinsqtheta12", "Theta"),
+            ("reactor_nubar_2p2ppo", "Reac osc PPO"),
+            ("reactor_nubar2_bismsb", "Reac osc bisMSB"),
+            ("reactor_nubar_total", "Reac osc total"),
+            ("geonu_U_2p2ppo", "Geo U PPO"), ("geonu_U2_bismsb", "Geo U bisMSB"), ("geonu_U_total", "Geo U total"),
+            ("geonu_Th_2p2ppo", "Geo Th PPO"), ("geonu_Th2_bismsb", "Geo Th bisMSB"), ("geonu_Th_total", "Geo Th total"),
+            ("geo_ratio_ppo", "Geo Ratio PPO"), ("geo_ratio_bismsb", "Geo Ratio bisMSB"), ("geo_ratio_total", "Geo Ratio total"),
+            ("alphan_CScatter_2p2ppo", "AN CS PPO"), ("alphan_CScatter2_bismsb", "AN CS bisMSB"), ("alphan_CScatter_total", "AN CS total"),
+            ("alphan_OExcited_2p2ppo", "AN OE PPO"), ("alphan_OExcited2_bismsb", "AN OE bisMSB"), ("alphan_OExcited_total", "AN OE total"),
+            ("alphan_PRecoil_2p2ppo", "AN PR PPO"), ("alphan_PRecoil2_bismsb", "AN PR bisMSB"), ("alphan_PRecoil_total", "AN PR total"),
+            ("bipolike_2p2ppo", "BiPo like PPO"), ("bipolike2_bismsb", "BiPo like bisMSB"), ("bipolike_total", "BiPo like total"),
+            ("atmospheric_2p2ppo", "Atmos PPO"), ("atmospheric2_bismsb", "Atmos bisMSB"), ("atmospheric_total", "Atmos total"),
+            ("energy_scale", "E Scale PPO"), ("energy_scale2", "E Scale bisMSB"),
+            ("birks_constant", "Birk's PPO"), ("birks_constant2", "Birk's bisMSB"),
+            ("energy_conv", "E Conv PPO"), ("energy_conv2", "E Conv bisMSB"),
+            ("p_recoil_energy_scale", "E Scale PR PPO"), ("p_recoil_energy_scale2", "E Scale PR bisMSB"),
             ("class_a_ppo", "Classifier A PPO"), ("class_a_bismsb", "Classifier A bisMSB"),
-            ("class_s_ppo", "Classifier S PPO"), ("class_s_bismsb", "Classifier S bisMSB"),
-    ]
+            ("class_s_ppo", "Classifier S PPO"), ("class_s_bismsb", "Classifier S bisMSB")
+        ]
 
     csv_path = os.path.join(outdir, "postfit_summary.csv")
     with open(csv_path, "w", newline="") as csvfile:
@@ -266,7 +304,7 @@ def write_csv(outdir, central, uncert, mode):
 # --------------------------------------------------------------
 def main():
     if len(sys.argv) != 3 and len(sys.argv) != 5:
-        print("Usage: python combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool")
+        print("Usage: python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool")
         sys.exit(1)
 
     postfit_dir, fit_result_tree, corr, alphan = sys.argv[1:5]
@@ -280,9 +318,9 @@ def main():
 
     print("Combining results...")
     if mode == "norm":
-        central, uncert = combine_results_normstyle(integrals, fit_params, geo_corr)
+        central, uncert = combine_results_normstyle(integrals, fit_params, geo_corr, alphan)
     else:
-        central, uncert = combine_results_directstyle(integrals, fit_params, geo_corr)
+        central, uncert = combine_results_directstyle(integrals, fit_params, geo_corr, alphan)
 
     outdir = os.path.dirname(postfit_dir.rstrip("/"))
     with open(os.path.join(outdir, "postfit_central.json"), "w") as f:
@@ -290,7 +328,7 @@ def main():
     with open(os.path.join(outdir, "postfit_uncert.json"), "w") as f:
         json.dump(uncert, f, indent=2)
 
-    write_csv(outdir, central, uncert, mode)
+    write_csv(outdir, central, uncert, mode, alphan)
     print(f"\n✅ All results written under {outdir}")
 
 if __name__ == "__main__":
