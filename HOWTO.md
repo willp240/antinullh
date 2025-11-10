@@ -491,6 +491,11 @@ These are very hard-coded, but at some point that's unavoidable.
 
 The outputs are two tables for each script, one with the oscillation and normalisation parameters, and one with the systematic parameters.
 
+There's also a script that just compares datafits with the parameter values in tables from the final paper:
+
+>python make_data_table.py combined_input.csv
+
+
 <h3>MCMC</h3>
 
 NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is! The non-fixed osc fits and llh scans are deprecated for now, and are not compiled by default.
