@@ -216,7 +216,7 @@ def add_geo_ratios(central, uncert, corr_ppo, corr_bi=None):
 
         def ratio_and_unc(n, n_unc, d, d_unc, corr):
             r = n / d
-            rel = math.sqrt((n_unc / n)**2 + (d_unc / d)**2 - (n_unc / n)*(d_unc / d)*corr)
+            rel = math.sqrt((n_unc / n)**2 + (d_unc / d)**2 - 2*(n_unc / n)*(d_unc / d)*corr)
             return r, r * rel
 
         r_ppo, r_ppo_unc = ratio_and_unc(geo_u_ppo, geo_u_ppo_unc, geo_th_ppo, geo_th_ppo_unc, corr_ppo)
