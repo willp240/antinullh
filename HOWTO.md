@@ -449,6 +449,12 @@ This script is just like `compareContours`, but compares three contours instead 
 
 > root -l 'plotting/compare3Contours("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/fitdir3/plots/LLH.root", "label3", "/path/to/output/file")'
 
+<h4>compare3Contours2Sigmas</h4>
+
+This script is just like `compare3Contours`, but compares three contours both at the 1 and 2 sigma levels:
+
+> root -l 'plotting/compare3Contours2Sigmas("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/fitdir3/plots/LLH.root", "label3", "/path/to/output/file")'
+
 <h3>Postfit Utils</h3>
 
 Inside `./util`, there are (among other things) several scripts useful for combining postfit results.
