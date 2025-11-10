@@ -82,12 +82,12 @@ if [ "$data" -eq 0 ]; then
     for i in 0 1 2; do
         root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i})"
     done
-elif [ "$data" -eq 1 ] && [ "$alphan" -eq 0]; then
+elif [ "$data" -eq 1 ] && [ "$alphan" -eq 0 ]; then
     pdfpath="/data/snoplus/weiiiiiii/antinuFit/all/prunepdfs"
     for i in 0 1 2; do
         root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
     done
-elif [ "$data" -eq 1] && [ "$alphan" -eq 1]; then
+elif [ "$data" -eq 1 ] && [ "$alphan" -eq 1 ]; then
     pdfpath="/data/snoplus/weiiiiiii/antinuFit/all_withANClassifer/prunepdfs"
     for i in 0 1 2; do
         root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
