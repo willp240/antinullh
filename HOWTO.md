@@ -449,6 +449,12 @@ This script is just like `compareContours`, but compares three contours instead 
 
 > root -l 'plotting/compare3Contours("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/fitdir3/plots/LLH.root", "label3", "/path/to/output/file")'
 
+<h4>compare3Contours2Sigmas</h4>
+
+This script is just like `compare3Contours`, but compares three contours both at the 1 and 2 sigma levels:
+
+> root -l 'plotting/compare3Contours2Sigmas("/path/to/fitdir1/plots/LLH.root", "label1", "/path/to/fitdir2/plots/LLH.root", "label2", "/path/to/fitdir3/plots/LLH.root", "label3", "/path/to/output/file")'
+
 <h3>Postfit Utils</h3>
 
 Inside `./util`, there are (among other things) several scripts useful for combining postfit results.
@@ -484,6 +490,11 @@ There are two scripts for making the style of tables in the latex report. The fi
 These are very hard-coded, but at some point that's unavoidable.
 
 The outputs are two tables for each script, one with the oscillation and normalisation parameters, and one with the systematic parameters.
+
+There's also a script that just compares datafits with the parameter values in tables from the final paper:
+
+>python make_data_table.py combined_input.csv
+
 
 <h3>MCMC</h3>
 

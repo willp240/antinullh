@@ -20,7 +20,7 @@ def fmt(val, err, ndp=2):
     # scientific notation for extreme values
     if e is None:
         return f"${v:.{ndp}f}$"
-    if ((abs(v) < 1e-4 and v > 0 ) or abs(v) >= 1e4):
+    if ((abs(v) < 1e-4 and v > 1e-6 and abs(e) < 1e-5 ) or abs(v) >= 1e4 ):
         exp = int(f"{v:e}".split('e')[1])
         mant = v / (10**exp)
         mant_e = e / (10**exp)

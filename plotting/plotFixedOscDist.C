@@ -69,14 +69,14 @@ double ymax1 = 2.5;
 double ymin2 = 0.0;
 double ymax2 = 4.5;
 double ymin0dat = 0.0;
-double ymax0dat = 55.0;
+double ymax0dat = 60.0;
 double ymin1dat = 0.0;
-double ymax1dat = 20.0;
+double ymax1dat = 30.0;
 double ymin2dat = 0.0;
-double ymax2dat = 35.0;
+double ymax2dat = 40.0;
 
 // If you are plotting real data, what bin width to use for data
-double databinwidth = 0.3;
+double databinwidth = 0.4;
 
 TH1D* rebinData(std::string dataDir, const int datasetChoice)
 {
@@ -118,10 +118,12 @@ TH1D* rebinData(std::string dataDir, const int datasetChoice)
         throw;
     }
 
-    Int_t nBins = static_cast<Int_t>((xmax - xmin) / databinwidth);
-
+    double eps = 1e-12;
+    int nBins = static_cast<int>(std::ceil((xmax - xmin)/databinwidth - eps));
+    double xmax_new = xmin + nBins * databinwidth;
+    
     TH1D *h1 = new TH1D("hEnergy", "Energy distribution;Energy (MeV);Events",
-                           nBins, xmin, xmax);
+                           nBins, xmin, xmax_new);
     h1->SetLineWidth(2);
     h1->SetLineColor(kBlack);
 
