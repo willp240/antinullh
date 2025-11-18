@@ -11,18 +11,40 @@ normalise_bool() {
   esac
 }
 
+# Get output directory from a fit config file
+get_output_directory() {
+    local config_file="$1"
+
+    if [[ ! -f "$config_file" ]]; then
+        echo "Error: file '$config_file' not found." >&2
+        return 1
+    fi
+
+    # Extract the value
+    local outdir
+    outdir=$(grep -E '^output_directory[[:space:]]*=' "$config_file" \
+             | head -n 1 \
+             | sed -E 's/^output_directory[[:space:]]*=[[:space:]]*//')
+
+    echo "$outdir"
+}
+
 set -euo pipefail
 
 # Parse arguments
 if [ $# -ne 4 ]; then
-  echo "Usage: $0 <dirname> <corr> <alphan> <data>"
+  echo "Usage: $0 <config_dir> <corr> <alphan> <data>"
   exit 1
 fi
 
-dirname="$1"
+cfg_dir="$1"
 corr="$2"
 alphan="$3"
 data="$4"
+
+fit_config="$cfg_dir/fit_config.ini"
+osc_config="$cfg_dir/oscgrid_config.ini"
+dirname=$(get_output_directory "$fit_config")
 
 # Output log file
 logfile="${dirname}/run_postfit_scripts.log"
@@ -40,17 +62,7 @@ corr=$(normalise_bool "$corr")
 alphan=$(normalise_bool "$alphan")
 data=$(normalise_bool "$data")
 
-# Choose which config to run
-if [ "$corr" -eq 1 ] && [ "$alphan" -eq 0 ]; then
-    cmd="./bin/makeFixedOscTree cfg/bismsb_ppo_corr/fit_config.ini cfg/bismsb_ppo_corr/oscgrid_config.ini"
-elif [ "$corr" -eq 1 ] && [ "$alphan" -eq 1 ]; then
-    cmd="./bin/makeFixedOscTree cfg/bismsb_ppo_corr_alphan/fit_config.ini cfg/bismsb_ppo_corr_alphan/oscgrid_config.ini"
-elif [ "$corr" -eq 0 ] && [ "$alphan" -eq 0 ]; then
-    cmd="./bin/makeFixedOscTree cfg/bismsb_ppo_uncorr/fit_config.ini cfg/bismsb_ppo_uncorr/oscgrid_config.ini"
-else
-    echo "Unsupported combination: corr=$corr, alphan=$alphan"
-    exit 1
-fi
+cmd="./bin/makeFixedOscTree ${fit_config} ${osc_config}"
 
 echo "Running command: $cmd"
 $cmd | tee tmp_output.log
