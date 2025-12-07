@@ -94,10 +94,10 @@ def SNOPLUSSTYLE():
         'color': 'red',
         'linewidth': 2.5
     }
+
 # Format the y-axis tick labels to be scaled
 def scaled_formatter(x, pos):
-    #The two args are the value and tick position
-    #print('%1.0f' % (x/1e-5))
+    # The two args are the value and tick position
     return '%1.0f' % (x/1e-5)
 
 if __name__ == "__main__":
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     input_dir = os.path.dirname(args.i)
     output_dir = os.path.join(input_dir, "plots")
-    #output_dir = os.path.join("/home/huangp/antinullh/util", "plots")
+
     os.makedirs(output_dir, exist_ok=True)
     # Load ROOT file and tree
     file = ROOT.TFile.Open(args.i)
@@ -125,7 +125,6 @@ if __name__ == "__main__":
     theta_list, deltam_list, llh_list = [], [], []
     for i in range(nEntries):
         tree.GetEntry(i)
-        #theta_list.append(tree.theta12)
         theta_list.append(tree.sinsqtheta12)
         deltam_list.append(tree.deltam21)
         llh_list.append(tree.LLH)
@@ -156,7 +155,6 @@ if __name__ == "__main__":
     profile_deltam = np.min(hist2d_avg, axis=0)   # Min over theta
     theta_centers = 0.5 * (xedges[:-1] + xedges[1:])
     deltam_centers = 0.5 * (yedges[:-1] + yedges[1:])
-    #print(profile_theta-profile_deltam)
 
     # Plot setup
     SNOPLUSSTYLE()
@@ -265,18 +263,14 @@ if __name__ == "__main__":
         bbox_transform=cbar_ax.transAxes, borderpad=0
     )
     fig.colorbar(pc, cax=inset_cbar_ax, orientation='vertical')
-    #fig.colorbar(pc, cax=cbar_ax, orientation='vertical')
     cbar_ax.set_yticklabels([])
     cbar_ax.set_yticks([])
     cbar_ax.set_xticklabels([])
     cbar_ax.set_xticks([])
     cbar_ax.set_frame_on(False)
-    #inset_cbar_ax.yaxis.set_ticks_position('right')
     inset_cbar_ax.yaxis.set_major_locator(MaxNLocator(nbins=num_ticks, prune=None))
     inset_cbar_ax.set_ylabel(r"$-2\Delta\ln\mathcal{L}$")
 
-    #plt.tight_layout()
-    #plt.show()
     plt.savefig(os.path.join(output_dir, "OscLLH.png"))
     plt.savefig(os.path.join(output_dir, "OscLLH.pdf"))
     print(f"successfully saving .png and .pdf to {output_dir}")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Usage: ./util/run_postfit_scripts.sh <dirname> <corr> <alphan> <data>
-# Example: ./util/run_postfit_scripts.sh /data/snoplus/parkerw/antinu/Oct22_corr_fit_noprior/ true false false
+# Usage: ./util/run_postfit_scripts.sh <cfgdirname> <corr> <alphan> <data>
+# Example: ./util/run_postfit_scripts.sh /home/parkerw/Software/antinu_llh2/cfg/reacAnalysis2025/asmv_correlated_noprior_noalphan true false false
 
 # Normalise boolean-like values (accept true/false or 1/0)
 normalise_bool() {
