@@ -1,12 +1,8 @@
 import os
 import argparse
 
-deltam_min = 0
-deltam_max = 0
-theta_min = 0
-theta_max = 0
-numvalsdeltam = 0
-numvalstheta = 0
+numvalsu = 99
+numvalsth = 99
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
@@ -21,54 +17,41 @@ def check_dir(dname):
     return dname
 
 def read_fitcfg(fit_config):
-    theta_min = None
-    theta_max = None
-    deltam_min = None
-    deltam_max = None
+    th_min = None
+    th_max = None
+    u_min = None
+    u_max = None
 
     with open(fit_config, "r") as file:
         lines = file.readlines()
 
     for iline, line in enumerate(lines):
-        if line.startswith("[theta12]") or line.startswith("[sintheta12]") or line.startswith("[sinsqtheta12]"):
+        if line.startswith("[geonu_U_norm]"):
             for jline in range(iline + 1, len(lines)):
                 if lines[jline].startswith("min ="):
-                    theta_min = lines[jline].split("=")[1].strip()
+                    u_min = lines[jline].split("=")[1].strip()
                     break
             for jline in range(iline + 1, len(lines)):
                 if lines[jline].startswith("max ="):
-                    theta_max = lines[jline].split("=")[1].strip()
+                    u_max = lines[jline].split("=")[1].strip()
                     break
 
     for iline, line in enumerate(lines):
-        if line.startswith("[deltam21]"):
+        if line.startswith("[geonu_Th_norm]"):
             for jline in range(iline + 1, len(lines)):
                 if lines[jline].startswith("min ="):
-                    deltam_min = lines[jline].split("=")[1].strip()
+                    th_min = lines[jline].split("=")[1].strip()
                     break
             for jline in range(iline + 1, len(lines)):
                 if lines[jline].startswith("max ="):
-                    deltam_max = lines[jline].split("=")[1].strip()
+                    th_max = lines[jline].split("=")[1].strip()
                     break
 
-    return deltam_min, deltam_max, theta_min, theta_max
-
-def read_osccfg(filename):
-    numvalsdeltam = None
-    numvalstheta = None
-
-    with open(filename, "r") as file:
-        for line in file:
-            if line.startswith("numvalsdm21sq"):
-                numvalsdeltam = int(line.split("=")[1].strip())
-            elif line.startswith("numvalsssqth12"):
-                numvalstheta = int(line.split("=")[1].strip())
-
-    return numvalsdeltam, numvalstheta
+    return u_min, u_max, th_min, th_max
 
 def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
                     fit_config, event_config, pdf_config, syst_config, osc_config,
-                    walltime, mem, theta, start_idx, end_idx,
+                    walltime, mem, th, start_idx, end_idx,
                     sleep_time=1, priority=5):
     '''
     Submit a job to condor, write a sh file to source environment and execute command
@@ -77,46 +60,46 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
 
     print (job_name)
     batch_name = job_name.split('_', 1)[0]
-    first_deltam = float(deltam_min) + start_idx*(float(deltam_max)-float(deltam_min))/numvalsdeltam
-    first_deltam = "{:.8f}".format(first_deltam)
-    last_deltam = float(deltam_min) + (end_idx-1)*(float(deltam_max)-float(deltam_min))/numvalsdeltam
-    last_deltam = "{:.8f}".format(last_deltam)
-    out_dir_base = out_dir.split("/")[-2] + "_th{0}_dm{1}-{2}".format(theta, first_deltam, last_deltam)
+    first_u = float(u_min) + start_idx*(float(u_max)-float(u_min))/numvalsu
+    first_u = "{:.3f}".format(first_u)
+    last_u = float(u_min) + (end_idx-1)*(float(u_max)-float(u_min))/numvalsu
+    last_u = "{:.3f}".format(last_u)
+    out_dir_base = out_dir.split("/")[-2] + "_Th{0}_U{1}-{2}".format(th, first_u, last_u)
 
     condor_path = "{0}/".format(out_dir)
     exec_path = run_dir + "/bin/" + exec_name
 
-    configs_path = os.path.abspath('{0}/th{1}/cfg'.format(condor_path, theta))
+    configs_path = os.path.abspath('{0}/th{1}/cfg'.format(condor_path, th))
     check_dir(configs_path)
 
     with open(fit_config, "r") as file:
         lines = file.readlines()
 
-    # Loop over deltam values, write fit_config with dm and theta values in
+    # Loop over U values, write fit_config with U and Th values in
     for iFit in range(start_idx, end_idx):
-        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numvalsdeltam
-        deltam = "{:.8f}".format(deltam)
+        u = float(u_min) + iFit*(float(u_max)-float(u_min))/numvalsu
+        u = "{:.3f}".format(u)
 
         # Process the file and make updates
         for iline, line in enumerate(lines):
-            if line.startswith("[theta12]") or line.startswith("[sintheta12]") or line.startswith("[sinsqtheta12]"):
+            if line.startswith("[geonu_Th_norm]"):
                 for jline in range(iline + 1, len(lines)):
                     if lines[jline].startswith("nom ="):
-                        lines[jline] = f"nom = {theta}\n"
+                        lines[jline] = f"nom = {th}\n"
                         break
-            elif line.startswith("[deltam21]"):
+            elif line.startswith("[geonu_U_norm]"):
                 for jline in range(iline + 1, len(lines)):
                     if lines[jline].startswith("nom ="):
-                        lines[jline] = f"nom = {deltam}\n"
+                        lines[jline] = f"nom = {u}\n"
                         break
             elif line.startswith("output_directory ="):
-                subdir = f"th{theta}/th{theta}_dm{deltam}"
+                subdir = f"Th{th}/Th{th}_U{u}"
                 updated_directory = os.path.join(out_dir, subdir)
                 lines[iline] = f"output_directory = {updated_directory}\n"
 
         fit_config_base = os.path.basename(fit_config)
         base_name, ext = os.path.splitext(fit_config_base)
-        new_filename = f"{base_name}_th{theta}_dm{deltam}{ext}"
+        new_filename = f"{base_name}_Th{th}_U{u}{ext}"
 
         with open( str(configs_path + "/"+new_filename), "w") as file2:
             file2.writelines(lines)
@@ -144,12 +127,12 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
                      "cd " + str(run_dir) + "\n" + \
                      other_commands + "\n"
     for iFit in range(start_idx, end_idx):
-        deltam = float(deltam_min) + iFit*(float(deltam_max)-float(deltam_min))/numvalsdeltam
-        deltam = "{:.8f}".format(deltam)
+        u = float(u_min) + iFit*(float(u_max)-float(u_min))/numvalsu
+        u = "{:.3f}".format(u)
 
         fit_config_base = os.path.basename(fit_config)
         base_name, ext = os.path.splitext(fit_config_base)
-        new_filename = f"{base_name}_th{theta}_dm{deltam}{ext}"
+        new_filename = f"{base_name}_Th{th}_U{u}{ext}"
         new_filename = configs_path + "/" + new_filename
 
         out_macro_text += f"{exec_path} {new_filename} {event_config} {pdf_config} {syst_config} {osc_config}\n"
@@ -198,7 +181,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser("Submit jobs to condor")
+    parser = argparse.ArgumentParser("Submit fixed geo rate jobs to condor")
     parser.add_argument('exe', type=str, help='executable')
     parser.add_argument('out_dir', type=str, help='output directory')
     parser.add_argument('-r', "--run_dir", type=str, default=".", help='directory to run executable from')
@@ -208,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', "--pdf_cfg", type=str, default="", help='pdf config path')
     parser.add_argument('-s', "--syst_cfg", type=str, default="", help='syst config path')
     parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
-    parser.add_argument('-d', "--numdeltams", type=int, default=250, help='number of deltam points (individual fits) per job')
+    parser.add_argument('-d', "--numu", type=int, default=250, help='number of U points (individual fits) per job')
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="max runtime (seconds)")
     parser.add_argument("-m", "--mem", type=float, default=300, help="max memory (MB)")
     parser.add_argument("-j", "--job_name", type=str, default="", help='job name')
@@ -224,24 +207,23 @@ if __name__ == "__main__":
     pdf_config = run_dir + "/" + args.pdf_cfg if args.pdf_cfg != "" else ""
     syst_config = run_dir + "/" + args.syst_cfg if args.syst_cfg != "" else ""
     osc_config = run_dir + "/" + args.osc_cfg if args.osc_cfg != "" else ""
-    deltam_chunk = args.numdeltams
+    u_chunk = args.numu
     walltime = args.wall_time
     mem = args.mem
     job_name = args.job_name
 
-    deltam_min, deltam_max, theta_min, theta_max = read_fitcfg(fit_config)
-    numvalsdeltam, numvalstheta = read_osccfg(osc_config)
+    u_min, u_max, th_min, th_max = read_fitcfg(fit_config)
 
     if job_name == "":
         job_name = base_name
 
-    for iTheta in range(numvalstheta):
-        theta = float(theta_min) + iTheta*(float(theta_max)-float(theta_min))/numvalstheta
-        theta = "{:.3f}".format(theta)
+    for iTh in range(numvalsth):
+        th = float(th_min) + iTh*(float(th_max)-float(th_min))/numvalsth
+        th = "{:.3f}".format(th)
 
-        for start_idx in range(0, numvalsdeltam, deltam_chunk):
-            end_idx = min(start_idx + deltam_chunk, numvalsdeltam)
-            batch_name = f"{job_name}_th{theta}_dm{start_idx}-{end_idx-1}"
+        for start_idx in range(0, numvalsu, u_chunk):
+            end_idx = min(start_idx + u_chunk, numvalsu)
+            batch_name = f"{job_name}_Th{th}_U{start_idx}-{end_idx-1}"
             log_dir = check_dir("{0}/log/".format(out_dir))
             error_dir = check_dir("{0}/error/".format(out_dir))
             sh_dir = check_dir("{0}/sh/".format(out_dir))
@@ -250,5 +232,5 @@ if __name__ == "__main__":
 
             pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file,
                             fit_config, event_config, pdf_config, syst_config,
-                            osc_config, walltime, mem, theta,
+                            osc_config, walltime, mem, th,
                             start_idx, end_idx, sleep_time = 1, priority = 5)
