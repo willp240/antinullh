@@ -154,6 +154,7 @@ namespace antinufit
 
     void PrintParams(ParameterDict mins, ParameterDict maxs, ParameterDict noms, ParameterDict constrMeans, ParameterDict constrSigmas,
                      ParameterDict constrRatioMeans, ParameterDict constrRatioSigmas, std::map<std::string, std::string> constrRatioParName,
+                     ParameterDict constrFracMeans, ParameterDict constrFracSigmas, std::map<std::string, std::string> constrFracParName,
                      ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName, std::map<std::string, std::vector<std::string>> datasets,
                      std::map<std::string, bool> fixPars)
     {
@@ -268,6 +269,37 @@ namespace antinufit
                 std::cout << std::left << std::setw(20) << constrRatioMeans[it->first];
                 std::cout << "| ";
                 std::cout << std::left << std::setw(20) << constrRatioSigmas[it->first];
+                std::cout << "| " << std::endl;
+            }
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+        }
+
+        if (constrFracMeans.size() > 0)
+        {
+            std::cout << std::endl;
+            std::cout << "************** Fractional Diff. Constraints **************" << std::endl;
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Mean";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Sigma";
+            std::cout << "| " << std::endl;
+            std::cout << " =================================================================================================" << std::endl;
+
+            for (std::map<std::string, double>::iterator it = constrFracMeans.begin(); it != constrFracMeans.end(); it++)
+            {
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << it->first;
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << constrFracParName[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrFracMeans[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrFracSigmas[it->first];
                 std::cout << "| " << std::endl;
             }
             std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;

@@ -154,6 +154,9 @@ namespace antinufit
     double constrRatioMean;
     double constrRatioSigma;
     std::string constrRatioParName;
+    double constrFracMean;
+    double constrFracSigma;
+    std::string constrFracParName;
     double constrCorr;
     std::string constrCorrParName;
     int nbins;
@@ -230,7 +233,17 @@ namespace antinufit
         }
         catch (const ConfigFieldMissing &e_)
         {
-          ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed);
+          try
+          {
+            ConfigLoader::Load(name, "constraint_fracmean", constrFracMean);
+            ConfigLoader::Load(name, "constraint_fracsigma", constrFracSigma);
+            ConfigLoader::Load(name, "constraint_fracparname", constrFracParName);
+            ret.AddFracParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed, constrFracMean, constrFracSigma, constrFracParName);
+          }
+          catch (const ConfigFieldMissing &e_)
+          {
+            ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed);
+          }
         }
       }
     }

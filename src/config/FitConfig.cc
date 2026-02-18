@@ -254,6 +254,24 @@ namespace antinufit
   }
 
   ParameterDict
+  FitConfig::GetConstrFracMeans() const
+  {
+    return fConstrFracMeans;
+  }
+
+  ParameterDict
+  FitConfig::GetConstrFracSigmas() const
+  {
+    return fConstrFracSigmas;
+  }
+
+  std::map<std::string, std::string>
+  FitConfig::GetConstrFracParName() const
+  {
+    return fConstrFracParName;
+  }
+
+  ParameterDict
   FitConfig::GetConstrCorrs() const
   {
     return fConstrCorrs;
@@ -329,6 +347,18 @@ namespace antinufit
     fConstrSigmas[name_] = constrSigma_;
     fConstrCorrParName[name_] = constrCorrParName_;
     fConstrCorrs[name_] = constrCorr_;
+
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
+  }
+
+  void
+  FitConfig::AddFracParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
+                          std::string label_, bool fixed_, double constrFracMean_, double constrFracSigma_, std::string constrFracParName_)
+  {
+
+    fConstrFracMeans[name_] = constrFracMean_;
+    fConstrFracSigmas[name_] = constrFracSigma_;
+    fConstrFracParName[name_] = constrFracParName_;
 
     AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
   }

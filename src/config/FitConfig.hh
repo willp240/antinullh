@@ -25,6 +25,10 @@ namespace antinufit
     ParameterDict GetConstrRatioSigmas() const;
     std::map<std::string, std::string> GetConstrRatioParName() const;
 
+    ParameterDict GetConstrFracMeans() const;
+    ParameterDict GetConstrFracSigmas() const;
+    std::map<std::string, std::string> GetConstrFracParName() const;
+
     ParameterDict GetConstrCorrs() const;
     std::map<std::string, std::string> GetConstrCorrParName() const;
 
@@ -54,6 +58,8 @@ namespace antinufit
                       double constrMean_, double constrSigma_, std::string constrCorrParName_, double constrCorr_);
     void AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
                       double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_);
+    void AddFracParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
+                      double constrFracMean_, double constrFracSigma_, std::string constrFracParName_);
 
     std::set<std::string> GetParamNames() const;
 
@@ -90,6 +96,8 @@ namespace antinufit
     ParameterDict fConstrSigmas;
     ParameterDict fConstrRatioMeans;
     ParameterDict fConstrRatioSigmas;
+    ParameterDict fConstrFracMeans;
+    ParameterDict fConstrFracSigmas;
     ParameterDict fConstrCorrs;
     ParameterDict fNominals;
     ParameterDict fFakeDataVals;
@@ -114,6 +122,7 @@ namespace antinufit
     double fLivetime;
     bool fSaveOutputs;
     std::map<std::string, std::string> fConstrRatioParName;
+    std::map<std::string, std::string> fConstrFracParName;
     std::map<std::string, std::string> fConstrCorrParName;
     std::map<std::string, bool> fFixPars;
   };
