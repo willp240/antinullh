@@ -58,6 +58,9 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   ParameterDict constrRatioMeans = fitConfig.GetConstrRatioMeans();
   ParameterDict constrRatioSigmas = fitConfig.GetConstrRatioSigmas();
   std::map<std::string, std::string> constrRatioParName = fitConfig.GetConstrRatioParName();
+  ParameterDict constrFracMeans = fitConfig.GetConstrFracMeans();
+  ParameterDict constrFracSigmas = fitConfig.GetConstrFracSigmas();
+  std::map<std::string, std::string> constrFracParName = fitConfig.GetConstrFracParName();
   ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
@@ -227,6 +230,9 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       constrRatioMeans.erase(parIt->first);
       constrRatioSigmas.erase(parIt->first);
       constrRatioParName.erase(parIt->first);
+      constrFracMeans.erase(parIt->first);
+      constrFracSigmas.erase(parIt->first);
+      constrFracParName.erase(parIt->first);
       constrCorrs.erase(parIt->first);
       constrCorrParName.erase(parIt->first);
       mins.erase(parIt->first);
@@ -243,7 +249,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   }
   std::cout << std::endl;
 
-  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrCorrs, constrCorrParName, datasetPars, fixedPars);
+  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrFracMeans, constrFracSigmas, constrFracParName, constrCorrs, constrCorrParName, datasetPars, fixedPars);
 
   // Create the individual PDFs and Asimov components, for each dataset, and make the component LLH objects
   std::map<std::string, std::vector<BinnedED>> pdfMap;
@@ -567,6 +573,11 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   {
 
     fullLLH.SetConstraint(ratioIt->first, constrRatioParName.at(ratioIt->first), ratioIt->second, constrRatioSigmas.at(ratioIt->first));
+  }
+  for (ParameterDict::iterator fracIt = constrFracMeans.begin(); fracIt != constrFracMeans.end(); ++fracIt)
+  {
+
+    fullLLH.SetConstraint(fracIt->first, constrFracParName.at(fracIt->first), fracIt->second, constrFracSigmas.at(fracIt->first));
   }
 
   fullLLH.RegisterFitComponents();
