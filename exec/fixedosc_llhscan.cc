@@ -52,6 +52,10 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   ParameterDict constrFracMeans = fitConfig.GetConstrFracMeans();
   ParameterDict constrFracSigmas = fitConfig.GetConstrFracSigmas();
   std::map<std::string, std::string> constrFracParName = fitConfig.GetConstrFracParName();
+  ParameterDict constrShapeMeans = fitConfig.GetConstrShapeMeans();
+  ParameterDict constrShapeSigmas = fitConfig.GetConstrShapeSigmas();
+  std::map<std::string, std::vector<std::string> > constrShapeParNames = fitConfig.GetConstrShapeParNames();
+  std::map<std::string, std::string> constrShapeFuncName = fitConfig.GetConstrShapeFuncName();
   ParameterDict constrCorrs = fitConfig.GetConstrCorrs();
   std::map<std::string, std::string> constrCorrParName = fitConfig.GetConstrCorrParName();
   ParameterDict fdValues = fitConfig.GetFakeDataVals();
@@ -218,6 +222,10 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       constrFracMeans.erase(parIt->first);
       constrFracSigmas.erase(parIt->first);
       constrFracParName.erase(parIt->first);
+      constrShapeMeans.erase(parIt->first);
+      constrShapeSigmas.erase(parIt->first);
+      constrShapeParNames.erase(parIt->first);
+      constrShapeFuncName.erase(parIt->first);
       constrCorrs.erase(parIt->first);
       constrCorrParName.erase(parIt->first);
       mins.erase(parIt->first);
@@ -233,7 +241,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   }
   std::cout << std::endl;
 
-  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrFracMeans, constrFracSigmas, constrFracParName, constrCorrs, constrCorrParName, datasetPars, fixedPars);
+  PrintParams(mins, maxs, noms, constrMeans, constrSigmas, constrRatioMeans, constrRatioSigmas, constrRatioParName, constrFracMeans, constrFracSigmas, constrFracParName, constrShapeMeans, constrShapeSigmas, constrShapeParNames, constrShapeFuncName, constrCorrs, constrCorrParName, datasetPars, fixedPars);
 
   // Create the individual PDFs and Asimov components, for each dataset, and make the component LLH objects
   std::map<std::string, std::vector<BinnedED>> pdfMap;
@@ -678,6 +686,12 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   {
 
     fullLLH.SetConstraint(fracIt->first, constrFracParName.at(fracIt->first), fracIt->second, constrFracSigmas.at(fracIt->first));
+  }
+  for (ParameterDict::iterator shapeIt = constrShapeMeans.begin(); shapeIt != constrShapeMeans.end(); ++shapeIt)
+  {
+
+    ShapeFunc func = getShapeConstrFunc( constrShapeFuncName.at(shapeIt->first) );
+    fullLLH.SetConstraint(noms, func, constrShapeMeans[shapeIt->first], constrShapeSigmas[shapeIt->first]);
   }
 
   fullLLH.RegisterFitComponents();
