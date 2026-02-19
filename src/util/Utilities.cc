@@ -1,4 +1,5 @@
 #include "Utilities.hh"
+#include <ShapeConstraint.h>
 
 namespace antinufit
 {
@@ -155,8 +156,9 @@ namespace antinufit
     void PrintParams(ParameterDict mins, ParameterDict maxs, ParameterDict noms, ParameterDict constrMeans, ParameterDict constrSigmas,
                      ParameterDict constrRatioMeans, ParameterDict constrRatioSigmas, std::map<std::string, std::string> constrRatioParName,
                      ParameterDict constrFracMeans, ParameterDict constrFracSigmas, std::map<std::string, std::string> constrFracParName,
-                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName, std::map<std::string, std::vector<std::string>> datasets,
-                     std::map<std::string, bool> fixPars)
+                     ParameterDict constrShapeMeans, ParameterDict constrShapeSigmas, std::map<std::string, std::vector<std::string>> constrShapeParNames,
+                     std::map<std::string, std::string> constrShapeFuncName, ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName,
+                     std::map<std::string, std::vector<std::string>> datasets, std::map<std::string, bool> fixPars)
     {
 
         std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
@@ -305,6 +307,49 @@ namespace antinufit
             std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
         }
 
+        if (constrShapeMeans.size() > 0)
+        {
+            std::cout << std::endl;
+            std::cout << "************** Shape Constraints **************" << std::endl;
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameters";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Shape Function";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Mean";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Sigma";
+            std::cout << "| " << std::endl;
+            std::cout << " =================================================================================================" << std::endl;
+
+            for (std::map<std::string, double>::iterator it = constrShapeMeans.begin(); it != constrShapeMeans.end(); it++)
+            {
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << it->first;
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << constrShapeFuncName[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrShapeMeans[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrShapeSigmas[it->first];
+                std::cout << "| " << std::endl;
+                for(int i = 0; i < constrShapeParNames[it->first].size(); i++)
+                {
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(25) << constrShapeParNames[it->first].at(i);
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(25) << " ";
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(20) << " ";
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(20) << " ";
+                    std::cout << "| " << std::endl;
+                }
+            }
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+        }
+
         if (constrCorrs.size() > 0)
         {
             std::cout << std::endl;
@@ -352,4 +397,27 @@ namespace antinufit
 
         return s_;
     }
+
+    ShapeFunc getShapeConstrFunc( std::string func_name)
+    {
+
+        ShapeFunc scaleFrac = []( const ParameterDict params )
+        {
+            double total_rate_U = params.at("geonu_U_norm") * (params.at("geonu_U") + params.at("geonu_U2"));
+            double total_rate_Th = params.at("geonu_Th_norm") * (params.at("geonu_Th") + params.at("geonu_Th2"));
+
+            double val = ( total_rate_U - total_rate_Th ) / ( total_rate_U + total_rate_Th );
+            return val;
+        };
+
+        if( func_name == "scaleFrac" )
+        {
+            return scaleFrac;
+        }
+        else
+        {
+            throw ValueError("Unknown constraint function, " + func_name );
+        }
+    }
+
 }
