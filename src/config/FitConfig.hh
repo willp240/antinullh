@@ -29,6 +29,11 @@ namespace antinufit
     ParameterDict GetConstrFracSigmas() const;
     std::map<std::string, std::string> GetConstrFracParName() const;
 
+    ParameterDict GetConstrShapeMeans() const;
+    ParameterDict GetConstrShapeSigmas() const;
+    std::map<std::string, std::vector<std::string> > GetConstrShapeParNames() const;
+    std::map<std::string, std::string> GetConstrShapeFuncName() const;
+
     ParameterDict GetConstrCorrs() const;
     std::map<std::string, std::string> GetConstrCorrParName() const;
 
@@ -59,7 +64,9 @@ namespace antinufit
     void AddParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
                       double constrRatioMean_, double constrRatioSigma_, std::string constrRatioParName_);
     void AddFracParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
-                      double constrFracMean_, double constrFracSigma_, std::string constrFracParName_);
+                          double constrFracMean_, double constrFracSigma_, std::string constrFracParName_);
+    void AddShapeParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fakedata_, std::string label_, bool fixed,
+                           double constrShapeMean_, double constrShapeSigma_, std::vector<std::string> constrShapeParNames_, std::string constrShapeFuncName_);
 
     std::set<std::string> GetParamNames() const;
 
@@ -98,6 +105,8 @@ namespace antinufit
     ParameterDict fConstrRatioSigmas;
     ParameterDict fConstrFracMeans;
     ParameterDict fConstrFracSigmas;
+    ParameterDict fConstrShapeMeans;
+    ParameterDict fConstrShapeSigmas;
     ParameterDict fConstrCorrs;
     ParameterDict fNominals;
     ParameterDict fFakeDataVals;
@@ -124,6 +133,8 @@ namespace antinufit
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrFracParName;
     std::map<std::string, std::string> fConstrCorrParName;
+    std::map<std::string, std::string> fConstrShapeFuncName;
+    std::map<std::string, std::vector<std::string> > fConstrShapeParNames;
     std::map<std::string, bool> fFixPars;
   };
 }

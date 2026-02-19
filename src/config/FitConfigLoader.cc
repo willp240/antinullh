@@ -157,6 +157,10 @@ namespace antinufit
     double constrFracMean;
     double constrFracSigma;
     std::string constrFracParName;
+    double constrShapeMean;
+    double constrShapeSigma;
+    std::string constrShapeFuncName;
+    std::vector<std::string> constrShapeParNames;
     double constrCorr;
     std::string constrCorrParName;
     int nbins;
@@ -242,7 +246,18 @@ namespace antinufit
           }
           catch (const ConfigFieldMissing &e_)
           {
-            ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed);
+            try
+            {
+              ConfigLoader::Load(name, "constraint_shapemean", constrShapeMean);
+              ConfigLoader::Load(name, "constraint_shapesigma", constrShapeSigma);
+              ConfigLoader::Load(name, "constraint_shapeparnames", constrShapeParNames);
+              ConfigLoader::Load(name, "constraint_shapefunc", constrShapeFuncName);
+              ret.AddShapeParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed, constrShapeMean, constrShapeSigma, constrShapeParNames, constrShapeFuncName);
+            }
+            catch (const ConfigFieldMissing &e_)
+            {
+              ret.AddParameter(name, nom, min, max, sig, nbins, fakeDataVal, texLabel, fixed);
+            }
           }
         }
       }
