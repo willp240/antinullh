@@ -59,5 +59,5 @@ int main(int argc, char *argv[])
   oscGrid->CalcGrid();
   oscGrid->Write();
 
-return 0;
+  return 0;
 }
