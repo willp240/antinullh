@@ -283,7 +283,7 @@ namespace antinufit
     return fConstrShapeSigmas;
   }
 
-  std::map<std::string, std::vector<std::string> >
+  std::map<std::string, std::vector<std::string>>
   FitConfig::GetConstrShapeParNames() const
   {
     return fConstrShapeParNames;

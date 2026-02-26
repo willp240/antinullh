@@ -1,14 +1,10 @@
-#ifndef __ANTINUFIT__OscGridConfigLoader__
-#define __ANTINUFIT__OscGridConfigLoader__
+#pragma once
 
 // Antinu headers
 #include <OscGridConfig.hh>
 
 // OXO headers
 #include <ConfigLoader.hh>
-
-// c++ headers
-#include <algorithm>
 
 namespace antinufit
 {
@@ -24,4 +20,3 @@ namespace antinufit
     std::string fPath;
   };
 }
-#endif

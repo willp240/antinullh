@@ -14,7 +14,7 @@ namespace antinufit
     fFilename = filename_;
   }
 
-    std::string OscGridConfig::GetReactorsJsonFile() const
+  std::string OscGridConfig::GetReactorsJsonFile() const
   {
     return fReactorsJsonFilename;
   }

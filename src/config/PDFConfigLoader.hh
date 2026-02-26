@@ -1,15 +1,10 @@
-#ifndef __ANTINUFIT__PDFConfigLoader__
-#define __ANTINUFIT__PDFConfigLoader__
+#pragma once
 
 // Antinu headers
 #include <PDFConfig.hh>
-#include <Utilities.hh>
 
 // OXO headers
 #include <ConfigLoader.hh>
-
-// c++ headers
-#include <algorithm>
 
 namespace antinufit
 {
@@ -25,4 +20,3 @@ namespace antinufit
     std::string fPath;
   };
 }
-#endif

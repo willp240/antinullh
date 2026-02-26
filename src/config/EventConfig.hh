@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__EventConfig__
-#define __ANTINUFIT__EventConfig__
+#pragma once
 
 // c++ headers
 #include <string>
@@ -47,5 +46,3 @@ namespace antinufit
     bool fFlat = false;
   };
 }
-
-#endif

@@ -1,14 +1,10 @@
-#ifndef __ANTINUFIT__EventConfigLoader__
-#define __ANTINUFIT__EventConfigLoader__
+#pragma once
 
 // Antinu headers
 #include <EventConfig.hh>
 
 // OXO headers
 #include <ConfigLoader.hh>
-
-// c++ headers
-#include <algorithm>
 
 namespace antinufit
 {
@@ -29,4 +25,3 @@ namespace antinufit
     std::string fPath;
   };
 }
-#endif

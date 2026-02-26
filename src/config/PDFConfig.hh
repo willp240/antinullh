@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__PDFConfig__
-#define __ANTINUFIT__PDFConfig__
+#pragma once
 
 // OXO headers
 #include <Exceptions.h>
@@ -24,8 +23,8 @@ namespace antinufit
     const std::vector<std::string> &GetDataBranchNames() const;
     void SetDataBranchNames(const std::vector<std::string> &);
 
-    std::vector<std::string> GetBranchNames( ) const;
-    std::vector<std::string> GetBranchNames( const int ) const;
+    std::vector<std::string> GetBranchNames() const;
+    std::vector<std::string> GetBranchNames(const int) const;
 
   private:
     std::vector<std::string> fAxisNames;
@@ -37,4 +36,3 @@ namespace antinufit
     std::vector<double> fMaxima;
   };
 }
-#endif

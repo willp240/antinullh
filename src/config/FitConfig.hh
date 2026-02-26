@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__FitConfig__
-#define __ANTINUFIT__FitConfig__
+#pragma once
 
 // OXO headers
 #include <ParameterDict.h>
@@ -31,7 +30,7 @@ namespace antinufit
 
     ParameterDict GetConstrShapeMeans() const;
     ParameterDict GetConstrShapeSigmas() const;
-    std::map<std::string, std::vector<std::string> > GetConstrShapeParNames() const;
+    std::map<std::string, std::vector<std::string>> GetConstrShapeParNames() const;
     std::map<std::string, std::string> GetConstrShapeFuncName() const;
 
     ParameterDict GetConstrCorrs() const;
@@ -134,8 +133,7 @@ namespace antinufit
     std::map<std::string, std::string> fConstrFracParName;
     std::map<std::string, std::string> fConstrCorrParName;
     std::map<std::string, std::string> fConstrShapeFuncName;
-    std::map<std::string, std::vector<std::string> > fConstrShapeParNames;
+    std::map<std::string, std::vector<std::string>> fConstrShapeParNames;
     std::map<std::string, bool> fFixPars;
   };
 }
-#endif

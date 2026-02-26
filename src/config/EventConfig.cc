@@ -63,8 +63,7 @@ namespace antinufit
     fGroup = s_;
   }
 
-  int
-  EventConfig::GetNumDimensions() const
+  int EventConfig::GetNumDimensions() const
   {
     return fNumDimensions;
   }
@@ -93,12 +92,10 @@ namespace antinufit
     return fFlat;
   }
 
-
   void
   EventConfig::SetFlat(const bool &b_)
   {
     fFlat = b_;
   }
-
 
 }

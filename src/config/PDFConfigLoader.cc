@@ -1,4 +1,6 @@
 #include <PDFConfigLoader.hh>
+#include <Utilities.hh>
+#include <algorithm>
 
 namespace antinufit
 {

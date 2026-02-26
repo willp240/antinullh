@@ -14,9 +14,9 @@ namespace antinufit
 
   void
   PDFConfig::GetAxis(int index_, std::string &name_,
-                      std::string &branchName_,
-                      std::string &texName_,
-                      int &binCount_, double &min_, double &max_) const
+                     std::string &branchName_,
+                     std::string &texName_,
+                     int &binCount_, double &min_, double &max_) const
   {
     try
     {
@@ -35,8 +35,8 @@ namespace antinufit
 
   void
   PDFConfig::AddAxis(const std::string &name_, const std::string &branchName_,
-                      const std::string &texName_,
-                      int binCount_, double min_, double max_)
+                     const std::string &texName_,
+                     int binCount_, double min_, double max_)
   {
     fAxisNames.push_back(name_);
     fTexNames.push_back(texName_);
@@ -54,7 +54,7 @@ namespace antinufit
   }
 
   std::vector<std::string>
-  PDFConfig::GetBranchNames( const int numBranches_) const
+  PDFConfig::GetBranchNames(const int numBranches_) const
   {
     std::vector<std::string> bnames(fBranchNames.begin(), fBranchNames.begin() + numBranches_);
     return bnames;

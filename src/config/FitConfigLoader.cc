@@ -1,4 +1,6 @@
 #include <FitConfigLoader.hh>
+#include <Utilities.hh>
+#include <algorithm>
 
 namespace antinufit
 {
@@ -50,7 +52,7 @@ namespace antinufit
     {
       ConfigLoader::Load("summary", "beeston_barlow", beestonBarlowFlag);
     }
-    catch (const std::exception &e) 
+    catch (const std::exception &e)
     {
       beestonBarlowFlag = false;
     }
@@ -58,7 +60,7 @@ namespace antinufit
     {
       ConfigLoader::Load("summary", "epsilon", epsilon);
     }
-    catch (const std::exception &e) 
+    catch (const std::exception &e)
     {
       epsilon = 0;
     }
@@ -66,7 +68,7 @@ namespace antinufit
     {
       ConfigLoader::Load("summary", "burn_in", burnIn);
     }
-    catch (const std::exception &e) 
+    catch (const std::exception &e)
     {
       burnIn = 0;
     }
@@ -74,16 +76,15 @@ namespace antinufit
     {
       ConfigLoader::Load("summary", "hmc_iterations", HMCit);
     }
-    catch (const std::exception &e) 
+    catch (const std::exception &e)
     {
       HMCit = 0;
     }
     try
     {
       ConfigLoader::Load("summary", "hmc_burn_in", HMCburnIn);
-
     }
-    catch (const std::exception &e) 
+    catch (const std::exception &e)
     {
       HMCburnIn = 0;
     }
@@ -91,7 +92,7 @@ namespace antinufit
     {
       ConfigLoader::Load("summary", "sigma_scale", sigmaScale);
     }
-    catch (const std::exception &e) 
+    catch (const std::exception &e)
     {
       burnIn = 0;
     }
@@ -99,7 +100,7 @@ namespace antinufit
     {
       ConfigLoader::Load("summary", "n_steps", nSteps);
     }
-    catch (const std::exception &e) 
+    catch (const std::exception &e)
     {
       nSteps = 0;
     }
@@ -206,7 +207,7 @@ namespace antinufit
       {
         ConfigLoader::Load(name, "fix", fixed);
       }
-      catch(const ConfigFieldMissing &e_)
+      catch (const ConfigFieldMissing &e_)
       {
         fixed = false;
       }
