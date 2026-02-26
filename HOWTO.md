@@ -179,6 +179,31 @@ Note, the oscillation grid calculation of the survival probability is still slow
 - `maxssqth12`: The maximum $\text{sin}^2 \theta_{12}$ value of the grid
 - `numvalsssqth12`: The number of grid points on the $\text{sin}^2 \theta_{12}$ axis
 
+<h3>Fit Utils</h3>
+There are a number of functions and structs used to keep clutter out of the main execs. These live in three subdirectories under `/src/fit`:
+
+<h4>`pipeline/`</h4>
+- FitInputs.hh – Canonical struct of all run + parameter settings derived from FitConfig.
+- DatasetSetup.hh – Static description of datasets, PDFs, axes, and data paths.
+- DatasetModel.hh – Per-dataset container for built PDFs, groups, rates, asimov/fake dists.
+- BuildDatasets.cc/.hh – Builds all dataset models and per-dataset LLHs from setup + physics.
+- CombineLLHs.hh – Merges dataset LLHs into a global StatisticSum with shared params.
+- ParamUtils.hh – Small helpers for initialising/handling ParameterDicts.
+- FitSummary.hh – Prints a clean summary of the fit configuration and parameters.
+
+<h4>`physics/`</h4>
+- OscParams.hh – Interprets and stores oscillation parameters consistently.
+- BuildComponent.hh – Builds a single PDF component from MC (pre-systematics).
+- ApplySystematics.hh – Applies relevant systematics to a PDF by group.
+- SystSetup.hh – Constructs and organises all systematic objects per dataset.
+- FitConstraints.hh – Applies standard parameter constraints to the global LLH.
+- ShapeConstraints.hh – Applies shape-specific constraint logic.
+
+<h4>`io/`</h4>
+- OutputDirs.hh – Defines and creates output directory structure.
+- LoadDataset.hh – Loads MC datasets and real data distributions from file.
+- Projection.hh – Projects/marginalises PDFs to match data observables.
+
 <h2>Apps</h2>
 
 These above classes and config files, along with all the OXO classes, are brought together in various apps in the `exec` directory. These are described in this section in the order you will probably want to use them:
