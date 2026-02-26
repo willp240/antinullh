@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__Utilities__
-#define __ANTINUFIT__Utilities__
+#pragma once
 
 // C++ headers
 #include <vector>
@@ -9,7 +8,6 @@
 
 // OXO headers
 #include <ParameterDict.h>
-#include <ShapeConstraint.h>
 
 // ROOT headers
 #include <TVector3.h>
@@ -30,6 +28,4 @@ namespace antinufit
                    ParameterDict, std::map<std::string, std::string>, std::map<std::string, std::vector<std::string>>,
                    std::map<std::string, bool>);
   std::string stripQuoteMarks(std::string);
-  ShapeFunc getShapeConstrFunc( std::string );
 }
-#endif

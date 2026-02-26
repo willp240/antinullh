@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__OscGrid__
-#define __ANTINUFIT__OscGrid__
+#pragma once
 
 #include <iostream>
 #include <vector>
@@ -63,4 +62,3 @@ namespace antinufit
     TH3D *fHist;
   };
 }
-#endif

@@ -206,7 +206,7 @@ namespace antinufit
         for (int iParam = 0; iParam < tempNamesVec->size(); iParam++)
         {
 
-            if (noms.find(tempNamesVec->at(iParam))== noms.end())
+            if (noms.find(tempNamesVec->at(iParam)) == noms.end())
                 continue;
 
             std::cout << "| ";
@@ -334,7 +334,7 @@ namespace antinufit
                 std::cout << "| ";
                 std::cout << std::left << std::setw(20) << constrShapeSigmas[it->first];
                 std::cout << "| " << std::endl;
-                for(int i = 0; i < constrShapeParNames[it->first].size(); i++)
+                for (int i = 0; i < constrShapeParNames[it->first].size(); i++)
                 {
                     std::cout << "| ";
                     std::cout << std::left << std::setw(25) << constrShapeParNames[it->first].at(i);
@@ -397,27 +397,4 @@ namespace antinufit
 
         return s_;
     }
-
-    ShapeFunc getShapeConstrFunc( std::string func_name)
-    {
-
-        ShapeFunc scaleFrac = []( const ParameterDict params )
-        {
-            double total_rate_U = params.at("geonu_U_norm") * (params.at("geonu_U") + params.at("geonu_U2"));
-            double total_rate_Th = params.at("geonu_Th_norm") * (params.at("geonu_Th") + params.at("geonu_Th2"));
-
-            double val = ( total_rate_U - total_rate_Th ) / ( total_rate_U + total_rate_Th );
-            return val;
-        };
-
-        if( func_name == "scaleFrac" )
-        {
-            return scaleFrac;
-        }
-        else
-        {
-            throw ValueError("Unknown constraint function, " + func_name );
-        }
-    }
-
 }
