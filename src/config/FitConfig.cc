@@ -223,6 +223,18 @@ namespace antinufit
     fEpsilon = e_;
   }
 
+  int
+  FitConfig::GetLLHScanPoints() const
+  {
+    return fLLHScanPoints;
+  }
+
+  void
+  FitConfig::SetLLHScanPoints(int n_)
+  {
+    fLLHScanPoints = n_;
+  }
+
   ParameterDict
   FitConfig::GetConstrMeans() const
   {

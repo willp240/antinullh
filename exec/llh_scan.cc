@@ -17,6 +17,7 @@
 #include <TH1D.h>
 
 // c++ headers
+#include <algorithm>
 #include <sys/stat.h>
 
 using namespace antinufit;
@@ -354,8 +355,13 @@ void llh_scan(const std::string &fitConfigFile_,
   lh.RegisterFitComponents();
 
   // Now onto the LLH Scan. First set the number of points in the scan
-  int npoints = 150;
-  int countwidth = double(npoints) / double(5);
+  int npoints = fitConfig.GetLLHScanPoints();
+  if (npoints <= 0)
+  {
+    std::cout << "WARNING: llh_scan_points <= 0 in fit config. Defaulting to 150." << std::endl;
+    npoints = 150;
+  }
+  int countwidth = std::max(1, static_cast<int>(double(npoints) / double(5)));
 
   // Initialise to nominal values
   ParameterDict parameterValues;

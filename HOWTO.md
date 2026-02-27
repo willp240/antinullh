@@ -96,6 +96,7 @@ This file should contain information on the parameters of the fit, and the fit i
 - `sigma_scale`: Global scaling factor each step size gets multiplied by
 - `beeston_barlow`: Bool to determine if we should use the Beeston-Barlow method to account for MC stats uncertainty. If 1/True, it is used
 - `save_outputs`: Bool to determine if the output files should be written. If 1/True, they are saved. This is useful for running multiple fixed oscillation fits to avoid producing ~millions of files at once. It is currently only implemented for the `fixedosc_fit` exec (for all other execs output files will be produced regardless of this bool)
+- `llh_scan_points`: For the llh scan execs, this will set how many points are in the scan (defaults to 150). Other execs will just ignore this parameter
 
 <h5>Fit Parameter Tables</h5>
 

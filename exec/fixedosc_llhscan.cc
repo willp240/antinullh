@@ -16,6 +16,7 @@
 #include <TH1D.h>
 #include <TFile.h>
 
+#include <algorithm>
 #include <cmath>
 
 using namespace antinufit;
@@ -77,8 +78,13 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   OscParams osc = BuildOscParams(in.p.noms);
 
   // Define the number of points
-  int npoints = 150;
-  int countwidth = double(npoints) / double(5);
+  int npoints = fitConfig.GetLLHScanPoints();
+  if (npoints <= 0)
+  {
+    std::cout << "WARNING: llh_scan_points <= 0 in fit config. Defaulting to 150." << std::endl;
+    npoints = 150;
+  }
+  int countwidth = std::max(1, static_cast<int>(double(npoints) / double(5)));
 
   // Prune any parameters that aren't in fit config
   DatasetParsInfo dsParsInfo = PruneUnusedParameters(in, setup, syst, osc);

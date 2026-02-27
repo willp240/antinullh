@@ -37,6 +37,7 @@ namespace antinufit
     bool fakeDataFlag;
     double livetime;
     bool saveOutputs;
+    int llhScanPoints;
     std::string datafile;
 
     ConfigLoader::Load("summary", "iterations", it);
@@ -104,6 +105,14 @@ namespace antinufit
     {
       nSteps = 0;
     }
+    try
+    {
+      ConfigLoader::Load("summary", "llh_scan_points", llhScanPoints);
+    }
+    catch (const std::exception &e)
+    {
+      llhScanPoints = 150;
+    }
 
     try
     {
@@ -138,6 +147,7 @@ namespace antinufit
     ret.SetMinuitTolerance(minuitTolerance);
     ret.SetMinuitStrategy(minuitStrategy);
     ret.SetMinuitMethod(minuitMethod);
+    ret.SetLLHScanPoints(llhScanPoints);
 
     typedef std::set<std::string> StringSet;
     StringSet toLoad;

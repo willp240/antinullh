@@ -51,15 +51,39 @@ namespace antinufit
 
       retVal.AddAxis(name, branchName, texName, binCount, min, max);
 
+      bool hasLow = false;
+      bool hasHigh = false;
       try
       {
         ConfigLoader::Load(name, "llh_buffer_bin_low", llhBufferBinLow);
-        ConfigLoader::Load(name, "llh_buffer_bin_high", llhBufferBinHigh);
-        retVal.SetLLHBufferBins(name, llhBufferBinLow, llhBufferBinHigh);
+        hasLow = true;
       }
       catch (const std::exception &e)
       {
-        // Optional per-axis LLH buffer config.
+        if (name == "energy")
+        {
+          llhBufferBinLow = 8;
+          hasLow = true;
+        }
+      }
+
+      try
+      {
+        ConfigLoader::Load(name, "llh_buffer_bin_high", llhBufferBinHigh);
+        hasHigh = true;
+      }
+      catch (const std::exception &e)
+      {
+        if (name == "energy")
+        {
+          llhBufferBinHigh = 20;
+          hasHigh = true;
+        }
+      }
+
+      if (hasLow && hasHigh)
+      {
+        retVal.SetLLHBufferBins(name, llhBufferBinLow, llhBufferBinHigh);
       }
     }
     retVal.SetDataBranchNames(data_axes);

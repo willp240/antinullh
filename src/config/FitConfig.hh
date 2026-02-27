@@ -95,6 +95,8 @@ namespace antinufit
 
     bool GetSaveOutputs() const;
     void SetSaveOutputs(bool);
+    int GetLLHScanPoints() const;
+    void SetLLHScanPoints(int);
 
   private:
     std::string fOutDir;
@@ -129,6 +131,7 @@ namespace antinufit
     bool fFakeData;
     double fLivetime;
     bool fSaveOutputs;
+    int fLLHScanPoints = 150;
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrFracParName;
     std::map<std::string, std::string> fConstrCorrParName;
