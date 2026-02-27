@@ -6,6 +6,7 @@
 #include <functional>
 
 #include <ParameterDict.h>
+#include <SystSetup.hh>
 
 namespace antinufit
 {
