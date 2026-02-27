@@ -23,7 +23,6 @@ namespace antinufit
 
     std::vector<std::string> data_axes;
     ConfigLoader::Load("summary", "data_axes", data_axes);
-
     PDFConfig retVal;
 
     double min;
@@ -32,6 +31,8 @@ namespace antinufit
     std::string branchName;
     std::string texName;
     int binCount;
+    int llhBufferBinLow;
+    int llhBufferBinHigh;
     for (size_t i = 0; i < order.size(); i++)
     {
       if (std::find(toLoad.begin(), toLoad.end(), order.at(i)) == toLoad.end())
@@ -49,6 +50,17 @@ namespace antinufit
       texName = stripQuoteMarks(texName);
 
       retVal.AddAxis(name, branchName, texName, binCount, min, max);
+
+      try
+      {
+        ConfigLoader::Load(name, "llh_buffer_bin_low", llhBufferBinLow);
+        ConfigLoader::Load(name, "llh_buffer_bin_high", llhBufferBinHigh);
+        retVal.SetLLHBufferBins(name, llhBufferBinLow, llhBufferBinHigh);
+      }
+      catch (const std::exception &e)
+      {
+        // Optional per-axis LLH buffer config.
+      }
     }
     retVal.SetDataBranchNames(data_axes);
     return retVal;

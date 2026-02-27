@@ -140,6 +140,8 @@ The name of these tables should be the name of the axis.
 - `max`: The maximum value on the axis
 - `branch_name`: The name of the branch in the ntuple
 - `tex_name`: A latex name for the axis to be used in plot labels
+- `llh_buffer_bin_low`: Optionally set the last bin of the lower buffer region (defaults to 8 for energy, won't be set for other axes so no buffer is applied)
+- `llh_buffer_bin_high`: Optionally set the first bin of the upper buffer region (defaults to 20 for energy, won't be set for other axes so no buffer is applied)
 
 <h4>Syst</h4>
 

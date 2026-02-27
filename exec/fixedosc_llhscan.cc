@@ -25,10 +25,11 @@ namespace
   double EvaluateScanDeltaLLH(const BuildResult &datasets,
                               const SystSetup &syst,
                               const FitInputs &in,
+                              const PDFConfig &pdfConfig,
                               size_t scanIndex,
                               double nomllh)
   {
-    std::vector<BinnedNLLH> oscTestStats = BuildScanPointLLHs(datasets, syst, in, scanIndex);
+    std::vector<BinnedNLLH> oscTestStats = BuildScanPointLLHs(datasets, syst, in, pdfConfig, scanIndex);
     CombinedLLH oscCombined = CombineLLHs(oscTestStats, datasets.initialByDataset);
     StatisticSum &fullOscLLH = oscCombined.llh;
     ApplyConstraints(fullOscLLH, in.constraints, in.p.noms);
@@ -228,7 +229,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       std::cout << iDeltaM << "/" << npoints << " (" << double(iDeltaM) / double(npoints) * 100 << "%)" << std::endl;
 
     const double deltaLLH = EvaluateScanDeltaLLH(
-        datasets, syst, in, static_cast<size_t>(iDeltaM), nomllh);
+        datasets, syst, in, setup.pdfConfig, static_cast<size_t>(iDeltaM), nomllh);
     hDeltam->SetBinContent(iDeltaM + 1, deltaLLH);
   }
   hDeltam->Write();
@@ -254,7 +255,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       std::cout << iTheta12 << "/" << npoints << " (" << double(iTheta12) / double(npoints) * 100 << "%)" << std::endl;
 
     const double deltaLLH = EvaluateScanDeltaLLH(
-        datasets, syst, in, scanIndex, nomllh);
+        datasets, syst, in, setup.pdfConfig, scanIndex, nomllh);
     hTheta12->SetBinContent(iTheta12 + 1, deltaLLH);
   }
   hTheta12->Write();

@@ -60,6 +60,12 @@ namespace antinufit
     return bnames;
   }
 
+  const std::vector<std::string> &
+  PDFConfig::GetAxisNames() const
+  {
+    return fAxisNames;
+  }
+
   void
   PDFConfig::SetDataBranchNames(const std::vector<std::string> &s_)
   {
@@ -70,6 +76,24 @@ namespace antinufit
   PDFConfig::GetDataBranchNames() const
   {
     return fDataAxesNames;
+  }
+
+  bool
+  PDFConfig::HasLLHBufferBins(const std::string &axisName) const
+  {
+    return fLLHBufferBins.find(axisName) != fLLHBufferBins.end();
+  }
+
+  std::pair<int, int>
+  PDFConfig::GetLLHBufferBins(const std::string &axisName) const
+  {
+    return fLLHBufferBins.at(axisName);
+  }
+
+  void
+  PDFConfig::SetLLHBufferBins(const std::string &axisName, int low, int high)
+  {
+    fLLHBufferBins[axisName] = std::make_pair(low, high);
   }
 
 }

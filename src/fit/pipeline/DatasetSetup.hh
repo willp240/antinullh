@@ -8,6 +8,7 @@
 #include <PDFConfig.hh>
 #include <EventConfigLoader.hh>
 #include <PDFConfigLoader.hh>
+#include <LLHBufferLog.hh>
 #include <DistBuilder.hh>
 
 namespace antinufit
@@ -41,6 +42,7 @@ namespace antinufit
     // PDF config
     PDFConfigLoader pdfLoader(pdfConfigFile);
     setup.pdfConfig = pdfLoader.Load();
+    PrintLLHBufferConfig(setup.pdfConfig);
     setup.dataObs = setup.pdfConfig.GetDataBranchNames();
     setup.dataObsSet = ObsSet(setup.dataObs);
     setup.systAxes = DistBuilder::BuildAxes(setup.pdfConfig,

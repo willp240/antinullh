@@ -161,15 +161,24 @@ namespace antinufit
             return LoadDataDist(setup.dataPath.at(dsName), setup.pdfConfig);
         }
 
-        BinnedNLLH &BuildDatasetLLH(std::vector<BinnedNLLH> &llhs,
-                                    const FitInputs &in,
-                                    const SystSetup &syst,
-                                    const std::string &dsName,
-                                    DatasetModel &model,
-                                    const BinnedED &dataDist)
+    BinnedNLLH &BuildDatasetLLH(std::vector<BinnedNLLH> &llhs,
+                                const FitInputs &in,
+                                const PDFConfig &pdfConfig,
+                                const SystSetup &syst,
+                                const std::string &dsName,
+                                DatasetModel &model,
+                                const BinnedED &dataDist)
         {
             BinnedNLLH &lh = llhs.emplace_back();
-            lh.SetBuffer("energy", 8, 20);
+            for (std::vector<std::string>::const_iterator axisIt = pdfConfig.GetAxisNames().begin();
+                 axisIt != pdfConfig.GetAxisNames().end(); ++axisIt)
+            {
+                if (!pdfConfig.HasLLHBufferBins(*axisIt))
+                    continue;
+
+                const std::pair<int, int> bufferBins = pdfConfig.GetLLHBufferBins(*axisIt);
+                lh.SetBuffer(*axisIt, bufferBins.first, bufferBins.second);
+            }
 
             // Add our data
             lh.SetDataDist(dataDist);
@@ -243,7 +252,7 @@ namespace antinufit
             const BinnedED dataDist = ChooseDataDist(in, setup, dsName, model);
             out.dataDists[dsName] = dataDist;
 
-            BinnedNLLH &lh = BuildDatasetLLH(out.llhs, in, syst, dsName, model, dataDist);
+            BinnedNLLH &lh = BuildDatasetLLH(out.llhs, in, setup.pdfConfig, syst, dsName, model, dataDist);
 
             out.initialByDataset[dsName] = InitialiseDatasetParams(in.p.noms, dsParsInfo.datasetPars, dsName);
 
@@ -261,6 +270,7 @@ namespace antinufit
         const BuildResult &datasets,
         const SystSetup &syst,
         const FitInputs &in,
+        const PDFConfig &pdfConfig,
         size_t scanPointIndex)
     {
         std::vector<BinnedNLLH> llhs;
@@ -272,7 +282,15 @@ namespace antinufit
             const DatasetModel &model = dsIt->second;
 
             BinnedNLLH &lh = llhs.emplace_back();
-            lh.SetBuffer("energy", 8, 20);
+            for (std::vector<std::string>::const_iterator axisIt = pdfConfig.GetAxisNames().begin();
+                 axisIt != pdfConfig.GetAxisNames().end(); ++axisIt)
+            {
+                if (!pdfConfig.HasLLHBufferBins(*axisIt))
+                    continue;
+
+                const std::pair<int, int> bufferBins = pdfConfig.GetLLHBufferBins(*axisIt);
+                lh.SetBuffer(*axisIt, bufferBins.first, bufferBins.second);
+            }
             lh.SetDataDist(datasets.dataDists.at(dsName));
             lh.SetBarlowBeeston(in.run.beestonBarlowFlag);
 

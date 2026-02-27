@@ -56,6 +56,7 @@ namespace antinufit
         const BuildResult &datasets,
         const SystSetup &syst,
         const FitInputs &in,
+        const PDFConfig &pdfConfig,
         size_t scanPointIndex);
 
 } // namespace antinufit

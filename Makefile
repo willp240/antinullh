@@ -82,9 +82,11 @@ $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)
 	ar rcs  $@ $^
 
-build/%.o : src/*/%.cc
-	mkdir -p build
-	$(CXX) -c -w $< $(INCLUDES) -w $(ROOT_FLAGS) $(G4_FLAGS) -o $@
+build/%.o : src/%.cc
+	mkdir -p $(dir $@)
+	$(CXX) -MMD -MP -c -w $< $(INCLUDES) $(ROOT_FLAGS) $(G4_FLAGS) -o $@
+
+-include $(OBJ_FILES:.o=.d)
 
 clean:
 	rm -f bin/prune_trees
@@ -98,5 +100,5 @@ clean:
 	rm -f bin/auto_corrs
 	rm -f bin/make_plots
 	rm -f bin/makeFixedOscTree
-	rm -f build/*.o
+	rm -rf build
 	rm -f lib/libantinullh.a

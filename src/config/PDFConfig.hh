@@ -5,6 +5,7 @@
 
 // c++ headers
 #include <vector>
+#include <map>
 
 namespace antinufit
 {
@@ -26,6 +27,11 @@ namespace antinufit
     std::vector<std::string> GetBranchNames() const;
     std::vector<std::string> GetBranchNames(const int) const;
 
+    const std::vector<std::string> &GetAxisNames() const;
+    bool HasLLHBufferBins(const std::string &axisName) const;
+    std::pair<int, int> GetLLHBufferBins(const std::string &axisName) const;
+    void SetLLHBufferBins(const std::string &axisName, int low, int high);
+
   private:
     std::vector<std::string> fAxisNames;
     std::vector<std::string> fDataAxesNames;
@@ -34,5 +40,6 @@ namespace antinufit
     std::vector<int> fBinCounts;
     std::vector<double> fMinima;
     std::vector<double> fMaxima;
+    std::map<std::string, std::pair<int, int>> fLLHBufferBins = {{"energy", std::make_pair(8, 20)}};
   };
 }
