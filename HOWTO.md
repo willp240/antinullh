@@ -380,11 +380,11 @@ This script loops over all entries in the output `TTree` from `makeFixedOscTree`
 
 The reactor parameter names are hardcoded so that they can be multiplied by the correct reactor ratio. The order the parameters are plotted in are also hardcoded.
 
-A separate canvas is also saved, containing a plot of the postfit correlation matrix of all fit parameters.
+There are two optional bool arguments the user can provide, to specify whether or not to plot correlations (defaults to true), and if the alpha-n classifier was used (defaults to false). If the former is true, a separate canvas is also saved, containing a plot of the postfit correlation matrix of all fit parameters.
 
 You can run it with:
 
-> root -l 'plotting/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
+> root -l 'plotting/plotFixedOscParams.C("/path/to/makeFixedOscTree/output.root", plot_correlations_bool, alphan_classifier_bool)'
 
 <h3>Prefit Plots</h3>
 
@@ -497,14 +497,15 @@ They are with:
 
 This script uses the above 'get integral' scripts to get the postfit parameter event rates and proportional uncertainties, along with the postfit values and uncertainties for all other parameters, including the geoneutrino ratio. It also sums event rates over datasets to get the total number of each event rate. This is very hard coded for the parameters for the current analysis, but is useful for what it does. It outputs a CSV file of all parameter values and uncertainties. It runs `plotFixedOscParams`, so make sure `plotFixedOscLLH` has been run to get the correct oscillation parameter uncertainties. You can run it with:
 
-> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated-fit-bool> <(alpha,n)-classifier-bool>
+> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated_fit_bool> <(alpha,n)_classifier_bool>
 
 where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `correlated-fit-bool` and `(alpha,n)-classifier-bool` are whether the fit used correlated normalisations and the (alpha,n) classifier. It would be nice if it automatically could determine the two bools but this is how it is for now. Also note the parameters are hard-coded inside `combine_postfit_results`. This really is meant as a handy helper for the specific current analysis than a general tool.
 
 <h4>Run Postfit Scripts</h4>
+
 This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. You need to supply it with a directory that contains a `fit_config` and an `oscgrid_config`. These should be identical to one of the ones you used to run these fits, but with the `output_directory` field in the `fit_config` set to the top level output directory for the set of fits. It is run with:
 
-> ./util/run_postfit_scripts.sh /path/to/config/dir <correlated-fit-bool> <(alpha,n)-classifier-bool> <datafit-bool>
+> ./util/run_postfit_scripts.sh /path/to/config/dir <correlated_fit_bool> <(alpha,n)_classifier_bool> <datafit_bool>
 
 <h4>Make Latex Tables</h4>
 There are two scripts for making the style of tables in the latex report. The first has three fit results (one for each oscillation parameter prior case), along with the nominal values. The second has two fit results (one for correlated normalisations, one for uncorrelated normalisations), along with the nominal values. The inputs are CSV files, which you make by combining the outputs of `combine_postfit_results`. They are run with:
