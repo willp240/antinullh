@@ -18,6 +18,8 @@
 
 // ROOT headers
 #include <TStopwatch.h>
+#include <TMatrixD.h>
+#include <TFile.h>
 
 using namespace antinufit;
 
@@ -160,20 +162,61 @@ void fixedosc_fit(const std::string &fitConfigFile_,
       postfitDist.Add(compToSave);
     }
 
-    if (in.run.saveOutputs)
-    {
-      IO::SaveHistogram(postfitDist.GetHistogram(),
-                        dirs.postfitDistDir + "/postfitdist_" + dsName + ".root");
-    }
-
     // Save the data with the same projection rule
     BinnedED dataToSave = ProjectToDataObs(datasets.dataDists.at(dsName), postfitDist, setup.dataObs);
 
     if (in.run.saveOutputs)
     {
+      IO::SaveHistogram(postfitDist.GetHistogram(),
+                        dirs.postfitDistDir + "/postfitdist_" + dsName + ".root");
+
       IO::SaveHistogram(dataToSave.GetHistogram(),
                         dirs.outDir + "/data_" + dsName + ".root");
     }
+  }
+
+  if (in.run.saveOutputs)
+  {
+    res.SaveAs(dirs.outDir + "/fit_result.txt");
+    std::ofstream file(dirs.outDir + "/fit_result.txt", std::ios::app);
+    file << "\nLLH: " << finalLLH << "\n";
+    file << "\nFit Valid: " << validFit << std::endl;
+    file.close();
+    TFile *outFile = new TFile((dirs.outDir + "/fit_result.root").c_str(), "RECREATE");
+    DenseMatrix covMatrix = res.GetCovarianceMatrix();
+    std::vector<std::string> paramNames;
+    std::vector<std::string> allParamNames;
+    std::vector<double> paramVals;
+    std::vector<double> paramErr;
+    TMatrixD covTMatrixD(bestFit.size() - numFixed, bestFit.size() - numFixed);
+    for (ParameterDict::iterator parIt = bestFit.begin(); parIt != bestFit.end(); ++parIt)
+    {
+      allParamNames.push_back(parIt->first);
+
+      // Fixed params won't be in the covariance matrix
+      if (in.p.fixedPars[parIt->first])
+      {
+        continue;
+      }
+
+      paramNames.push_back(parIt->first);
+      paramVals.push_back(bestFit[parIt->first]);
+      if (validFit)
+      {
+        paramErr.push_back(sqrt(covMatrix.GetComponent(paramNames.size() - 1, paramNames.size() - 1)));
+        for (int iParam = 0; iParam < paramNames.size(); iParam++)
+        {
+          covTMatrixD[paramNames.size() - 1][iParam] = covMatrix.GetComponent(paramNames.size() - 1, iParam);
+          covTMatrixD[iParam][paramNames.size() - 1] = covMatrix.GetComponent(iParam, paramNames.size() - 1);
+        }
+      }
+    }
+    outFile->WriteObject(&paramNames, "paramNames");       // Non-fixed parameters
+    outFile->WriteObject(&allParamNames, "allParamNames"); // All parameters
+    outFile->WriteObject(&paramVals, "paramVals");
+    outFile->WriteObject(&paramErr, "paramErr");
+    outFile->WriteObject(&covTMatrixD, "covMatrix");
+    std::cout << "Saved fit result to " << dirs.outDir + "/fit_result.txt and " << dirs.outDir << "/fit_result.root" << std::endl;
   }
 
   std::cout << "Fit complete for:" << std::endl;
