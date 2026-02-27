@@ -14,6 +14,7 @@
 
 // ROOT headers
 #include <TH1D.h>
+#include <TFile.h>
 
 #include <cmath>
 
