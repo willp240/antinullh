@@ -1,4 +1,4 @@
-CXX := g++
+CXX := g++ 
 ROOT_FLAGS := `root-config --cflags --libs `
 G4_FLAGS := `geant4-config --libs`
 GSL_FLAGS := -lgsl
@@ -16,10 +16,10 @@ OXSX_LIB_NAME := oxsx
 
 H5_LIBS = hdf5_hl_cpp hdf5_cpp hdf5_hl hdf5
 
-SRC_FILES := $(wildcard src/*.cc src/*/*.cc )
-OBJ_FILES := $(addprefix build/, $(notdir $(SRC_FILES:.cc=.o)))
+SRC_FILES := $(wildcard src/*.cc src/*/*.cc src/*/*/*.cc src/*/*/*.cc)
+OBJ_FILES := $(patsubst src/%.cc,build/%.o,$(SRC_FILES))
 
-INC_DIRS := $(wildcard src/*/ ) $(OXSX_INC) $(RAT_EXTRN_INC) $(RAT_INC)
+INC_DIRS := $(wildcard src/*/ src/*/*/) $(OXSX_INC) $(RAT_EXTRN_INC) $(RAT_INC)
 INCLUDES := $(addprefix -I,$(INC_DIRS))
 
 LIB_DIR := lib
