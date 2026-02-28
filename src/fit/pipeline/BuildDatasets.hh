@@ -33,6 +33,7 @@ namespace antinufit
         std::map<std::string, BinnedED> dataDists;
         std::map<std::string, double> reactorRatio;
         std::map<std::string, double> reactorRatioFD;
+        std::map<std::string, std::map<std::string, double>> nominalNonBufferRates;
 
         // Optional scan payload for future llh-scan style executables.
         // dataset -> pdf -> [one entry per configured scan point]

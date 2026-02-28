@@ -3,6 +3,7 @@
 #include <BuildComponent.hh>
 #include <Projection.hh>
 #include <LoadDataset.hh>
+#include <RateReporting.hh>
 
 #include <IO.h>
 
@@ -98,6 +99,8 @@ namespace antinufit
 
             BinnedED asimovComp = ProjectToDataObs(dist, model.asimov, setup.dataObs);
             model.asimov.Add(asimovComp);
+            out.nominalNonBufferRates[dsName][pdfName] += IntegrateBufferedBins(
+                asimovComp, setup.pdfConfig, setup.dataObs);
 
             if (in.run.saveOutputs)
             {

@@ -9,6 +9,7 @@
 #include <ParamUtils.hh>
 #include <CombineLLHs.hh>
 #include <BuildDatasets.hh>
+#include <RateReporting.hh>
 
 // OXO headers
 #include <StatisticSum.h>
@@ -119,6 +120,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   bool validFit = res.GetValid();
   double finalLLH = fullLLH.Evaluate();
 
+  RateByDatasetAndPdf bestFitNonBufferRates;
+
   // Now save the postfit distributions for each dataset
   for (DSMap::const_iterator dsIt = setup.dsPDFMap.begin(); dsIt != setup.dsPDFMap.end(); ++dsIt)
   {
@@ -152,6 +155,8 @@ void fixedosc_fit(const std::string &fitConfigFile_,
 
       // Project to whatever your "data obs" are (1D energy right now)
       BinnedED compToSave = ProjectToDataObs(comp, postfitDist, setup.dataObs);
+      bestFitNonBufferRates[dsName][pdfName] += IntegrateBufferedBins(
+          compToSave, setup.pdfConfig, setup.dataObs);
 
       if (in.run.saveOutputs)
       {
@@ -174,6 +179,12 @@ void fixedosc_fit(const std::string &fitConfigFile_,
                         dirs.outDir + "/data_" + dsName + ".root");
     }
   }
+
+  PrintNominalBestFitSummary(
+      in,
+      bestFit,
+      datasets.nominalNonBufferRates,
+      bestFitNonBufferRates);
 
   if (in.run.saveOutputs)
   {
