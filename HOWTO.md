@@ -514,6 +514,7 @@ This is a 'master script' to run nearly all of the postfit analysis steps. Becau
 There are two scripts for making the style of tables in the latex report. The first has three fit results (one for each oscillation parameter prior case), along with the nominal values. The second has two fit results (one for correlated normalisations, one for uncorrelated normalisations), along with the nominal values. The inputs are CSV files, which you make by combining the outputs of `combine_postfit_results`. They are run with:
 
 >python make_prior_table.py combined_input.csv
+
 >python make_corr_nocorr_table.py combined_input.csv
 
 These are very hard-coded, but at some point that's unavoidable.
