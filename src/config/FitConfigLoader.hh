@@ -1,15 +1,10 @@
-#ifndef __ANTINUFIT__FitConfigLoader__
-#define __ANTINUFIT__FitConfigLoader__
+#pragma once
 
 // Antinu headers
 #include <FitConfig.hh>
-#include <Utilities.hh>
 
 // OXO headers
 #include <ConfigLoader.hh>
-
-// c++ headers
-#include <algorithm>
 
 namespace antinufit
 {
@@ -25,4 +20,3 @@ namespace antinufit
     std::string fPath;
   };
 }
-#endif

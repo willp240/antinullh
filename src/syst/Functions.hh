@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__Functions__
-#define __ANTINUFIT__Functions__
+#pragma once
 
 // OXO headers
 #include <ParameterDict.h>
@@ -19,7 +18,7 @@ namespace antinufit
 {
   double BirksLaw(const ParameterDict &, const double &);
   double OscProb(const ParameterDict &, const std::vector<double> &);
-  double OscProb2(double, double, double, double );
+  double OscProb2(double, double, double, double);
 
   using FunctionVariant = std::variant<
       std::function<double(const ParameterDict &, const double &)>,
@@ -28,4 +27,3 @@ namespace antinufit
   extern std::map<std::string, FunctionVariant> functionMap;
 
 }
-#endif

@@ -7,7 +7,7 @@ namespace antinufit
   SystFactory::New(const std::string &name,
                    const std::string &type_,
                    const std::vector<std::string> &paramnamevec_,
-                   ParameterDict &paramvals_)
+                   const ParameterDict &paramvals_)
   {
     std::map<int, OscGrid *> defaultGridMap;
     std::unordered_map<int, double> defaultIndexMap;
@@ -17,9 +17,9 @@ namespace antinufit
   SystFactory::New(const std::string &name,
                    const std::string &type_,
                    const std::vector<std::string> &paramnamevec_,
-                   ParameterDict &paramvals_,
-                   std::map<int, OscGrid *> &oscgridmap_,
-                   std::unordered_map<int, double> &indexdistancemap_)
+                   const ParameterDict &paramvals_,
+                   const std::map<int, OscGrid *> &oscgridmap_,
+                   const std::unordered_map<int, double> &indexdistancemap_)
   {
     Systematic *syst;
 
@@ -32,7 +32,7 @@ namespace antinufit
     {
       Scale *scale = new Scale(name);
       scale->RenameParameter("scaleFactor", paramnamevec_.at(0));
-      scale->SetScaleFactor(paramvals_[paramnamevec_.at(0)]);
+      scale->SetScaleFactor(paramvals_.at(paramnamevec_.at(0)));
       syst = scale;
     }
 
@@ -40,7 +40,7 @@ namespace antinufit
     {
       Shift *shift = new Shift(name);
       shift->RenameParameter("shift", paramnamevec_.at(0));
-      shift->SetShift(paramvals_[paramnamevec_.at(0)]);
+      shift->SetShift(paramvals_.at(paramnamevec_.at(0)));
       syst = shift;
     }
 
@@ -65,7 +65,7 @@ namespace antinufit
       if (ploy == "SquareRootScale")
       {
         sqrtscale->RenameParameter("grad", paramnamevec_.at(0));
-        sqrtscale->SetGradient(paramvals_[paramnamevec_.at(0)]);
+        sqrtscale->SetGradient(paramvals_.at(paramnamevec_.at(0)));
         smearer->SetDependance("stddevs_0", sqrtscale);
       }
       else
@@ -101,7 +101,7 @@ namespace antinufit
 
         scale_func->SetScaleFunction(BirksLaw, paramnamevec_);
         scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant");
-        ParameterDict params({{"birks_constant", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"birks_constant", paramvals_.at(paramnamevec_.at(0))}});
         scale_func->SetParameters(params);
       }
       else if (function == "BirksLaw2")
@@ -109,7 +109,7 @@ namespace antinufit
 
         scale_func->SetScaleFunction(BirksLaw2, paramnamevec_);
         scale_func->RenameParameter(paramnamevec_.at(0), "birks_constant2");
-        ParameterDict params({{"birks_constant2", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"birks_constant2", paramvals_.at(paramnamevec_.at(0))}});
         scale_func->SetParameters(params);
       }
       else
@@ -125,7 +125,6 @@ namespace antinufit
       // First declare possible functions
       ShapeFunction GeoOscProb = [](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
-
         double fDmSqr21 = params.at("deltam21");
         double fSSqrTheta12 = params.at("sinsqtheta12");
         double fDmSqr32 = 2.451e-3;
@@ -135,18 +134,18 @@ namespace antinufit
         // First get fCSqrTheta13 (cos^2(theta_12)) via cos^2 = (1 - sin^2)
         double fCSqrTheta13 = (1 - fSSqrTheta13) * (1 - fSSqrTheta13);
         // Now let's get sin^2(2 * theta_12) from sin^(2x) = 4*sin^2(x) * (1 - sin^2(x))
-        double fSSqr2Theta_12 = 4 * fSSqrTheta12 * ( 1 - fSSqrTheta12);
+        double fSSqr2Theta_12 = 4 * fSSqrTheta12 * (1 - fSSqrTheta12);
         // Finally bring it all together
-        double prob = (fSSqrTheta13 * fSSqrTheta13) + (fCSqrTheta13 * fCSqrTheta13) * ( 1 - 0.5 * fSSqr2Theta_12);
+        double prob = (fSSqrTheta13 * fSSqrTheta13) + (fCSqrTheta13 * fCSqrTheta13) * (1 - 0.5 * fSSqr2Theta_12);
 
         return prob;
       };
 
       ShapeFunction OscProbGrid = [&oscgridmap_, &indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
-        double distance = indexdistancemap_[obs_vals.at(1)];
+        double distance = indexdistancemap_.at(obs_vals.at(1));
         double nuEnergy = obs_vals.at(2);
-        OscGrid *oscGrid = oscgridmap_[obs_vals.at(1)];
+        OscGrid *oscGrid = oscgridmap_.at(obs_vals.at(1));
         double prob = oscGrid->Evaluate(nuEnergy, params.at("deltam21"), params.at("theta12"));
         return prob;
       };
@@ -154,7 +153,7 @@ namespace antinufit
       ShapeFunction OscProb = [&indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
         Double_t nuE_parent = obs_vals.at(2);
-        Double_t baseline = indexdistancemap_[obs_vals.at(1)];
+        Double_t baseline = indexdistancemap_.at(obs_vals.at(1));
         Double_t fDmSqr21 = params.at("deltam21");
         Double_t fDmSqr32 = 2.451e-3;
         Double_t fSSqrTheta12 = sin(params.at("theta12")) * sin(params.at("theta12"));
@@ -623,7 +622,7 @@ namespace antinufit
         shape->SetShapeFunction(OscProbGrid, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
         shape->RenameParameter(paramnamevec_.at(1), "theta12");
-        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        ParameterDict params({{"deltam21", paramvals_.at(paramnamevec_.at(0))}, {"theta12", paramvals_.at(paramnamevec_.at(1))}});
         shape->SetParameters(params);
       }
       else if (function == "OscProb")
@@ -631,7 +630,7 @@ namespace antinufit
         shape->SetShapeFunction(OscProb, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
         shape->RenameParameter(paramnamevec_.at(1), "theta12");
-        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        ParameterDict params({{"deltam21", paramvals_.at(paramnamevec_.at(0))}, {"theta12", paramvals_.at(paramnamevec_.at(1))}});
         shape->SetParameters(params);
       }
       else if (function == "GeoOscProb")
@@ -639,7 +638,7 @@ namespace antinufit
         shape->SetShapeFunction(GeoOscProb, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
         shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
-        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"sinsqtheta12", paramvals_[paramnamevec_.at(1)]}});
+        ParameterDict params({{"deltam21", paramvals_.at(paramnamevec_.at(0))}, {"sinsqtheta12", paramvals_.at(paramnamevec_.at(1))}});
         shape->SetParameters(params);
       }
 
@@ -647,70 +646,70 @@ namespace antinufit
       {
         shape->SetShapeFunction(AlphaNClassReacPPO, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_ppo");
-        ParameterDict params({{"class_s_ppo", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_ppo", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassReacBisMSB")
       {
         shape->SetShapeFunction(AlphaNClassReacBisMSB, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_bismsb");
-        ParameterDict params({{"class_s_bismsb", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_bismsb", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassGeoUPPO")
       {
         shape->SetShapeFunction(AlphaNClassGeoUPPO, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_ppo");
-        ParameterDict params({{"class_s_ppo", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_ppo", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassGeoUBisMSB")
       {
         shape->SetShapeFunction(AlphaNClassGeoUBisMSB, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_bismsb");
-        ParameterDict params({{"class_s_bismsb", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_bismsb", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassGeoThPPO")
       {
         shape->SetShapeFunction(AlphaNClassGeoThPPO, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_ppo");
-        ParameterDict params({{"class_s_ppo", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_ppo", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassGeoThBisMSB")
       {
         shape->SetShapeFunction(AlphaNClassGeoThBisMSB, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_bismsb");
-        ParameterDict params({{"class_s_bismsb", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_bismsb", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassBPLikePPO")
       {
         shape->SetShapeFunction(AlphaNClassBPLikePPO, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_ppo");
-        ParameterDict params({{"class_s_ppo", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_ppo", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassBPLikeBisMSB")
       {
         shape->SetShapeFunction(AlphaNClassBPLikeBisMSB, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_s_bismsb");
-        ParameterDict params({{"class_s_bismsb", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_s_bismsb", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassAlphaNPPO")
       {
         shape->SetShapeFunction(AlphaNClassAlphaNPPO, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_a_ppo");
-        ParameterDict params({{"class_a_ppo", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_a_ppo", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "AlphaNClassAlphaNBisMSB")
       {
         shape->SetShapeFunction(AlphaNClassAlphaNBisMSB, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "class_a_bismsb");
-        ParameterDict params({{"class_a_bismsb", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"class_a_bismsb", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
 
@@ -718,56 +717,56 @@ namespace antinufit
       {
         shape->SetShapeFunction(reac_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "reactor_nubar_norm");
-        ParameterDict params({{"reactor_nubar_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"reactor_nubar_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "geonu_U_norm")
       {
         shape->SetShapeFunction(geou_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "geonu_U_norm");
-        ParameterDict params({{"geonu_U_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"geonu_U_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "geonu_Th_norm")
       {
         shape->SetShapeFunction(geoth_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "geonu_Th_norm");
-        ParameterDict params({{"geonu_Th_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"geonu_Th_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "alphan_PRecoil_norm")
       {
         shape->SetShapeFunction(alphanpr_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "alphan_PRecoil_norm");
-        ParameterDict params({{"alphan_PRecoil_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"alphan_PRecoil_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "alphan_CScatter_norm")
       {
         shape->SetShapeFunction(alphancs_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "alphan_CScatter_norm");
-        ParameterDict params({{"alphan_CScatter_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"alphan_CScatter_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "alphan_OExcited_norm")
       {
         shape->SetShapeFunction(alphanoe_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "alphan_OExcited_norm");
-        ParameterDict params({{"alphan_OExcited_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"alphan_OExcited_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "bipolike_norm")
       {
         shape->SetShapeFunction(bipolike_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "bipolike_norm");
-        ParameterDict params({{"bipolike_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"bipolike_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else if (function == "atmospheric_norm")
       {
         shape->SetShapeFunction(atmospheric_norm, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "atmospheric_norm");
-        ParameterDict params({{"atmospheric_norm", paramvals_[paramnamevec_.at(0)]}});
+        ParameterDict params({{"atmospheric_norm", paramvals_.at(paramnamevec_.at(0))}});
         shape->SetParameters(params);
       }
       else

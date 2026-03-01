@@ -150,7 +150,6 @@ void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
     std::cout << "Updated summary section in " << filepath << std::endl;
 }
 
-
 // Function to parse output file from job of many fits to a map
 bool parseFitResultsTxt(const std::string &filename, std::map<std::string, double> &branchMap,
                         TTree *tree, double *bestLLH, double *bestDeltam, double *bestTheta, std::string theta12name)
@@ -379,7 +378,9 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     outputFile.cd();
     tree.Write();
 
-    std::cout << std::endl << "TTree saved to " << outDir << "/" << outFilename << std::endl << std::endl;
+    std::cout << std::endl
+              << "TTree saved to " << outDir << "/" << outFilename << std::endl
+              << std::endl;
 
     std::cout << "Now rerunning fit with save outputs flag on for deltam: " << bestDeltam << ", " << theta12name << ": " << bestTheta << std::endl
               << std::endl;
@@ -496,7 +497,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
         allLabelsVec.push_back(labels[allParamNameVec->at(iPar)]);
     }
 
-    // Now we have all the vectors are in the same order as the covariance matrix, 
+    // Now we have all the vectors are in the same order as the covariance matrix,
     // we'll add the osc pars to the end of the vector
     paramNameVec->push_back("deltam21");
     paramNameVec->push_back(theta12name);

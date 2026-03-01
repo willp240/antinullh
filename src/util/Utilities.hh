@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__Utilities__
-#define __ANTINUFIT__Utilities__
+#pragma once
 
 // C++ headers
 #include <vector>
@@ -24,8 +23,9 @@ namespace antinufit
   std::pair<size_t, size_t> GetLowerUpperIndices(const std::vector<double>, double);
   std::vector<std::string> SplitString(const std::string &, char);
   void PrintParams(ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict, ParameterDict,
-                   std::map<std::string, std::string>, ParameterDict, std::map<std::string, std::string>, std::map<std::string, std::vector<std::string>>,
+                   std::map<std::string, std::string>, ParameterDict, ParameterDict, std::map<std::string, std::string>,
+                   ParameterDict, ParameterDict, std::map<std::string, std::vector<std::string>>, std::map<std::string, std::string>,
+                   ParameterDict, std::map<std::string, std::string>, std::map<std::string, std::vector<std::string>>,
                    std::map<std::string, bool>);
   std::string stripQuoteMarks(std::string);
 }
-#endif

@@ -1,8 +1,8 @@
 import os
 import argparse
 
-numvalsu = 99
-numvalsth = 99
+numvalsu = 200
+numvalsth = 200
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""

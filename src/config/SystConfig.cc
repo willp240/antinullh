@@ -3,13 +3,13 @@
 namespace antinufit
 {
 
-  std::map<std::string, std::vector<std::string> >
+  std::map<std::string, std::vector<std::string>>
   SystConfig::GetDistObs() const
   {
     return fDistObs;
   }
 
-  std::map<std::string, std::vector<std::string> >
+  std::map<std::string, std::vector<std::string>>
   SystConfig::GetTransObs() const
   {
     return fTransObs;
@@ -61,7 +61,7 @@ namespace antinufit
     fParamNames[name_] = param_names_;
     fDataSets[name_] = datasets_;
 
-    for(int iPar = 0; iPar < param_names_.size(); iPar++)
+    for (int iPar = 0; iPar < param_names_.size(); iPar++)
     {
       fParDataSets[param_names_.at(iPar)] = datasets_;
     }

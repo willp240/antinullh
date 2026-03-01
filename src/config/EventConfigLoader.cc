@@ -1,4 +1,5 @@
 #include <EventConfigLoader.hh>
+#include <algorithm>
 
 namespace antinufit
 {
@@ -25,16 +26,16 @@ namespace antinufit
     {
       ConfigLoader::Load(name_, "oscillated", oscillated);
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
       oscillated = false;
     }
-    
+
     try
     {
       ConfigLoader::Load(name_, "flat", flat);
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
       flat = false;
     }
@@ -54,7 +55,7 @@ namespace antinufit
     {
       ConfigLoader::Load(name_, "groups", groups);
     }
-    catch(const std::exception& e)
+    catch (const std::exception &e)
     {
       std::cerr << e.what() << '\n';
     }
@@ -103,7 +104,8 @@ namespace antinufit
       }
 
       EventConfigMap evMap;
-      for (StringSet::iterator itEv = toLoad.begin(); itEv != toLoad.end(); ++itEv){
+      for (StringSet::iterator itEv = toLoad.begin(); itEv != toLoad.end(); ++itEv)
+      {
         evMap[*itEv] = LoadOne(*itEv, *itDS);
       }
 

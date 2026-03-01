@@ -223,6 +223,18 @@ namespace antinufit
     fEpsilon = e_;
   }
 
+  int
+  FitConfig::GetLLHScanPoints() const
+  {
+    return fLLHScanPoints;
+  }
+
+  void
+  FitConfig::SetLLHScanPoints(int n_)
+  {
+    fLLHScanPoints = n_;
+  }
+
   ParameterDict
   FitConfig::GetConstrMeans() const
   {
@@ -251,6 +263,48 @@ namespace antinufit
   FitConfig::GetConstrRatioParName() const
   {
     return fConstrRatioParName;
+  }
+
+  ParameterDict
+  FitConfig::GetConstrFracMeans() const
+  {
+    return fConstrFracMeans;
+  }
+
+  ParameterDict
+  FitConfig::GetConstrFracSigmas() const
+  {
+    return fConstrFracSigmas;
+  }
+
+  std::map<std::string, std::string>
+  FitConfig::GetConstrFracParName() const
+  {
+    return fConstrFracParName;
+  }
+
+  ParameterDict
+  FitConfig::GetConstrShapeMeans() const
+  {
+    return fConstrShapeMeans;
+  }
+
+  ParameterDict
+  FitConfig::GetConstrShapeSigmas() const
+  {
+    return fConstrShapeSigmas;
+  }
+
+  std::map<std::string, std::vector<std::string>>
+  FitConfig::GetConstrShapeParNames() const
+  {
+    return fConstrShapeParNames;
+  }
+
+  std::map<std::string, std::string>
+  FitConfig::GetConstrShapeFuncName() const
+  {
+    return fConstrShapeFuncName;
   }
 
   ParameterDict
@@ -329,6 +383,31 @@ namespace antinufit
     fConstrSigmas[name_] = constrSigma_;
     fConstrCorrParName[name_] = constrCorrParName_;
     fConstrCorrs[name_] = constrCorr_;
+
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
+  }
+
+  void
+  FitConfig::AddFracParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_,
+                              std::string label_, bool fixed_, double constrFracMean_, double constrFracSigma_, std::string constrFracParName_)
+  {
+
+    fConstrFracMeans[name_] = constrFracMean_;
+    fConstrFracSigmas[name_] = constrFracSigma_;
+    fConstrFracParName[name_] = constrFracParName_;
+
+    AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
+  }
+
+  void
+  FitConfig::AddShapeParameter(const std::string &name_, double nom_, double min_, double max_, double sigma_, int nbins_, double fdvalue_, std::string label_, bool fixed_,
+                               double constrShapeMean_, double constrShapeSigma_, std::vector<std::string> constrShapeParNames_, std::string constrShapeFuncName_)
+  {
+
+    fConstrShapeMeans[name_] = constrShapeMean_;
+    fConstrShapeSigmas[name_] = constrShapeSigma_;
+    fConstrShapeParNames[name_] = constrShapeParNames_;
+    fConstrShapeFuncName[name_] = constrShapeFuncName_;
 
     AddParameter(name_, nom_, min_, max_, sigma_, nbins_, fdvalue_, label_, fixed_);
   }

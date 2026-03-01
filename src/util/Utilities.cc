@@ -1,4 +1,5 @@
 #include "Utilities.hh"
+#include <ShapeConstraint.h>
 
 namespace antinufit
 {
@@ -154,8 +155,10 @@ namespace antinufit
 
     void PrintParams(ParameterDict mins, ParameterDict maxs, ParameterDict noms, ParameterDict constrMeans, ParameterDict constrSigmas,
                      ParameterDict constrRatioMeans, ParameterDict constrRatioSigmas, std::map<std::string, std::string> constrRatioParName,
-                     ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName, std::map<std::string, std::vector<std::string>> datasets,
-                     std::map<std::string, bool> fixPars)
+                     ParameterDict constrFracMeans, ParameterDict constrFracSigmas, std::map<std::string, std::string> constrFracParName,
+                     ParameterDict constrShapeMeans, ParameterDict constrShapeSigmas, std::map<std::string, std::vector<std::string>> constrShapeParNames,
+                     std::map<std::string, std::string> constrShapeFuncName, ParameterDict constrCorrs, std::map<std::string, std::string> constrCorrParName,
+                     std::map<std::string, std::vector<std::string>> datasets, std::map<std::string, bool> fixPars)
     {
 
         std::vector<std::string> *tempNamesVec = new std::vector<std::string>{"deltam21",
@@ -203,7 +206,7 @@ namespace antinufit
         for (int iParam = 0; iParam < tempNamesVec->size(); iParam++)
         {
 
-            if (noms.find(tempNamesVec->at(iParam))== noms.end())
+            if (noms.find(tempNamesVec->at(iParam)) == noms.end())
                 continue;
 
             std::cout << "| ";
@@ -269,6 +272,80 @@ namespace antinufit
                 std::cout << "| ";
                 std::cout << std::left << std::setw(20) << constrRatioSigmas[it->first];
                 std::cout << "| " << std::endl;
+            }
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+        }
+
+        if (constrFracMeans.size() > 0)
+        {
+            std::cout << std::endl;
+            std::cout << "************** Fractional Diff. Constraints **************" << std::endl;
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameter";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Mean";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Sigma";
+            std::cout << "| " << std::endl;
+            std::cout << " =================================================================================================" << std::endl;
+
+            for (std::map<std::string, double>::iterator it = constrFracMeans.begin(); it != constrFracMeans.end(); it++)
+            {
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << it->first;
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << constrFracParName[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrFracMeans[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrFracSigmas[it->first];
+                std::cout << "| " << std::endl;
+            }
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+        }
+
+        if (constrShapeMeans.size() > 0)
+        {
+            std::cout << std::endl;
+            std::cout << "************** Shape Constraints **************" << std::endl;
+            std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Parameters";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(25) << "Shape Function";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Mean";
+            std::cout << "| ";
+            std::cout << std::left << std::setw(20) << "Constraint Sigma";
+            std::cout << "| " << std::endl;
+            std::cout << " =================================================================================================" << std::endl;
+
+            for (std::map<std::string, double>::iterator it = constrShapeMeans.begin(); it != constrShapeMeans.end(); it++)
+            {
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << it->first;
+                std::cout << "| ";
+                std::cout << std::left << std::setw(25) << constrShapeFuncName[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrShapeMeans[it->first];
+                std::cout << "| ";
+                std::cout << std::left << std::setw(20) << constrShapeSigmas[it->first];
+                std::cout << "| " << std::endl;
+                for (int i = 0; i < constrShapeParNames[it->first].size(); i++)
+                {
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(25) << constrShapeParNames[it->first].at(i);
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(25) << " ";
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(20) << " ";
+                    std::cout << "| ";
+                    std::cout << std::left << std::setw(20) << " ";
+                    std::cout << "| " << std::endl;
+                }
             }
             std::cout << " -------------------------------------------------------------------------------------------------" << std::endl;
         }

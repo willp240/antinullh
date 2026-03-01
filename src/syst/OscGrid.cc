@@ -141,7 +141,6 @@ namespace antinufit
       throw;
     }
 
-
     // Now, run binary searches to find the relevant 8 vertices within which the position lies
     const auto energyBounds = GetLowerUpperIndices(fEnergyVals, nuEnergy);
     const auto dmsqBounds = GetLowerUpperIndices(fDm21sqVals, dmsq21);

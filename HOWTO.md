@@ -96,6 +96,7 @@ This file should contain information on the parameters of the fit, and the fit i
 - `sigma_scale`: Global scaling factor each step size gets multiplied by
 - `beeston_barlow`: Bool to determine if we should use the Beeston-Barlow method to account for MC stats uncertainty. If 1/True, it is used
 - `save_outputs`: Bool to determine if the output files should be written. If 1/True, they are saved. This is useful for running multiple fixed oscillation fits to avoid producing ~millions of files at once. It is currently only implemented for the `fixedosc_fit` exec (for all other execs output files will be produced regardless of this bool)
+- `llh_scan_points`: For the llh scan execs, this will set how many points are in the scan (defaults to 150). Other execs will just ignore this parameter
 
 <h5>Fit Parameter Tables</h5>
 
@@ -140,6 +141,8 @@ The name of these tables should be the name of the axis.
 - `max`: The maximum value on the axis
 - `branch_name`: The name of the branch in the ntuple
 - `tex_name`: A latex name for the axis to be used in plot labels
+- `llh_buffer_bin_low`: Optionally set the last bin of the lower buffer region (defaults to 8 for energy, won't be set for other axes so no buffer is applied)
+- `llh_buffer_bin_high`: Optionally set the first bin of the upper buffer region (defaults to 20 for energy, won't be set for other axes so no buffer is applied)
 
 <h4>Syst</h4>
 
@@ -178,6 +181,31 @@ Note, the oscillation grid calculation of the survival probability is still slow
 - `minssqth12`: The minimum $\text{sin}^2 \theta_{12}$ value of the grid
 - `maxssqth12`: The maximum $\text{sin}^2 \theta_{12}$ value of the grid
 - `numvalsssqth12`: The number of grid points on the $\text{sin}^2 \theta_{12}$ axis
+
+<h3>Fit Utils</h3>
+There are a number of functions and structs used to keep clutter out of the main execs. These live in three subdirectories under `/src/fit`:
+
+<h4>`pipeline/`</h4>
+- FitInputs.hh – Canonical struct of all run + parameter settings derived from FitConfig.
+- DatasetSetup.hh – Static description of datasets, PDFs, axes, and data paths.
+- DatasetModel.hh – Per-dataset container for built PDFs, groups, rates, asimov/fake dists.
+- BuildDatasets.cc/.hh – Builds all dataset models and per-dataset LLHs from setup + physics.
+- CombineLLHs.hh – Merges dataset LLHs into a global StatisticSum with shared params.
+- ParamUtils.hh – Small helpers for initialising/handling ParameterDicts.
+- FitSummary.hh – Prints a clean summary of the fit configuration and parameters.
+
+<h4>`physics/`</h4>
+- OscParams.hh – Interprets and stores oscillation parameters consistently.
+- BuildComponent.hh – Builds a single PDF component from MC (pre-systematics).
+- ApplySystematics.hh – Applies relevant systematics to a PDF by group.
+- SystSetup.hh – Constructs and organises all systematic objects per dataset.
+- FitConstraints.hh – Applies standard parameter constraints to the global LLH.
+- ShapeConstraints.hh – Applies shape-specific constraint logic.
+
+<h4>`io/`</h4>
+- OutputDirs.hh – Defines and creates output directory structure.
+- LoadDataset.hh – Loads MC datasets and real data distributions from file.
+- Projection.hh – Projects/marginalises PDFs to match data observables.
 
 <h2>Apps</h2>
 
@@ -298,6 +326,8 @@ You can submit the jobs with:
 In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the oscillation parameter's fake data values to be their nominal values. This way, for every step in the grid, the fake dataset will be produced with the nominal values, and this will be the same for each fit. The python script will update the nominal values of the oscillation parameters in the config file to the current values in the fixed oscillation parameters scan, so we always fit the same fake data, but with different fixed oscillation parameter values each time. 
 
 `output_dir` will contain all the configs and logs for each fit, and the outputted root files will be produced in independent directories (one for each fit) inside that directory. The `output_directory` set in the `fit_config` file gets updated to be the one set as the command line argument.
+
+A similar script, `util/submitFixedGeoJobs.py` runs jobs fits at 2D grid points in the U and Th geoneutrino rates. At each point a fit is run where the oscillation and geoneutrino parameters are fixed, and everything else float. Some configs exist in `cfg/geoFixStudy2026` to run the at the best fit oscillation parameters from the 2026 reactor analysis, and scan through the geoenutrino rates. The results of this can be plotted with `plotting/plotFixedGeoLLH.py`.
  
 <h2>Postfit Analysis</h2>
 
@@ -355,11 +385,11 @@ This script loops over all entries in the output `TTree` from `makeFixedOscTree`
 
 The reactor parameter names are hardcoded so that they can be multiplied by the correct reactor ratio. The order the parameters are plotted in are also hardcoded.
 
-A separate canvas is also saved, containing a plot of the postfit correlation matrix of all fit parameters.
+There are two optional bool arguments the user can provide, to specify whether or not to plot correlations (defaults to true), and if the alpha-n classifier was used (defaults to false). If the former is true, a separate canvas is also saved, containing a plot of the postfit correlation matrix of all fit parameters.
 
 You can run it with:
 
-> root -l 'plotting/plotFixedOscParams.C("/path/to/makeFixedOscTree/output")'
+> root -l 'plotting/plotFixedOscParams.C("/path/to/makeFixedOscTree/output.root", plot_correlations_bool, alphan_classifier_bool)'
 
 <h3>Prefit Plots</h3>
 
@@ -472,19 +502,21 @@ They are with:
 
 This script uses the above 'get integral' scripts to get the postfit parameter event rates and proportional uncertainties, along with the postfit values and uncertainties for all other parameters, including the geoneutrino ratio. It also sums event rates over datasets to get the total number of each event rate. This is very hard coded for the parameters for the current analysis, but is useful for what it does. It outputs a CSV file of all parameter values and uncertainties. It runs `plotFixedOscParams`, so make sure `plotFixedOscLLH` has been run to get the correct oscillation parameter uncertainties. You can run it with:
 
-> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated-fit-bool> <(alpha,n)-classifier-bool>
+> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated_fit_bool> <(alpha,n)_classifier_bool>
 
 where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `correlated-fit-bool` and `(alpha,n)-classifier-bool` are whether the fit used correlated normalisations and the (alpha,n) classifier. It would be nice if it automatically could determine the two bools but this is how it is for now. Also note the parameters are hard-coded inside `combine_postfit_results`. This really is meant as a handy helper for the specific current analysis than a general tool.
 
 <h4>Run Postfit Scripts</h4>
+
 This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. You need to supply it with a directory that contains a `fit_config` and an `oscgrid_config`. These should be identical to one of the ones you used to run these fits, but with the `output_directory` field in the `fit_config` set to the top level output directory for the set of fits. It is run with:
 
-> ./util/run_postfit_scripts.sh /path/to/config/dir <correlated-fit-bool> <(alpha,n)-classifier-bool> <datafit-bool>
+> ./util/run_postfit_scripts.sh /path/to/config/dir <correlated_fit_bool> <(alpha,n)_classifier_bool> <datafit_bool>
 
 <h4>Make Latex Tables</h4>
 There are two scripts for making the style of tables in the latex report. The first has three fit results (one for each oscillation parameter prior case), along with the nominal values. The second has two fit results (one for correlated normalisations, one for uncorrelated normalisations), along with the nominal values. The inputs are CSV files, which you make by combining the outputs of `combine_postfit_results`. They are run with:
 
 >python make_prior_table.py combined_input.csv
+
 >python make_corr_nocorr_table.py combined_input.csv
 
 These are very hard-coded, but at some point that's unavoidable.

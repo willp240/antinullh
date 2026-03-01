@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__SystConfig__
-#define __ANTINUFIT__SystConfig__
+#pragma once
 
 // OXO headers
 #include <ParameterDict.h>
@@ -30,10 +29,9 @@ namespace antinufit
     std::map<std::string, std::vector<std::string>> fParamNames;
     std::map<std::string, std::string> fGroup;
     std::map<std::string, std::string> fType;
-    std::map<std::string, std::vector<std::string> > fDistObs;
-    std::map<std::string, std::vector<std::string> > fTransObs;
-    std::map<std::string, std::vector<std::string> > fDataSets;
-    std::map<std::string, std::vector<std::string> > fParDataSets;
+    std::map<std::string, std::vector<std::string>> fDistObs;
+    std::map<std::string, std::vector<std::string>> fTransObs;
+    std::map<std::string, std::vector<std::string>> fDataSets;
+    std::map<std::string, std::vector<std::string>> fParDataSets;
   };
 }
-#endif
