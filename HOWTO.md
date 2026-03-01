@@ -326,6 +326,8 @@ You can submit the jobs with:
 In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the oscillation parameter's fake data values to be their nominal values. This way, for every step in the grid, the fake dataset will be produced with the nominal values, and this will be the same for each fit. The python script will update the nominal values of the oscillation parameters in the config file to the current values in the fixed oscillation parameters scan, so we always fit the same fake data, but with different fixed oscillation parameter values each time. 
 
 `output_dir` will contain all the configs and logs for each fit, and the outputted root files will be produced in independent directories (one for each fit) inside that directory. The `output_directory` set in the `fit_config` file gets updated to be the one set as the command line argument.
+
+A similar script, `util/submitFixedGeoJobs.py` runs jobs fits at 2D grid points in the U and Th geoneutrino rates. At each point a fit is run where the oscillation and geoneutrino parameters are fixed, and everything else float. Some configs exist in `cfg/geoFixStudy2026` to run the at the best fit oscillation parameters from the 2026 reactor analysis, and scan through the geoenutrino rates. The results of this can be plotted with `plotting/plotFixedGeoLLH.py`.
  
 <h2>Postfit Analysis</h2>
 
