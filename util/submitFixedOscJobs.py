@@ -140,7 +140,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
     # Write sh file
     out_macro_text = "#!/usr/bin/sh  \n" + \
                      "source " + env_file + "\n" + \
-                     "source " + run_dir + "/env.sh " + "\n" + \
+                     "source " + run_dir + "/env_my.sh " + "\n" + \
                      "cd " + str(run_dir) + "\n" + \
                      other_commands + "\n"
     for iFit in range(start_idx, end_idx):
@@ -175,16 +175,17 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
     submit_filepath = os.path.join(submit_path, out_dir_base)
     submit_filepath += ".submit"
     out_submit_text = \
-        f"executable              = {sh_filepath}\n" \
-        f"universe                = {universe}\n" \
-        f"output                  = {output_path}/{out_dir_base}.output\n" \
-        f"error                   = {error_path}/{out_dir_base}.error\n" \
-        f"log                     = {log_path}/{out_dir_base}.log\n" \
-        f"notification            = {notification}\n" \
-        f"priority                = {priority}\n" \
-        f"getenv                  = {getenv}\n" \
+        f"executable               = {sh_filepath}\n" \
+        f"universe                 = {universe}\n" \
+        f"output                   = {output_path}/{out_dir_base}.output\n" \
+        f"error                    = {error_path}/{out_dir_base}.error\n" \
+        f"log                      = {log_path}/{out_dir_base}.log\n" \
+        f"notification             = {notification}\n" \
+        f"priority                 = {priority}\n" \
+        f"getenv                   = {getenv}\n" \
         f"allowed_execute_duration = {walltime} \n" \
         f"request_memory           = {mem} \n" \
+        f"requirements             = (TARGET.CpuFamily == 25) \n" \
         f"queue {n_rep}\n"
 
     os.makedirs(os.path.dirname(submit_filepath), exist_ok=True)
