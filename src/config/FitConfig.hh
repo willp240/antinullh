@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__FitConfig__
-#define __ANTINUFIT__FitConfig__
+#pragma once
 
 // OXO headers
 #include <ParameterDict.h>
@@ -31,7 +30,7 @@ namespace antinufit
 
     ParameterDict GetConstrShapeMeans() const;
     ParameterDict GetConstrShapeSigmas() const;
-    std::map<std::string, std::vector<std::string> > GetConstrShapeParNames() const;
+    std::map<std::string, std::vector<std::string>> GetConstrShapeParNames() const;
     std::map<std::string, std::string> GetConstrShapeFuncName() const;
 
     ParameterDict GetConstrCorrs() const;
@@ -96,6 +95,8 @@ namespace antinufit
 
     bool GetSaveOutputs() const;
     void SetSaveOutputs(bool);
+    int GetLLHScanPoints() const;
+    void SetLLHScanPoints(int);
 
   private:
     std::string fOutDir;
@@ -130,12 +131,12 @@ namespace antinufit
     bool fFakeData;
     double fLivetime;
     bool fSaveOutputs;
+    int fLLHScanPoints = 150;
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrFracParName;
     std::map<std::string, std::string> fConstrCorrParName;
     std::map<std::string, std::string> fConstrShapeFuncName;
-    std::map<std::string, std::vector<std::string> > fConstrShapeParNames;
+    std::map<std::string, std::vector<std::string>> fConstrShapeParNames;
     std::map<std::string, bool> fFixPars;
   };
 }
-#endif

@@ -223,6 +223,18 @@ namespace antinufit
     fEpsilon = e_;
   }
 
+  int
+  FitConfig::GetLLHScanPoints() const
+  {
+    return fLLHScanPoints;
+  }
+
+  void
+  FitConfig::SetLLHScanPoints(int n_)
+  {
+    fLLHScanPoints = n_;
+  }
+
   ParameterDict
   FitConfig::GetConstrMeans() const
   {
@@ -283,7 +295,7 @@ namespace antinufit
     return fConstrShapeSigmas;
   }
 
-  std::map<std::string, std::vector<std::string> >
+  std::map<std::string, std::vector<std::string>>
   FitConfig::GetConstrShapeParNames() const
   {
     return fConstrShapeParNames;

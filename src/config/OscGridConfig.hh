@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__OscGridConfig__
-#define __ANTINUFIT__OscGridConfig__
+#pragma once
 
 // OXO headers
 #include <ContainerTools.hpp>
@@ -46,4 +45,3 @@ namespace antinufit
     int fNumValsSsqth12;
   };
 }
-#endif

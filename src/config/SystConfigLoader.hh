@@ -1,9 +1,7 @@
-#ifndef __ANTINUFIT__SystConfigLoader__
-#define __ANTINUFIT__SystConfigLoader__
+#pragma once
 
 // Antinu headers
 #include <SystConfig.hh>
-#include <Functions.hh>
 
 // OXO headers
 #include <ConfigLoader.hh>
@@ -22,4 +20,3 @@ namespace antinufit
     std::string fPath;
   };
 }
-#endif

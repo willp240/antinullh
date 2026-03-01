@@ -1,4 +1,6 @@
 #include <PDFConfigLoader.hh>
+#include <Utilities.hh>
+#include <algorithm>
 
 namespace antinufit
 {
@@ -21,7 +23,6 @@ namespace antinufit
 
     std::vector<std::string> data_axes;
     ConfigLoader::Load("summary", "data_axes", data_axes);
-
     PDFConfig retVal;
 
     double min;
@@ -30,6 +31,8 @@ namespace antinufit
     std::string branchName;
     std::string texName;
     int binCount;
+    int llhBufferBinLow;
+    int llhBufferBinHigh;
     for (size_t i = 0; i < order.size(); i++)
     {
       if (std::find(toLoad.begin(), toLoad.end(), order.at(i)) == toLoad.end())
@@ -47,6 +50,41 @@ namespace antinufit
       texName = stripQuoteMarks(texName);
 
       retVal.AddAxis(name, branchName, texName, binCount, min, max);
+
+      bool hasLow = false;
+      bool hasHigh = false;
+      try
+      {
+        ConfigLoader::Load(name, "llh_buffer_bin_low", llhBufferBinLow);
+        hasLow = true;
+      }
+      catch (const std::exception &e)
+      {
+        if (name == "energy")
+        {
+          llhBufferBinLow = 8;
+          hasLow = true;
+        }
+      }
+
+      try
+      {
+        ConfigLoader::Load(name, "llh_buffer_bin_high", llhBufferBinHigh);
+        hasHigh = true;
+      }
+      catch (const std::exception &e)
+      {
+        if (name == "energy")
+        {
+          llhBufferBinHigh = 20;
+          hasHigh = true;
+        }
+      }
+
+      if (hasLow && hasHigh)
+      {
+        retVal.SetLLHBufferBins(name, llhBufferBinLow, llhBufferBinHigh);
+      }
     }
     retVal.SetDataBranchNames(data_axes);
     return retVal;

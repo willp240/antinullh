@@ -1,4 +1,4 @@
-CXX := g++
+CXX := g++ 
 ROOT_FLAGS := `root-config --cflags --libs `
 G4_FLAGS := `geant4-config --libs`
 GSL_FLAGS := -lgsl
@@ -16,10 +16,10 @@ OXSX_LIB_NAME := oxsx
 
 H5_LIBS = hdf5_hl_cpp hdf5_cpp hdf5_hl hdf5
 
-SRC_FILES := $(wildcard src/*.cc src/*/*.cc )
-OBJ_FILES := $(addprefix build/, $(notdir $(SRC_FILES:.cc=.o)))
+SRC_FILES := $(wildcard src/*.cc src/*/*.cc src/*/*/*.cc src/*/*/*.cc)
+OBJ_FILES := $(patsubst src/%.cc,build/%.o,$(SRC_FILES))
 
-INC_DIRS := $(wildcard src/*/ ) $(OXSX_INC) $(RAT_EXTRN_INC) $(RAT_INC)
+INC_DIRS := $(wildcard src/*/ src/*/*/) $(OXSX_INC) $(RAT_EXTRN_INC) $(RAT_INC)
 INCLUDES := $(addprefix -I,$(INC_DIRS))
 
 LIB_DIR := lib
@@ -82,9 +82,11 @@ $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)
 	ar rcs  $@ $^
 
-build/%.o : src/*/%.cc
-	mkdir -p build
-	$(CXX) -c -w $< $(INCLUDES) -w $(ROOT_FLAGS) $(G4_FLAGS) -o $@
+build/%.o : src/%.cc
+	mkdir -p $(dir $@)
+	$(CXX) -MMD -MP -c -w $< $(INCLUDES) $(ROOT_FLAGS) $(G4_FLAGS) -o $@
+
+-include $(OBJ_FILES:.o=.d)
 
 clean:
 	rm -f bin/prune_trees
@@ -98,5 +100,5 @@ clean:
 	rm -f bin/auto_corrs
 	rm -f bin/make_plots
 	rm -f bin/makeFixedOscTree
-	rm -f build/*.o
+	rm -rf build
 	rm -f lib/libantinullh.a

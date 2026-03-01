@@ -1,5 +1,4 @@
-#ifndef __ANTINUFIT__SystFactory__
-#define __ANTINUFIT__SystFactory__
+#pragma once
 
 // Antinu headers
 #include <OscGrid.hh>
@@ -29,14 +28,13 @@ namespace antinufit
     static Systematic *New(const std::string &name,
                            const std::string &type_,
                            const std::vector<std::string> &paramnamevec_,
-                           ParameterDict &paramvals_);
+                           const ParameterDict &paramvals_);
     static Systematic *New(const std::string &name,
                            const std::string &type_,
                            const std::vector<std::string> &paramnamevec_,
-                           ParameterDict &paramvals_,
-                           std::map<int, OscGrid *> &oscgridmap_,
-                           std::unordered_map<int, double> &indexdistancemap_);
+                           const ParameterDict &paramvals_,
+                           const std::map<int, OscGrid *> &oscgridmap_,
+                           const std::unordered_map<int, double> &indexdistancemap_);
   };
 
 }
-#endif

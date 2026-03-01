@@ -316,7 +316,15 @@ void mcmc(const std::string &fitConfigFile_,
 
   // Now build the likelihood
   BinnedNLLH lh;
-  lh.SetBuffer("energy", 1, 20);
+  for (std::vector<std::string>::const_iterator axisIt = pdfConfig.GetAxisNames().begin();
+       axisIt != pdfConfig.GetAxisNames().end(); ++axisIt)
+  {
+    if (!pdfConfig.HasLLHBufferBins(*axisIt))
+      continue;
+
+    const std::pair<int, int> bufferBins = pdfConfig.GetLLHBufferBins(*axisIt);
+    lh.SetBuffer(*axisIt, bufferBins.first, bufferBins.second);
+  }
   // Add our data
   lh.SetDataDist(dataDist);
   // Set whether or not to use Beeston Barlow
