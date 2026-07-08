@@ -105,15 +105,20 @@ void LoopHistos(TDirectory *d1, TDirectory *d2, std::string label1, std::string 
   }
 }
 
-void compare2LLHScans(std::string filename1, std::string filename2, std::string label1, std::string label2)
+void compare2LLHScans(std::string filename1, std::string filename2, std::string label1, std::string label2, std::string outfilename = "")
 {
 
   // Open file
   std::filesystem::path filepath1(filename1);
   TFile *f1 = new TFile(filename1.c_str(), "OPEN");
   TFile *f2 = new TFile(filename2.c_str(), "OPEN");
-  std::string outputfilename = filepath1.replace_extension("comp.pdf").string();
-  std::string outrootfilename = filepath1.replace_extension(".root").string();
+  if (outfilename == "")
+  {
+    filepath1.replace_extension("");
+    outfilename = filepath1.string() + "_comp";
+  }
+  std::string outputfilename = outfilename + ".pdf";
+  std::string outrootfilename = outfilename + ".root";
   TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
 
   // Aesthetics
