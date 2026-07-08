@@ -25,6 +25,51 @@
 #include <TString.h>
 #include <iostream>
 #include <map>
+#include <cstring>
+#include <cctype>
+#include <string>
+
+std::string trimTitle(const std::string &title)
+{
+    size_t first = 0;
+    while (first < title.size() && std::isspace(static_cast<unsigned char>(title[first])))
+        ++first;
+
+    size_t last = title.size();
+    while (last > first && std::isspace(static_cast<unsigned char>(title[last - 1])))
+        --last;
+
+    return title.substr(first, last - first);
+}
+
+std::string pairedAxisTitle(const char *title1, const char *title2)
+{
+    std::string a(title1 ? title1 : "");
+    std::string b(title2 ? title2 : "");
+
+    size_t prefix = 0;
+    while (prefix < a.size() && prefix < b.size() && a[prefix] == b[prefix])
+        ++prefix;
+
+    size_t suffix = 0;
+    while (suffix < a.size() - prefix && suffix < b.size() - prefix &&
+           a[a.size() - 1 - suffix] == b[b.size() - 1 - suffix])
+        ++suffix;
+
+    std::string commonPrefix = trimTitle(a.substr(0, prefix));
+    std::string commonSuffix = trimTitle(suffix > 0 ? a.substr(a.size() - suffix) : "");
+
+    if (commonPrefix.empty())
+        return a;
+    if (commonSuffix.empty())
+        return commonPrefix;
+    return commonPrefix + " " + commonSuffix;
+}
+
+bool isOscillationScan(const TString &name)
+{
+    return name == "deltam21_full" || name == "sinsqtheta12_full";
+}
 
 void plotLLHScanPairs(const char *filename = "llh_scan.root")
 {
@@ -46,14 +91,20 @@ void plotLLHScanPairs(const char *filename = "llh_scan.root")
 
     // Collect all TH1D histograms
     std::map<TString, TH1D *> hists;
+    std::map<TString, int> cycles;
     TIter nextkey(f->GetListOfKeys());
     TKey *key;
     while ((key = (TKey *)nextkey()))
     {
         if (strcmp(key->GetClassName(), "TH1D") != 0)
             continue;
+        TString histName = key->GetName();
+        int cycle = key->GetCycle();
+        if (cycles.find(histName) != cycles.end() && cycle < cycles.at(histName))
+            continue;
         TH1D *h = (TH1D *)key->ReadObj();
-        hists[h->GetName()] = h;
+        hists[histName] = h;
+        cycles[histName] = cycle;
     }
 
     TString pdfName = outfiledir + "/llh_pair_plots.pdf";
@@ -65,8 +116,9 @@ void plotLLHScanPairs(const char *filename = "llh_scan.root")
         TString name = kv.first;
         std::cout << name << std::endl;
 
-        // Skip "_2_full" histos, handle via their pair
-        if (name.Contains("2_full") && !name.Contains("theta"))
+        // Skip bisMSB histos, handled via their PPO pair, and skip
+        // correlated total/normalisation scans which have no dataset pair.
+        if ((name.Contains("2_full") && !isOscillationScan(name)) || name.Contains("_norm_full"))
             continue;
 
         // Construct paired name
@@ -76,10 +128,12 @@ void plotLLHScanPairs(const char *filename = "llh_scan.root")
         TH1D *h1 = kv.second;
         TH1D *h2 = nullptr;
 
-        if (hists.find(pairName) != hists.end())
-        {
+        bool hasPair = hists.find(pairName) != hists.end();
+        if (!hasPair && !isOscillationScan(name))
+            continue;
+
+        if (hasPair)
             h2 = hists.at(pairName);
-        }
 
         // Make canvas
         TCanvas *c = new TCanvas(name, name, 1500, 1080);
@@ -91,6 +145,8 @@ void plotLLHScanPairs(const char *filename = "llh_scan.root")
         h1->SetLineColor(kBlue);
         h1->SetLineWidth(2);
         h1->SetTitle("");
+        if (h2)
+            h1->GetXaxis()->SetTitle(pairedAxisTitle(h1->GetXaxis()->GetTitle(), h2->GetXaxis()->GetTitle()).c_str());
         h1->Draw("HIST");
 
         TLegend *leg = new TLegend(0.4, 0.6, 0.6, 0.8);
@@ -104,8 +160,9 @@ void plotLLHScanPairs(const char *filename = "llh_scan.root")
             h2->SetLineWidth(2);
             h2->Draw("HIST SAME");
             leg->AddEntry(h2, "bisMSB", "l");
-            leg->Draw();
         }
+        if (h2)
+            leg->Draw();
 
         // Save individual pdf
         TString pngName = outfiledir + "/" + name + ".pdf";

@@ -2,11 +2,30 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TH2D.h>
+#include <TH1D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
+#include <TKey.h>
+#include <TLegend.h>
 
 // c++ Headers
 #include <sys/stat.h>
+#include <algorithm>
+#include <cstring>
+#include <filesystem>
+
+TH1D *getFirstTH1D(TFile *file)
+{
+    TIter nextkey(file->GetListOfKeys());
+    TKey *key;
+    while ((key = (TKey *)nextkey()))
+    {
+        if (strcmp(key->GetClassName(), "TH1D") != 0)
+            continue;
+        return dynamic_cast<TH1D *>(key->ReadObj());
+    }
+    return nullptr;
+}
 
 /* ///////////////////////////////////////////////////////////////////
 ///
@@ -54,6 +73,8 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         // Check if it's a .root file
         if (filePath1.find(".root") == std::string::npos)
             continue;
+        if (pathObj.filename() == "comppdfplots.root")
+            continue;
 
         std::string histName = pathObj.filename().replace_extension("");
         TFile *file1 = TFile::Open(filePath1.c_str(), "READ");
@@ -64,11 +85,10 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
             continue;
         }
         // Get histogram
-        TH1D *h1 = nullptr;
-        file1->GetObject(histName.c_str(), h1);
+        TH1D *h1 = getFirstTH1D(file1);
         if (!h1)
         {
-            std::cerr << "No histogram " << histName << " found in file: " << filePath1 << std::endl;
+            std::cerr << "No TH1D found in file: " << filePath1 << std::endl;
             file1->Close();
             delete file1;
             continue;
@@ -84,16 +104,18 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         }
         // Get histogram
         TH1D *h2 = nullptr;
-        file2->GetObject(histName.c_str(), h2);
+        file2->GetObject(h1->GetName(), h2);
+        if (!h2)
+            h2 = getFirstTH1D(file2);
         if (!h2)
         {
-            std::cerr << "No histogram " << histName << " found in file: " << filePath2 << std::endl;
+            std::cerr << "No matching TH1D found in file: " << filePath2 << std::endl;
             file2->Close();
             delete file2;
             continue;
         }
 
-        h1->SetMaximum(1.3 * h1->GetMaximum());
+        h1->SetMaximum(1.3 * std::max(h1->GetMaximum(), h2->GetMaximum()));
         h1->SetLineWidth(2);
         h1->SetLineColor(kBlue + 2);
         h1->GetXaxis()->SetTitleSize(0.055);
@@ -110,10 +132,11 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
         gPad->SetGrid(1);
         gPad->Update();
 
-        TLegend *t1 = new TLegend(0.65, 0.73, 0.85, 0.88);
+        TLegend *t1 = new TLegend(0.65, 0.7, 0.85, 0.85);
         t1->AddEntry(h1, label1.c_str(), "l");
         t1->AddEntry(h2, label2.c_str(), "l");
         t1->SetLineWidth(2);
+        t1->SetBorderSize(1);
         t1->SetTextFont(42);
         t1->Draw();
 
