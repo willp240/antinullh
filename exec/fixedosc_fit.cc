@@ -111,6 +111,33 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   TStopwatch minuitTimer;
   minuitTimer.Start(true);
   FitResult res = min.Optimise(&fullLLH);
+
+  // MnMinimize may finish via its Simplex fallback.  That can locate a valid
+  // minimum without producing a covariance matrix, which is not sufficient
+  // for the detailed post-fit output.  In that mode, use the located point to
+  // seed a final Migrad pass so Minuit calculates the Hessian/covariance.
+  if (in.run.method == "Minimize")
+  {
+    const ParameterDict minimiseBestFit = res.GetBestFit();
+    std::cout << "Minimize search complete; running Migrad from that point to obtain covariance." << std::endl;
+
+    Minuit covarianceMin;
+    covarianceMin.SetMethod("Migrad");
+    covarianceMin.SetMaxCalls(in.run.iterations);
+    covarianceMin.SetTolerance(in.run.tolerance);
+    covarianceMin.SetStrategy(in.run.strategy);
+    covarianceMin.SetMinima(in.p.mins);
+    covarianceMin.SetMaxima(in.p.maxs);
+    covarianceMin.SetInitialValues(minimiseBestFit);
+    covarianceMin.SetInitialErrors(in.p.sigmas);
+    for (std::map<std::string, bool>::iterator fixParMapIt = in.p.fixedPars.begin(); fixParMapIt != in.p.fixedPars.end(); ++fixParMapIt)
+    {
+      if (fixParMapIt->second)
+        covarianceMin.Fix(fixParMapIt->first);
+    }
+    res = covarianceMin.Optimise(&fullLLH);
+  }
+
   minuitTimer.Stop();
   std::cout << "Minuit time: " << minuitTimer.RealTime() << std::endl;
   res.SetPrintPrecision(4);

@@ -92,7 +92,7 @@ void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
             }
             else if (line.find("minuit_method") != std::string::npos)
             {
-                line = "minuit_method = \"Migrad\"";
+                line = "minuit_method = \"Minimize\"";
                 foundMinuitMethod = true;
             }
             else if (line.find("minuit_strategy") != std::string::npos)
@@ -102,7 +102,7 @@ void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
             }
             else if (line.find("minuit_tolerance") != std::string::npos)
             {
-                line = "minuit_tolerance = 0.01";
+                line = "minuit_tolerance = 0.001";
                 foundMinuitTolerance = true;
             }
             else if (line.find("iterations") != std::string::npos && !foundIterations)
@@ -126,11 +126,11 @@ void overwriteSaveOutputsAndMinuitSettings(const std::string &filepath)
         if (!foundSaveOutputs)
             lineIt = lines.insert(lineIt, "save_outputs = 1") + 1;
         if (!foundMinuitMethod)
-            lineIt = lines.insert(lineIt, "minuit_method = \"Migrad\"") + 1;
+            lineIt = lines.insert(lineIt, "minuit_method = \"Minimize\"") + 1;
         if (!foundMinuitStrategy)
             lineIt = lines.insert(lineIt, "minuit_strategy = 2") + 1;
         if (!foundMinuitTolerance)
-            lineIt = lines.insert(lineIt, "minuit_tolerance = 0.01") + 1;
+            lineIt = lines.insert(lineIt, "minuit_tolerance = 0.001") + 1;
     }
 
     // Write back to file
@@ -173,11 +173,15 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
             continue;
         }
 
-        // If we reach an empty line, we exit the parameters section
-        if (inParamsSection && line.find("Fit complete for:") != std::string::npos)
+        // The refactored fitter prints a nominal-vs-best-fit summary after the
+        // canonical Best Fit Values block.  Do not parse that second table as
+        // another set of fit results: its first numeric column is the nominal
+        // value and would otherwise overwrite every fitted branch value.
+        if (inParamsSection &&
+            (line.find("Parameter Summary (Nominal vs Best Fit)") != std::string::npos ||
+             line.find("Fit complete for:") != std::string::npos))
         {
             inParamsSection = false;
-            continue;
         }
 
         // Extract parameter names and values dynamically
