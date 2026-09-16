@@ -11,7 +11,7 @@ RAT_LIB_NAME := RATEvent_Linux
 
 OXSX_ROOT := $(OXO_DIR)
 OXSX_INC := $(OXSX_ROOT)/include
-OXSX_LIB_DIR := $(OXSX_ROOT)/build 
+OXSX_LIB_DIR := $(OXSX_ROOT)/build/src 
 OXSX_LIB_NAME := oxsx
 
 H5_LIBS = hdf5_hl_cpp hdf5_cpp hdf5_hl hdf5
@@ -32,7 +32,11 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree #bin/auto_corrs bin/make_plots bin/llh_scan bin/mcmc
+all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/param_syst_scan #bin/auto_corrs bin/make_plots bin/llh_scan bin/mcmc
+
+bin/param_syst_scan: exec/param_syst_scan.cc $(LIB)
+	mkdir -p bin
+	$(CXX) exec/param_syst_scan.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin

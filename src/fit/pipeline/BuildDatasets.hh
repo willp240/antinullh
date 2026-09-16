@@ -22,6 +22,7 @@ namespace antinufit
     struct BuildDatasetsConfig
     {
         BuildComponentConfig component;
+        bool saveShiftedPdfs = false;
     };
 
     // All the info needed to bring PDFs, systs, and datasets together to make the llh

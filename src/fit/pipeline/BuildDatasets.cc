@@ -108,10 +108,13 @@ namespace antinufit
                                   dirs.asimovDistDir + "/" + baseFile,
                                   dist.GetName());
 
-                BinnedED pdfToSave = ProjectToDataObs(unscaledPDF, model.asimov, setup.dataObs);
-                IO::SaveHistogram(pdfToSave.GetHistogram(),
-                                  dirs.pdfDir + "/" + baseFile,
-                                  unscaledPDF.GetName());
+                if (!cfg.saveShiftedPdfs)
+                {
+                    BinnedED pdfToSave = ProjectToDataObs(unscaledPDF, model.asimov, setup.dataObs);
+                    IO::SaveHistogram(pdfToSave.GetHistogram(),
+                                      dirs.pdfDir + "/" + baseFile,
+                                      unscaledPDF.GetName());
+                }
             }
 
             if (in.run.isFakeData)
@@ -125,6 +128,16 @@ namespace antinufit
                                       dirs.fakedataDistDir + "/" + baseFile,
                                       fakeDataDist.GetName());
                 }
+            }
+
+            // Save shifted, rate-scaled components after fake-data output so
+            // fakedata_dists can be reused as the scan-output directory.
+            if (cfg.saveShiftedPdfs)
+            {
+                BinnedED shiftedPDF = ProjectToDataObs(dist, model.asimov, setup.dataObs);
+                IO::SaveHistogram(shiftedPDF.GetHistogram(),
+                                  dirs.fakedataDistDir + "/" + baseFile,
+                                  dist.GetName());
             }
 
             if (!comp.scanDists.empty())
