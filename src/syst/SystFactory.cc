@@ -147,8 +147,9 @@ namespace antinufit
         double distance = indexdistancemap_[obs_vals.at(1)];
         double nuEnergy = obs_vals.at(2);
         OscGrid *oscGrid = oscgridmap_[obs_vals.at(1)];
-        double prob = oscGrid->Evaluate(nuEnergy, params.at("deltam21"), params.at("theta12"));
-        return prob;
+        // The grid stores OscProb2, the disappearance probability; the PDF weight is P_ee
+        double prob = oscGrid->Evaluate(nuEnergy, params.at("deltam21"), params.at("sinsqtheta12"));
+        return 1.0 - prob;
       };
 
       ShapeFunction OscProb = [&indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
@@ -157,7 +158,7 @@ namespace antinufit
         Double_t baseline = indexdistancemap_[obs_vals.at(1)];
         Double_t fDmSqr21 = params.at("deltam21");
         Double_t fDmSqr32 = 2.451e-3;
-        Double_t fSSqrTheta12 = sin(params.at("theta12")) * sin(params.at("theta12"));
+        Double_t fSSqrTheta12 = params.at("sinsqtheta12");
         Double_t fSSqrTheta13 = 0.0216;
 
         // Declare quantities to use in loops
@@ -219,7 +220,8 @@ namespace antinufit
         // Compute probability
         fOscProb = 4.0 * (X[1] * X[0] * s_10 * s_10 + X[2] * X[0] * s_20 * s_20 + X[2] * X[1] * s_21 * s_21);
 
-        return fOscProb;
+        // fOscProb is the disappearance probability; the PDF weight is P_ee
+        return 1.0 - fOscProb;
       };
 
       // The bin-by-bin efficiencies scaling for the alpha,n classifier on the reactor IBD PDF for PPO
@@ -622,16 +624,16 @@ namespace antinufit
       {
         shape->SetShapeFunction(OscProbGrid, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
-        shape->RenameParameter(paramnamevec_.at(1), "theta12");
-        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
+        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"sinsqtheta12", paramvals_[paramnamevec_.at(1)]}});
         shape->SetParameters(params);
       }
       else if (function == "OscProb")
       {
         shape->SetShapeFunction(OscProb, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
-        shape->RenameParameter(paramnamevec_.at(1), "theta12");
-        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"theta12", paramvals_[paramnamevec_.at(1)]}});
+        shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
+        ParameterDict params({{"deltam21", paramvals_[paramnamevec_.at(0)]}, {"sinsqtheta12", paramvals_[paramnamevec_.at(1)]}});
         shape->SetParameters(params);
       }
       else if (function == "GeoOscProb")
@@ -776,6 +778,22 @@ namespace antinufit
       }
 
       syst = shape;
+    }
+
+    else if (type == "FusedOsc")
+    {
+      // Reactor oscillation on the 1D energy PDF; param_names = deltam21, sin^2(theta12)
+      OscWeight1D::ProbMode mode = OscWeight1D::BinCentre;
+      if (function == "BinAverage")
+        mode = OscWeight1D::BinAverage;
+      else if (function != "")
+        throw ValueError("Unknown function, " + function + ", for systematic type: " + type);
+      if (paramnamevec_.size() != 2)
+        throw ValueError("FusedOsc systematic " + name + " needs param_names = deltam21,sinsqtheta12");
+      OscWeight1D *osc = new OscWeight1D(name, paramnamevec_.at(0), paramnamevec_.at(1), indexdistancemap_, mode);
+      osc->SetParameter(paramnamevec_.at(0), paramvals_[paramnamevec_.at(0)]);
+      osc->SetParameter(paramnamevec_.at(1), paramvals_[paramnamevec_.at(1)]);
+      syst = osc;
     }
 
     else

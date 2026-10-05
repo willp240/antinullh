@@ -170,4 +170,65 @@ namespace antinufit
     return fOscProb;
   }
 
+  // The part of OscProb2 that depends on neutrino energy and the oscillation parameters but not on the
+  // baseline. The arithmetic is copied from OscProb2 in the same order, so OscProb2Terms::Evaluate
+  // reproduces OscProb2 bit for bit.
+  OscProb2Terms OscProb2EnergyTerms(double nuEnergy, double fDmSqr21, double fSSqrTheta12)
+  {
+    Double_t nuE_parent = nuEnergy;
+
+    Double_t fDmSqr32 = 2.451e-3;
+    Double_t fSSqrTheta13 = 0.0216;
+    Double_t Ne = 8.13e23;
+
+    Double_t fDmSqr31 = fDmSqr32 + fDmSqr21;
+
+    Double_t H_ee_vac = fDmSqr21 * (fSSqrTheta12 * (1 - fSSqrTheta13) - (1.0 / 3.0)) + fDmSqr31 * (fSSqrTheta13 - (1.0 / 3.0));
+    Double_t H_neq2 = (1 - fSSqrTheta13) * (fDmSqr21 * fDmSqr21 * fSSqrTheta12 * (1 + fSSqrTheta12 * (fSSqrTheta13 - 1)) + fDmSqr31 * fDmSqr31 * fSSqrTheta13 - 2.0 * fDmSqr21 * fDmSqr31 * fSSqrTheta12 * fSSqrTheta13);
+
+    Double_t a0_vac = -(2.0 / 27.0) * (fDmSqr21 * fDmSqr21 * fDmSqr21 + fDmSqr31 * fDmSqr31 * fDmSqr31) + (1.0 / 9.0) * (fDmSqr21 * fDmSqr21 * fDmSqr31 + fDmSqr21 * fDmSqr31 * fDmSqr31);
+    Double_t a1_vac = (1.0 / 3.0) * (fDmSqr21 * fDmSqr31 - fDmSqr21 * fDmSqr21 - fDmSqr31 * fDmSqr31);
+    Double_t Y_ee_vac = (2.0 / 3.0) * a1_vac + H_ee_vac * H_ee_vac + H_neq2;
+
+    Double_t alpha = -2.535e-31 * Ne; // conversion factor in eV2/MeV
+    Double_t A_CC = alpha * nuE_parent; // for A_CC in [eV^2] and nuE in [MeV]
+    Double_t alpha_1 = H_ee_vac * A_CC + (1.0 / 3.0) * A_CC * A_CC;
+
+    Double_t a0 = a0_vac - Y_ee_vac * A_CC - (1.0 / 3.0) * H_ee_vac * A_CC * A_CC - (2.0 / 27.0) * A_CC * A_CC * A_CC;
+    Double_t a1 = a1_vac - alpha_1;
+    Double_t Y_ee = Y_ee_vac + (2.0 / 3.0) * alpha_1;
+    Double_t H_ee = H_ee_vac + (2.0 / 3.0) * A_CC;
+
+    // Get eigenvalues of H, and constants X and theta
+    Double_t arcCos = (1.0 / 3.0) * acos(1.5 * (a0 / a1) * sqrt(-3.0 / a1));
+    Double_t preFact = 2.0 * sqrt(-a1 / 3.0);
+
+    Double_t eigen[3];
+    Double_t X[3];
+    for (int i = 0; i < 3; ++i)
+    {
+      eigen[i] = preFact * cos(arcCos - (2.0 / 3.0) * M_PI * i);
+      X[i] = (1.0 / 3.0) + (eigen[i] * H_ee + Y_ee) / (3.0 * eigen[i] * eigen[i] + a1);
+    }
+
+    OscProb2Terms terms;
+    terms.nuEnergy = nuE_parent;
+    terms.dEigen10 = eigen[1] - eigen[0];
+    terms.dEigen20 = eigen[2] - eigen[0];
+    terms.dEigen21 = eigen[2] - eigen[1];
+    terms.X10 = X[1] * X[0];
+    terms.X20 = X[2] * X[0];
+    terms.X21 = X[2] * X[1];
+    return terms;
+  }
+
+  double OscProb2Terms::Evaluate(double baseline) const
+  {
+    Double_t scale = 1.267e3 * baseline / nuEnergy; // for nuE in [MeV] and baseline in [km]
+    Double_t s_10 = sin(scale * dEigen10);
+    Double_t s_20 = sin(scale * dEigen20);
+    Double_t s_21 = sin(scale * dEigen21);
+    return 4.0 * (X10 * s_10 * s_10 + X20 * s_20 * s_20 + X21 * s_21 * s_21);
+  }
+
 }
