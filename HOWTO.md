@@ -285,6 +285,25 @@ If you want to run a full fit where everything is floated at once, there is an a
 
 > ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
 
+In practice, run many chains in parallel on Condor with `util/submitCondor.py` (see Submitting Batch Jobs below). For example, 50 chains with the default config set in `cfg/mcmcDefault/` (oscillation parameters floated through the `FusedOsc` systematic):
+
+```
+python util/submitCondor.py mcmc /path/to/output/mcmcDefault_run1 \
+    -r /path/to/this/repo \
+    -e /path/to/your/env_file.sh \
+    -f cfg/mcmcDefault/fit_config.ini \
+    -i cfg/mcmcDefault/event_config.ini \
+    -p cfg/mcmcDefault/pdf_config.ini \
+    -s cfg/mcmcDefault/syst_config.ini \
+    -o cfg/mcmcDefault/oscgrid_config.ini \
+    -n 50 \
+    -w 86400 \
+    -m 4000 \
+    -j mcmcDefault
+```
+
+Each job writes to its own subdirectory, `mcmcDefault_run1/mcmcDefault_<i>/`, and the script sets `output_directory` in the copied fit config for you. `-w` is the wall time in seconds and `-m` the memory in MB; 1.2M steps take about 5–11 hours depending on the node.
+
 This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories, some of which are the same as for `fixedosc_fit`.
 
 `auto_correlations.txt` contains how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few thousand steps (there is a separate `autocorrelations` app you can use to run over the outputted tree and get more information). `fit_results.txt` contains each parameter value for the maximum LLH step.

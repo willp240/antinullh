@@ -10,8 +10,8 @@ data_file =
 
 [reactor_nubar]
 ntup_files =
-dimensions = 1
-groups = 1d
+dimensions = 3
+groups = osc_group,1d
 oscillated = 1
 
 [geonu_U]

@@ -95,7 +95,7 @@ namespace antinufit
     }
     catch (const std::exception &e)
     {
-      burnIn = 0;
+      sigmaScale = 1;
     }
     try
     {

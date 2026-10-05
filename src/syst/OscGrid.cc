@@ -118,12 +118,10 @@ namespace antinufit
   double OscGrid::Evaluate(double nuEnergy, double dmsq21, double ssqth12)
   {
     /*
-     * Use trilinear interpolation in order to estimate the Pee survival probability for a given
-     * neutrino energy, dm^2_{21}, and sin^2(theta_{21}).
+     * Use trilinear interpolation in order to estimate the stored OscProb2 value, the disappearance
+     * probability 1 - Pee, for a given neutrino energy, dm^2_{21}, and sin^2(theta_{21}).
      */
     // First confirm input values are in the interpolation range
-
-    ssqth12 = sin(ssqth12) * sin(ssqth12);
 
     if (nuEnergy < fMinE || nuEnergy > fMaxE)
     {

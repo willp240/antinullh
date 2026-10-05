@@ -121,14 +121,14 @@ tex_label = "E. Scale #alpha-n PR"
 constraint_mean = 1.00
 constraint_sigma = 0.1
 
-[theta12]
-nom = 33.65
-min = -0.01
+[sinsqtheta12]
+nom = 0.307
+min = 0.001
 nbins = 100
-sig = 6.55
-max = 89.99
-fake_data_val = 33.65
-tex_label = "#theta_{12}"
+sig = 0.012
+max = 0.999
+fake_data_val = 0.307
+tex_label = "sin^{2} #theta_{12}"
 
 [deltam21]
 nom = 0.0000753
