@@ -32,7 +32,7 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree #bin/auto_corrs bin/make_plots bin/llh_scan bin/mcmc
+all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/validate_fused_osc bin/test_oscprob2_terms #bin/auto_corrs bin/make_plots bin/llh_scan
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
@@ -66,6 +66,14 @@ bin/mcmc: exec/mcmc.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/mcmc.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
+bin/validate_fused_osc: exec/validate_fused_osc.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  exec/validate_fused_osc.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+
+bin/test_oscprob2_terms: exec/test_oscprob2_terms.cc $(LIB)
+	mkdir -p bin
+	$(CXX)  exec/test_oscprob2_terms.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) -o $@
+
 bin/auto_corrs: exec/auto_corrs.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/auto_corrs.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
@@ -95,6 +103,8 @@ clean:
 	rm -f bin/fixedosc_fit
 	rm -f bin/fixedosc_llhscan
 	rm -f bin/mcmc
+	rm -f bin/validate_fused_osc
+	rm -f bin/test_oscprob2_terms
 	rm -f bin/auto_corrs
 	rm -f bin/make_plots
 	rm -f bin/makeFixedOscTree

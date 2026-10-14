@@ -3,6 +3,7 @@
 
 // Antinu headers
 #include <OscGrid.hh>
+#include <OscWeight1D.hh>
 
 // OXO headers
 #include <Shift.h>
