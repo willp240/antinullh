@@ -1,17 +1,41 @@
 import os
 import argparse
+import re
+import shlex
+import shutil
+import subprocess
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
-    if(dname[-1] != "/"):
-        dname = dname + "/"
-    direc = os.path.dirname(dname)
-    try:
-        os.stat(direc)
-    except:
-        os.makedirs(direc)
-        print ("Made directory %s...." % dname)
-    return dname
+    os.makedirs(dname, exist_ok=True)
+    return os.path.join(dname, "")
+
+
+def copy_config(path, configs_path):
+    if not path:
+        return ""
+    destination = os.path.join(configs_path, os.path.basename(path))
+    shutil.copy2(path, destination)
+    return destination
+
+
+def update_output_directory(fit_config, out_dir):
+    """Update the copied config's summary field, preserving other config text."""
+    with open(fit_config, "r") as file:
+        lines = file.readlines()
+    section = None
+    matches = []
+    for index, line in enumerate(lines):
+        heading = re.match(r"\s*\[([^]]+)\]", line)
+        if heading:
+            section = heading.group(1).strip()
+        elif section == "summary" and re.match(r"\s*output_directory\s*=", line):
+            matches.append(index)
+    if len(matches) != 1:
+        raise ValueError(f"{fit_config}: expected exactly one output_directory in [summary]")
+    lines[matches[0]] = f"output_directory = {out_dir}\n"
+    with open(fit_config, "w") as file:
+        file.writelines(lines)
 
 
 def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = ""):
@@ -24,6 +48,13 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     if batch_name == "":
         batch_name = job_name
 
+    out_dir = os.path.abspath(out_dir)
+    run_dir = os.path.abspath(run_dir)
+    if env_file:
+        env_file = os.path.abspath(os.path.expanduser(env_file))
+        if not os.path.isfile(env_file):
+            raise FileNotFoundError(env_file)
+
     # Set a condor path to be called later
     condor_path = "{0}/".format(out_dir)
     exec_path = run_dir + "/bin/" + exec_name
@@ -31,50 +62,32 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     configs_path = os.path.abspath('{0}/cfg'.format(condor_path))
     check_dir(configs_path)
 
-    if fit_config != "":
-        os.system("cp " + str(fit_config) + " " + str(configs_path) + "/" + os.path.basename(fit_config) )
-        fit_config = configs_path + "/" + fit_config.split("/")[-1]
-    if event_config != "":
-        os.system("cp " + str(event_config) + " " + str(configs_path) + "/" + os.path.basename(event_config) )
-        event_config = configs_path + "/" + event_config.split("/")[-1]
-    if pdf_config != "":
-        os.system("cp " + str(pdf_config) + " " + str(configs_path) + "/" + os.path.basename(pdf_config) )
-        pdf_config = configs_path + "/" + pdf_config.split("/")[-1]
-    if syst_config != "":
-        os.system("cp " + str(syst_config) + " " + str(configs_path) + "/" + os.path.basename(syst_config) )
-        syst_config = configs_path + "/" + syst_config.split("/")[-1]
-    other_commands = 'sleep $[($RANDOM%' + str(sleep_time+1) + ')+1]s'
+    fit_config = copy_config(fit_config, configs_path)
+    event_config = copy_config(event_config, configs_path)
+    pdf_config = copy_config(pdf_config, configs_path)
+    syst_config = copy_config(syst_config, configs_path)
 
     # Update output_directory in the fit config, if there is one
     if fit_config != "":
-        # Read the file
-        with open(fit_config, "r") as file:
-            lines = file.readlines()
-
-        for iline, line in enumerate(lines):
-            # Update output_directory
-            if line.startswith("output_directory ="):
-                lines[iline] = f"output_directory = {out_dir}\n"
-
-        # Write the updated lines back to the file
-        with open(fit_config, "w") as file:
-            file.writelines(lines)
+        update_output_directory(fit_config, out_dir)
 
     if exec_name == "makeFixedOscTree":
-        exec_args = str(fit_config)
+        exec_args = [fit_config]
     elif exec_name == "prune_trees":
-        exec_args = str(event_config) + " " + str(fit_config)
+        exec_args = [event_config, fit_config]
     else:
-        exec_args = " ".join(str(path) for path in (fit_config, event_config, pdf_config, syst_config))
+        exec_args = [fit_config, event_config, pdf_config, syst_config]
+    if not all(exec_args):
+        raise ValueError(f"Missing required config argument for {exec_name}")
 
     # Write sh file to be ran
-    out_macro_text = "#!/usr/bin/sh  \n" + \
-                     "source " + env_file + "\n" + \
-                     "source " + run_dir + "/env.sh " + "\n" + \
-                     "echo $HOME \n" + \
-                     "cd " + str(run_dir) + "\n" + \
-                     str(other_commands) + "\n" + \
-                     str(exec_path) + " " + exec_args
+    commands = ["#!/bin/bash", "set -e"]
+    if env_file:
+        commands.append("source " + shlex.quote(env_file))
+    commands.append("cd " + shlex.quote(run_dir))
+    commands.append(f"sleep $((RANDOM % {sleep_time + 1} + 1))s")
+    commands.append("exec " + shlex.join([exec_path] + exec_args))
+    out_macro_text = "\n".join(commands) + "\n"
 
     sh_filepath = "{0}/sh/".format(condor_path) + str(job_name).replace("/", "") + '.sh'
     if not os.path.exists(os.path.dirname(sh_filepath)):
@@ -82,7 +95,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     sh_file = open(sh_filepath, "w")
     sh_file.write(out_macro_text)
     sh_file.close()
-    os.chmod(sh_filepath, 0o777)
+    os.chmod(sh_filepath, 0o755)
     
     # Now create submit file
     error_path = os.path.abspath('{0}/error'.format(condor_path))
@@ -97,11 +110,11 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
 
     submit_filepath = os.path.join(submit_path, job_name)
     submit_filepath += ".submit"
-    out_submit_text = "executable              = " + str(sh_filepath) + "\n" + \
+    out_submit_text = "executable              = " + sh_filepath + "\n" + \
                      "universe                 = " + str(universe) + "\n" + \
-                     "output                   = " + str(output_path) + "/" + str(job_name) + ".output\n" + \
-                     "error                    = " + str(error_path) + "/" + str(job_name) + ".error\n" + \
-                     "log                      = " + str(log_path) + "/" + str(job_name) + ".log\n" + \
+                     "output                   = " + os.path.join(output_path, job_name + ".output") + "\n" + \
+                     "error                    = " + os.path.join(error_path, job_name + ".error") + "\n" + \
+                     "log                      = " + os.path.join(log_path, job_name + ".log") + "\n" + \
                      "notification             = " + str(notification) + "\n" + \
                      "priority                 = " + str(priority) + "\n" + \
                      "getenv                   = " + str(getenv) + "\n" + \
@@ -117,9 +130,9 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     out_submit_file.close()
 
     # Lez do dis
-    command = 'condor_submit -batch-name \"' + batch_name +'\" ' + submit_filepath
-    print ("executing job: " + command)
-    os.system(command)
+    command = ["condor_submit", "-batch-name", batch_name, submit_filepath]
+    print ("executing job: " + shlex.join(command))
+    subprocess.run(command, check=True)
 
 
 if __name__ == "__main__":
@@ -128,7 +141,7 @@ if __name__ == "__main__":
     parser.add_argument('exe', type=str, help='executable')
     parser.add_argument('out_dir', type=str, help='output directory')
     parser.add_argument('-r', "--run_dir", type=str, default=".", help='directory to run executable from')
-    parser.add_argument('-e', "--env_file", type=str, default="", help='environment variable file to source')
+    parser.add_argument('-e', "--env_file", type=str, default="", help='complete environment setup script to source; otherwise inherit the submission environment')
     parser.add_argument('-f', "--fit_cfg", type=str, default="", help='fit config path')
     parser.add_argument('-i', "--event_cfg", type=str, default="", help='event config path')
     parser.add_argument('-p', "--pdf_cfg", type=str, default="", help='pdf config path')
@@ -143,7 +156,7 @@ if __name__ == "__main__":
     exec_name = args.exe
     out_dir = check_dir(args.out_dir)
     base_name = out_dir.split("/")[-2]
-    run_dir = args.run_dir
+    run_dir = os.path.abspath(args.run_dir)
     env_file = args.env_file
     fit_config = args.fit_cfg
     event_config = args.event_cfg

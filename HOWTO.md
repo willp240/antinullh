@@ -304,7 +304,7 @@ You can submit N jobs with:
 
 > python utils/submitCondor.py exec_name output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini  -n N -w walltime
 
-The environment file you supply here should be whatever you use to set up ROOT, python, GSL, etc., not `antinullh/env.sh` (which should be sourced before running the python submission). The output directory will be created, with several subdirectories:
+The optional `-e` file must set up the complete runtime environment, including ROOT, RAT, OXO and any project-specific variables. Jobs source only this file; If `-e` is omitted, jobs use the inherited submission environment. The output directory will be created, with several subdirectories:
 
 `error`, `output` and `log` contain the console outputs and batch log. `sh` and `submit` contain the files used to submit these jobs, and `cfg` contains all the config files used to run the fit. The `output_directory` set in the `fit_config` file will be overwritten by the command line `output_dir` argument.
 
