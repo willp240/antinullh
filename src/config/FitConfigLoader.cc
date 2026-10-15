@@ -1,6 +1,8 @@
 #include <FitConfigLoader.hh>
 #include <Utilities.hh>
 #include <algorithm>
+#include <cmath>
+#include <stdexcept>
 
 namespace antinufit
 {
@@ -192,6 +194,14 @@ namespace antinufit
       ConfigLoader::Load(name, "nbins", nbins);
       ConfigLoader::Load(name, "tex_label", texLabel);
 
+      const std::string parameterContext = "Fit config " + fPath + ", parameter " + name + ": ";
+      if (!std::isfinite(min) || !std::isfinite(max) || min >= max)
+        throw std::runtime_error(parameterContext + "min and max must be finite with min < max");
+      if (!std::isfinite(sig) || sig < 0)
+        throw std::runtime_error(parameterContext + "sig must be finite and nonnegative");
+      if (nbins <= 0)
+        throw std::runtime_error(parameterContext + "nbins must be positive");
+
       // Remove "" if it surrounds the label string from the config
       texLabel = stripQuoteMarks(texLabel);
 
@@ -199,19 +209,23 @@ namespace antinufit
       {
         ConfigLoader::Load(name, "nom", nom);
       }
-      catch (const std::exception &e)
+      catch (const ConfigFieldMissing &e)
       {
-        nom = max + ((max - min) / 2);
+        nom = min / 2 + max / 2;
       }
+      if (!std::isfinite(nom) || nom < min || nom > max)
+        throw std::runtime_error(parameterContext + "nom must be finite and inside [min, max]");
 
       try
       {
         ConfigLoader::Load(name, "fake_data_val", fakeDataVal);
       }
-      catch (const std::exception &e)
+      catch (const ConfigFieldMissing &e)
       {
         fakeDataVal = nom;
       }
+      if (!std::isfinite(fakeDataVal))
+        throw std::runtime_error(parameterContext + "fake_data_val must be finite");
 
       try
       {
