@@ -39,12 +39,32 @@ namespace antinufit
             BuildResult &out)
         {
             std::cout << "Building distribution for " << pdfName << std::endl;
-            model.pdfGroups.push_back(ev.GetGroup());
+
+            // The attached systematic selects how this component's oscillation is built.
+            OscWeight1D *floatingOsc = nullptr;
+            const std::vector<std::string> groups = ev.GetGroup();
+            for (const std::pair<const std::string, Systematic *> &entry : syst.byDataset.at(dsName))
+            {
+                if (std::find(groups.begin(), groups.end(), syst.group.at(entry.first)) == groups.end())
+                    continue;
+                OscWeight1D *candidate = dynamic_cast<OscWeight1D *>(entry.second);
+                if (!candidate)
+                    continue;
+                if (!ev.GetOscillated() || groups.front() != syst.group.at(entry.first) ||
+                    ev.GetNumDimensions() != 3 || floatingOsc)
+                    throw std::runtime_error("Component " + pdfName + " needs one first FusedOsc group and three source dimensions");
+                floatingOsc = candidate;
+            }
 
             // Get MC events from file
             std::unique_ptr<DataSet> dataSet = LoadMCDataset(ev.GetPrunedPath());
             if (!dataSet)
+            {
+                if (floatingOsc)
+                    throw std::runtime_error("Cannot load reactor MC for " + pdfName);
                 return;
+            }
+            model.pdfGroups.push_back(ev.GetGroup());
 
             const int numDimensions = ev.GetNumDimensions();
 
@@ -60,7 +80,7 @@ namespace antinufit
                 indexDistance,
                 reactorRatio,
                 reactorRatioFD,
-                cfg.component);
+                cfg.component, floatingOsc);
 
             // Beeston-Barlow generated rate (pre-normalise count)
             model.genRates.push_back(comp.generated);
@@ -84,7 +104,8 @@ namespace antinufit
                 syst.group,
                 in.p.noms);
 
-            fakeDataDist = ApplySystematicsByGroups(
+            if (!floatingOsc || in.run.isFakeData)
+                fakeDataDist = ApplySystematicsByGroups(
                 std::move(fakeDataDist),
                 model.pdfGroups.back(),
                 syst.byDataset.at(dsName),

@@ -10,6 +10,7 @@
 #include <DatasetSetup.hh>
 #include <FitInputs.hh>
 #include <OscParams.hh>
+#include <OscWeight1D.hh>
 
 namespace antinufit
 {
@@ -53,11 +54,24 @@ namespace antinufit
                                                   const std::unordered_map<int, double> &indexDistance,
                                                   std::map<std::string, double> &reactorRatioOut,
                                                   std::map<std::string, double> &reactorRatioFDOut,
-                                                  const BuildComponentConfig &cfg = BuildComponentConfig())
+                                                  const BuildComponentConfig &cfg = BuildComponentConfig(),
+                                                  OscWeight1D *floatingOsc = nullptr)
   {
     ComponentBuildResult r;
 
-    if (ev.GetOscillated())
+    if (ev.GetOscillated() && floatingOsc)
+    {
+      const AxisCollection axes = DistBuilder::BuildAxes(setup.pdfConfig, 3);
+      const size_t clamped = OscWeight1D::CheckEvents(dataSet, axes, indexDistance);
+      BinnedED source = DistBuilder::Build(pdfName, 3, setup.pdfConfig, dataSet);
+      r.dist = DistBuilder::Build(pdfName, 1, setup.pdfConfig, dataSet);
+      floatingOsc->SetSource(source, r.dist);
+      r.fakeDist = r.dist;
+      std::cout << floatingOsc->GetName() << ": " << floatingOsc->GetNNonZero()
+                << " nonzero source bins, " << floatingOsc->GetNPairs()
+                << " occupied reactor/energy pairs, " << clamped << " clamped events\n";
+    }
+    else if (ev.GetOscillated())
     {
       // Ensure keys exist
       reactorRatioOut[pdfName];
