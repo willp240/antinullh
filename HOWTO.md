@@ -22,7 +22,6 @@ The systematic factory, when given a systematic name, type, and list of associat
 - `Shift`: A Shift systematic
 - `Conv:Gaussian:SquareRootScale`: A Convolution with a Gaussian function where the width of the Gaussian runs with the square root of the axis in question
 - `ScaleFunction:BirksLaw`: A ScaleFunction systematic where the function used modifies Birk's Constant
-- `Shape:OscProb`: A Shape systematic, where the function used modifies the oscillation probability. The probability is calculated directly
 
 <h4>Functions</h4>
 
@@ -262,6 +261,8 @@ If you want to run a full fit where everything is floated at once, there is an a
 > ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini
 
 Set `save_outputs = 1` in the fit config to save the chain, posterior histograms, fit result and spectra. With `save_outputs = 0`, only console summaries are produced.
+
+For `FusedOsc`, set `param_names=deltam21,theta12`, `deltam21,sintheta12`, or `deltam21,sinsqtheta12`. The angle parameter must have the same name in the fit config. `theta12` is in degrees; the other names denote sin(theta12) and sin²(theta12). Both reactor and geoneutrino systematics convert internally to sin²(theta12). Bounds, proposal widths, priors and saved samples stay in the configured representation; a uniform prior in one representation is not uniform in the others.
 
 In practice, run many chains in parallel on Condor with `util/submitCondor.py` (see Submitting Batch Jobs below). For example, 50 chains with the default config set in `cfg/mcmcDefault/` (oscillation parameters floated through the `FusedOsc` systematic):
 
