@@ -9,6 +9,11 @@ namespace antinufit
   class FitConfig
   {
   public:
+    const std::string &GetReactorsJsonFile() const { return fReactorsJsonFile; }
+    void SetReactorsJsonFile(const std::string &path) { fReactorsJsonFile = path; }
+    int GetFixedOscDmPoints() const { return fFixedOscDmPoints; }
+    int GetFixedOscThetaPoints() const { return fFixedOscThetaPoints; }
+    void SetFixedOscPoints(int dm, int theta) { fFixedOscDmPoints = dm; fFixedOscThetaPoints = theta; }
     ParameterDict GetMinima() const;
     ParameterDict GetMaxima() const;
     ParameterDict GetSigmas() const;
@@ -99,6 +104,9 @@ namespace antinufit
     void SetLLHScanPoints(int);
 
   private:
+    std::string fReactorsJsonFile;
+    int fFixedOscDmPoints = 500;
+    int fFixedOscThetaPoints = 500;
     std::string fOutDir;
     ParameterDict fConstrMeans;
     ParameterDict fConstrSigmas;

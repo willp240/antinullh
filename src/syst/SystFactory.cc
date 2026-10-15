@@ -9,16 +9,14 @@ namespace antinufit
                    const std::vector<std::string> &paramnamevec_,
                    const ParameterDict &paramvals_)
   {
-    std::map<int, OscGrid *> defaultGridMap;
     std::unordered_map<int, double> defaultIndexMap;
-    return New(name, type_, paramnamevec_, paramvals_, defaultGridMap, defaultIndexMap);
+    return New(name, type_, paramnamevec_, paramvals_, defaultIndexMap);
   }
   Systematic *
   SystFactory::New(const std::string &name,
                    const std::string &type_,
                    const std::vector<std::string> &paramnamevec_,
                    const ParameterDict &paramvals_,
-                   const std::map<int, OscGrid *> &oscgridmap_,
                    const std::unordered_map<int, double> &indexdistancemap_)
   {
     Systematic *syst;
@@ -139,16 +137,6 @@ namespace antinufit
         double prob = (fSSqrTheta13 * fSSqrTheta13) + (fCSqrTheta13 * fCSqrTheta13) * (1 - 0.5 * fSSqr2Theta_12);
 
         return prob;
-      };
-
-      ShapeFunction OscProbGrid = [&oscgridmap_, &indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
-      {
-        double distance = indexdistancemap_.at(obs_vals.at(1));
-        double nuEnergy = obs_vals.at(2);
-        OscGrid *oscGrid = oscgridmap_.at(obs_vals.at(1));
-        // The grid stores OscProb2, the disappearance probability; the PDF weight is P_ee
-        double prob = oscGrid->Evaluate(nuEnergy, params.at("deltam21"), params.at("sinsqtheta12"));
-        return 1.0 - prob;
       };
 
       ShapeFunction OscProb = [&indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
@@ -619,15 +607,7 @@ namespace antinufit
 
       Shape *shape = new Shape(name);
 
-      if (function == "OscProbGrid")
-      {
-        shape->SetShapeFunction(OscProbGrid, paramnamevec_);
-        shape->RenameParameter(paramnamevec_.at(0), "deltam21");
-        shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
-        ParameterDict params({{"deltam21", paramvals_.at(paramnamevec_.at(0))}, {"sinsqtheta12", paramvals_.at(paramnamevec_.at(1))}});
-        shape->SetParameters(params);
-      }
-      else if (function == "OscProb")
+      if (function == "OscProb")
       {
         shape->SetShapeFunction(OscProb, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
@@ -790,8 +770,8 @@ namespace antinufit
       if (paramnamevec_.size() != 2)
         throw ValueError("FusedOsc systematic " + name + " needs param_names = deltam21,sinsqtheta12");
       OscWeight1D *osc = new OscWeight1D(name, paramnamevec_.at(0), paramnamevec_.at(1), indexdistancemap_, mode);
-      osc->SetParameter(paramnamevec_.at(0), paramvals_[paramnamevec_.at(0)]);
-      osc->SetParameter(paramnamevec_.at(1), paramvals_[paramnamevec_.at(1)]);
+      osc->SetParameter(paramnamevec_.at(0), paramvals_.at(paramnamevec_.at(0)));
+      osc->SetParameter(paramnamevec_.at(1), paramvals_.at(paramnamevec_.at(1)));
       syst = osc;
     }
 

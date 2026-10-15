@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include <stdexcept>
 
 #include <ParameterDict.h>
 #include <SystSetup.hh>
@@ -106,6 +107,7 @@ namespace antinufit
         mins.erase(par);
         maxs.erase(par);
         sigmas.erase(par);
+        in.p.nbins.erase(par);
         fixedPars.erase(par);
         in.p.fdValues.erase(par);
 

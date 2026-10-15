@@ -1,6 +1,5 @@
 // Antinu headers
 #include <FitConfigLoader.hh>
-#include <OscGridConfigLoader.hh>
 #include <DatasetSetup.hh>
 #include <OutputDirs.hh>
 #include <FitSummary.hh>
@@ -42,8 +41,7 @@ namespace
 void fixedosc_llhscan(const std::string &fitConfigFile_,
                       const std::string &evConfigFile_,
                       const std::string &pdfConfigFile_,
-                      const std::string &systConfigFile_,
-                      const std::string &oscGridConfigFile_)
+                      const std::string &systConfigFile_)
 {
   Rand::SetSeed(0);
 
@@ -60,12 +58,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   // Load in pdf axis and data path info
   DatasetSetup setup = LoadDatasetSetup(evConfigFile_, pdfConfigFile_);
 
-  // Load up the oscillation probability grids
-  OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
-  OscGridConfig oscGridConfig = oscGridLoader.Load();
-  // Read the reactor distance info
-  std::string reactorjson = oscGridConfig.GetReactorsJsonFile();
-  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorjson);
+  // Reactor baselines are shared by fixed and floating oscillation calculations.
+  const auto indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
 
   // Build systematics store
   SystSetup syst = BuildSystematics(systConfigFile_,
@@ -275,9 +269,9 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
 int main(int argc, char *argv[])
 {
-  if (argc != 6)
+  if (argc != 5)
   {
-    std::cout << "\nUsage: fixedosc_llhscan <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
+    std::cout << "\nUsage: fixedosc_llhscan <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file>" << std::endl;
     return 1;
   }
 
@@ -285,9 +279,8 @@ int main(int argc, char *argv[])
   std::string eveConfigFile(argv[2]);
   std::string pdfConfigPath(argv[3]);
   std::string systConfigFile(argv[4]);
-  std::string oscgridConfigFile(argv[5]);
 
-  fixedosc_llhscan(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
+  fixedosc_llhscan(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile);
 
   return 0;
 }

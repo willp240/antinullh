@@ -1,8 +1,6 @@
 /*
-Takes in an OscGridConfig (for the JSON filename) and loops over reactor cores
-in the REACTOR RATDB table and calculates the distance. Then assigns a unique
-identifying int for the core, and writes each combination of reactor name,
-distance, and int to the JSON file specified in the Osc Grid config.
+Reads reactor cores from the REACTOR RATDB table and writes their names,
+baselines in km, and integer indices to the specified JSON output file.
 */
 
 // c++ headers
@@ -19,7 +17,6 @@ distance, and int to the JSON file specified in the Osc Grid config.
 #include <RAT/DB.hh>
 
 // AntinuLLH headers
-#include <OscGridConfigLoader.hh>
 #include <Utilities.hh>
 
 using namespace antinufit;
@@ -28,15 +25,11 @@ int main(int argc, char *argv[])
 {
   if (argc != 2)
   {
-    std::cout << "Usage: make_reactor_json osc_grid_config_file" << std::endl;
+    std::cout << "Usage: make_reactor_json <output_json_file>" << std::endl;
     return 1;
   }
 
-  // Load up the reactors json file
-  std::string oscConfigFile(argv[2]);
-  OscGridConfigLoader oscGridLoader(oscConfigFile);
-  OscGridConfig oscGridConfig = oscGridLoader.Load();
-  std::string reactorsJSONFile = oscGridConfig.GetReactorsJsonFile();
+  const std::string reactorsJSONFile(argv[1]);
 
   std::map<int, std::tuple<std::string, double>> reactorIndex;
 
@@ -74,8 +67,12 @@ int main(int argc, char *argv[])
 
   // Save to file
   std::ofstream file(reactorsJSONFile);
+  if (!file)
+    throw std::runtime_error("Cannot open reactor JSON output: " + reactorsJSONFile);
   file << j.dump(4); // Pretty-print with 4 spaces
   file.close();
+  if (!file)
+    throw std::runtime_error("Failed to write reactor JSON output: " + reactorsJSONFile);
 
   return 0;
 }

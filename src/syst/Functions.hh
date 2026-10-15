@@ -19,10 +19,11 @@ namespace antinufit
   double BirksLaw(const ParameterDict &, const double &);
   double OscProb(const ParameterDict &, const std::vector<double> &);
   // Disappearance probability 1 - P_ee(baseline [km], nuEnergy [MeV], deltam21, sin^2(theta12))
-  double OscProb2(double, double, double, double );
+  double OscProb2(double, double, double, double);
 
   // OscProb2 split into its baseline-independent part (computed once per energy) and a cheap
-  // per-baseline part: OscProb2EnergyTerms(E, dm21, s12sq).Evaluate(L) == OscProb2(L, E, dm21, s12sq)
+  // per-baseline part: OscProb2EnergyTerms(E, dm21, s12sq).Evaluate(L) is numerically equivalent
+  // to OscProb2(L, E, dm21, s12sq), up to floating-point rounding.
   struct OscProb2Terms
   {
     double nuEnergy;

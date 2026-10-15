@@ -5,7 +5,6 @@
 #include <EventConfigLoader.hh>
 #include <SystConfigLoader.hh>
 #include <SystFactory.hh>
-#include <OscGridConfigLoader.hh>
 
 // OXO headers
 #include <ROOTNtuple.h>
@@ -39,7 +38,7 @@ using namespace antinufit;
 /// each branch represents one of the fit parameters.
 /// First open the root file (made by makeFixedOscTree) and find the
 /// minimum LLH entry. The user supplies the fit config and
-/// oscgrid config used to produce one (any) of the fits.
+/// fit config used to produce one (any) of the fits.
 ///
 /// There is a function for reading either the txt or root files
 /// outputted by the fits. The root file is used by default as it
@@ -274,7 +273,7 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
     }
 }
 
-void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscGridConfigFile_)
+void makeFixedOscTree(const std::string &fitConfigFile_)
 {
     Rand::SetSeed(0);
 
@@ -321,11 +320,8 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     else if (hasSinSqTheta12)
         theta12name = "sinsqtheta12";
 
-    // Use the osc grid config to get the number of steps in each oscillation parameter
-    OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
-    OscGridConfig oscGridConfig = oscGridLoader.Load();
-    int numDeltam = oscGridConfig.GetNumValsDm21sq();
-    int numTheta = oscGridConfig.GetNumValsSsqth12();
+    const int numDeltam = fitConfig.GetFixedOscDmPoints();
+    const int numTheta = fitConfig.GetFixedOscThetaPoints();
 
     double theta, deltam;
 
@@ -404,11 +400,8 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
     pdfcfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "pdf_config.ini";
     std::ostringstream syscfg;
     syscfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "syst_config.ini";
-    std::ostringstream osccfg;
-    osccfg << outDir << "/th" << std::fixed << std::setprecision(3) << bestTheta << "/cfg/" << "oscgrid_config.ini";
-
     std::ostringstream fit_command;
-    fit_command << "./bin/fixedosc_fit " << bestfitcfg.str() << " " << eventcfg.str() << " " << pdfcfg.str() << " " << syscfg.str() << " " << osccfg.str();
+    fit_command << "./bin/fixedosc_fit " << bestfitcfg.str() << " " << eventcfg.str() << " " << pdfcfg.str() << " " << syscfg.str();
     std::cout << fit_command.str().c_str() << std::endl;
     // Now rerun that fit
     system(fit_command.str().c_str());
@@ -534,16 +527,15 @@ void makeFixedOscTree(const std::string &fitConfigFile_, const std::string &oscG
 int main(int argc, char *argv[])
 {
 
-    if (argc != 3)
+    if (argc != 2)
     {
-        std::cout << "\nUsage makeFixedOscTree <fit_config_file> <oscgrid_config_file>" << std::endl;
+        std::cout << "\nUsage makeFixedOscTree <fit_config_file>" << std::endl;
         return 1;
     }
 
     std::string fitConfigFile(argv[1]);
-    std::string oscGridConfigFile(argv[2]);
 
-    makeFixedOscTree(fitConfigFile, oscGridConfigFile);
+    makeFixedOscTree(fitConfigFile);
 
     return 0;
 }

@@ -1,6 +1,5 @@
 // Antinu headers
 #include <FitConfigLoader.hh>
-#include <OscGridConfigLoader.hh>
 #include <DatasetSetup.hh>
 #include <OutputDirs.hh>
 #include <FitSummary.hh>
@@ -37,8 +36,7 @@ namespace
 void mcmc(const std::string &fitConfigFile_,
           const std::string &evConfigFile_,
           const std::string &pdfConfigFile_,
-          const std::string &systConfigFile_,
-          const std::string &oscGridConfigFile_)
+          const std::string &systConfigFile_)
 {
   Rand::SetSeed(0);
 
@@ -61,12 +59,9 @@ void mcmc(const std::string &fitConfigFile_,
   // Load in pdf axis and data path info
   DatasetSetup setup = LoadDatasetSetup(evConfigFile_, pdfConfigFile_);
 
-  // Load up the oscillation probability grids
-  OscGridConfigLoader oscLoader(oscGridConfigFile_);
-  OscGridConfig oscGridConfig = oscLoader.Load();
-  std::string reactorjson = oscGridConfig.GetReactorsJsonFile();
-  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorjson);
-  
+  // Reactor baselines are shared by fixed and floating oscillation calculations.
+  const auto indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
+
   SystSetup syst = BuildSystematics(systConfigFile_,
                                     setup.pdfConfig,
                                     in.p.noms,
@@ -306,9 +301,9 @@ void mcmc(const std::string &fitConfigFile_,
 
 int main(int argc, char *argv[])
 {
-  if (argc != 6)
+  if (argc != 5)
   {
-    std::cout << "\nUsage: mcmc <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
+    std::cout << "\nUsage: mcmc <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file>" << std::endl;
     return 1;
   }
 
@@ -316,9 +311,8 @@ int main(int argc, char *argv[])
   std::string eveConfigFile(argv[2]);
   std::string pdfConfigPath(argv[3]);
   std::string systConfigFile(argv[4]);
-  std::string oscgridConfigFile(argv[5]);
 
-  mcmc(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
+  mcmc(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile);
 
   return 0;
 }

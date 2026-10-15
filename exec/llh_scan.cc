@@ -5,7 +5,6 @@
 #include <EventConfigLoader.hh>
 #include <SystConfigLoader.hh>
 #include <SystFactory.hh>
-#include <OscGridConfigLoader.hh>
 
 // OXO headers
 #include <ROOTNtuple.h>
@@ -25,8 +24,7 @@ using namespace antinufit;
 void llh_scan(const std::string &fitConfigFile_,
               const std::string &evConfigFile_,
               const std::string &pdfConfigFile_,
-              const std::string &systConfigFile_,
-              const std::string &oscGridConfigFile_)
+              const std::string &systConfigFile_)
 {
   Rand::SetSeed(0);
 
@@ -87,21 +85,8 @@ void llh_scan(const std::string &fitConfigFile_,
   std::map<std::string, std::vector<std::string>> systTransObs = systConfig.GetTransObs();
   std::vector<std::string> fullParamNameVec;
 
-  // Load up the oscillation probability grids
-  OscGridConfigLoader oscGridLoader(oscGridConfigFile_);
-  OscGridConfig oscGridConfig = oscGridLoader.Load();
-  std::string outfilename = oscGridConfig.GetFilename();
-  std::string reactorjson = oscGridConfig.GetReactorsJsonFile();
-  std::map<int, OscGrid *> oscGridMap;
-
-  // First read the reactor distance info
-  std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(reactorjson);
-  for (std::unordered_map<int, double>::iterator it = indexDistance.begin(); it != indexDistance.end(); ++it)
-  {
-    std::string oscGridFileName = outfilename + "_" + std::to_string(it->first) + ".root";
-    OscGrid *oscGrid = new OscGrid(oscGridFileName);
-    oscGridMap[it->first] = oscGrid;
-  }
+  // Reactor baselines are shared by fixed and floating oscillation calculations.
+  const auto indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
 
   // Loop over systematics and declare each one
   std::map<std::string, Systematic *> systMap;
@@ -122,7 +107,7 @@ void llh_scan(const std::string &fitConfigFile_,
     fullParamNameVec.insert(fullParamNameVec.end(), systParamNames[it->first].begin(), systParamNames[it->first].end());
 
     // Now build the systematic
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], systParamNames[it->first], noms, oscGridMap, indexDistance);
+    Systematic *syst = SystFactory::New(it->first, systType[it->first], systParamNames[it->first], noms, indexDistance);
     AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to
@@ -449,9 +434,9 @@ void llh_scan(const std::string &fitConfigFile_,
 
 int main(int argc, char *argv[])
 {
-  if (argc != 6)
+  if (argc != 5)
   {
-    std::cout << "\nUsage: llh_scan <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file> <oscgrid_config_file>" << std::endl;
+    std::cout << "\nUsage: llh_scan <fit_config_file> <eve_config_file> <pdf_config_file> <syst_config_file>" << std::endl;
     return 1;
   }
 
@@ -459,9 +444,8 @@ int main(int argc, char *argv[])
   std::string eveConfigFile(argv[2]);
   std::string pdfConfigPath(argv[3]);
   std::string systConfigFile(argv[4]);
-  std::string oscgridConfigFile(argv[5]);
 
-  llh_scan(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile, oscgridConfigFile);
+  llh_scan(fitConfigFile, eveConfigFile, pdfConfigPath, systConfigFile);
 
   return 0;
 }

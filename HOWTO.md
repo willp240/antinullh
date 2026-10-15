@@ -23,23 +23,16 @@ The systematic factory, when given a systematic name, type, and list of associat
 - `Conv:Gaussian:SquareRootScale`: A Convolution with a Gaussian function where the width of the Gaussian runs with the square root of the axis in question
 - `ScaleFunction:BirksLaw`: A ScaleFunction systematic where the function used modifies Birk's Constant
 - `Shape:OscProb`: A Shape systematic, where the function used modifies the oscillation probability. The probability is calculated directly
-- `Shape:OscProbGrid`: A Shape systematic, where the function used modifies the oscillation probability. The probability is obtained from OscGrids (more on these later)
 
 <h4>Functions</h4>
 
 Functions that can be passed to systematics are defined in here. Currently they are Birk's Law and the Oscillation Probability calculations. However, to pass lambdas to these functions, they had to be defined inline so this file may soon be removed.
 
-<h4>OscGrids</h4>
-
-The oscillation probability calculation can be quite slow to do on the fly, so instead we can produce an "Oscillation Grid" (<code>OscGrid</code>). The probability of oscillation depends on the true neutrino energy, the distance travelled, and the oscillation parameters $\Delta m^2_{21}$ and $\theta_{12}$, so we can pre-calculate the probabilities for different values of each of those variables, and then linearly interpolate between them. As the distances to reactor cores are all fixed distinct values, rather than interpolate, we can produce a 3D grid for each reactor core distance.
-
-The `OscGrid` class has attributes for the min and max values and number of grid points for each dimension (true neutrino energy, $\Delta m^2_{21}$ and $\theta_{12}$), along with a vector of probabilities where each element represents the probability at a single point on the grid. An `OscGrid` can be constructed using just the axis ranges and number of points, along with the filename the grid will be written to and the distance it applies for. You can then calculate the probabilities at each grid point using the `CalcGrid` method. This can be written to the output file with the `Write` method. Alternatively you can load up a pre-written and calculated grid with the `Load` method. You can then obtain the probability for a given set of parameters with the `Evaluate` method. There are also 'Getters' for the probability vector, and vectors containing the grid points for each dimension. The calculation of the probability uses code copied from the RAT-tools/AntinuTools repo. We will look at making that code portable so we can call it rather than copy it in the future. The interpolation for calculating probabilities between grid points is done using functions which are stolen from the `OXO` Solar Analysis (https://github.com/dcookman/solar_analysis/). 
-
 <h3>Utils (src/util)</h3>
 
 <h4>Utilities</h4>
 
-This file contains utility functions, mostly related to the Oscillation Grids. There is a function to turn the `OscGrids` max, min, and number of point values for a given dimension into a vector, along with a function to find the grid points that surround a given point in the `OscGrid`. These are both stolen from https://github.com/dcookman/solar_analysis. There is also a function here to load the reactor core indices and distances from SNO+ into a map from a JSON file, and functions taken from the rat-tools antinu tools to calculate the distance from reactors to SNO+.
+This file contains reactor JSON loading, reactor-distance calculations, string utilities and fit-parameter reporting.
 
 <h4>DistBuilder</h4>
 
@@ -163,24 +156,15 @@ The name of these tables should be the name of the systematic.
 - `group`: This is the group of pdfs the systematic will be applied to. If this is left blank it will apply to all PDFs
 - `dataset`: This is the dataset the systematic applies to. This should match the name of a dataset defined in the event config file
 
-<h4>Oscillation Grid</h4>
+<h4>Reactor baselines and fixed-oscillation scans</h4>
 
-This file should contain information about the oscillation grids you want to use in the analysis, both for producing them, and reading them.
-Note, the oscillation grid calculation of the survival probability is still slow, so we tend to run fits at fixed oscillation parameter values. In this case the info in this file is often not used, apart from the `reactorsjson` to apply the one-time oscillation at the start of a fit, and the bounds of the oscillation parameters (so the range we will run individual fits over).
+The fit config's `[summary]` section includes:
 
-<h5>Summary</h5>
+- `reactorsjson`: path to the reactor-index, name and baseline JSON. Relative paths are resolved from the executable's working directory, as before.
+- `fixedosc_dm_points`: number of fixed-fit scan points in delta-m-squared (default 500).
+- `fixedosc_theta_points`: number of fixed-fit scan points in the configured theta-like parameter (default 500).
 
-- `filename`: Where the oscillation grids should be written to and read from
-- `reactorsjson`: Where the reactor distances should be read from
-- `mine`: The minimum true neutrino energy of the grid
-- `maxe`: The maximum true neutrino energy of the grid
-- `numvalse`: The number of grid points on the energy axis
-- `mindm21sq`: The minimum $\Delta m^{2}_{21}$ value of the grid
-- `maxdm21sq`: The maximum $\Delta m^{2}_{21}$ value of the grid
-- `numvalsdm21sq`: The number of grid points on the $\Delta m^{2}_{21}$  axis
-- `minssqth12`: The minimum $\text{sin}^2 \theta_{12}$ value of the grid
-- `maxssqth12`: The maximum $\text{sin}^2 \theta_{12}$ value of the grid
-- `numvalsssqth12`: The number of grid points on the $\text{sin}^2 \theta_{12}$ axis
+The scan bounds come from the oscillation parameters' `min` and `max` fields. These scan counts describe repeated fixed fits; MCMC does not use them. Reactor oscillation probabilities are calculated directly, with no probability lookup tables.
 
 <h3>Fit Utils</h3>
 There are a number of functions and structs used to keep clutter out of the main execs. These live in three subdirectories under `/src/fit`:
@@ -215,19 +199,11 @@ These above classes and config files, along with all the OXO classes, are brough
 
 To calculate the oscillation probability for an MC reactor IBD event, we need to know how far it has travelled, so we need to know the distance from the reactor it was produced in to SNO+. Rather than do this calculation on the fly at every event for every iteration of a fit, we precalculate the distance for each reactor core. You can do this by running:
 
-> ./bin/make_reactor_json osc_grid_config_file
+> ./bin/make_reactor_json reactorjsons/allcores_rat_VERSION.json
 
 This will loop over cores defined in the `REACTORS` RATDB table, and calculate the distance from it to SNO+. This gets saved in a JSON file, along with the reactor's name, and a unique integer assigned to the core. The integer is used as a numerical dimension for the reactor neutrino PDFs.
 
-The output json file path is set in the oscillation grid config. These are likely not to change very often (only when cores come online, or an error in the locations in the RATDB table is fixed. If a reactor's distance to SNO+ physically changes we probably have more pressing issues!), so they can be saved and committed in the `reacttorjsons` directory to avoid having to reproduce them. It will be good practice to indicate in the filename the RAT version it was produced with, and which cores it contains. For RAT 8.0.0, there is a committed json file with all cores, and another one with just Bruce 1 for quicker testing of the machinery.
-
-<h3>Making Oscillation Grids</h3>
-
-To produce a single reactor core `OscGrid`, run:
-
-> ./bin/make_osc_grids oscgrid_config index_to_write
-
-In the submitting batch jobs section we will discuss running over all reactor cores at once.
+The output JSON path is supplied on the command line. Set `reactorsjson` in the fit config to that path. Keep the same JSON mapping for pruning and fitting: the stored reactor indices must correspond to the MC's `reactorIndex` values. These are likely not to change very often (only when cores come online, or an error in the locations in the RATDB table is fixed. If a reactor's distance to SNO+ physically changes we probably have more pressing issues!), so they can be saved and committed in the `reacttorjsons` directory to avoid having to reproduce them. It will be good practice to indicate in the filename the RAT version it was produced with, and which cores it contains. For RAT 8.0.0, there is a committed json file with all cores, and another one with just Bruce 1 for quicker testing of the machinery.
 
 <h3>Pruning Trees</h3>
 
@@ -235,7 +211,7 @@ Raw SNO+ ntuples, although much more lightweight than RATDS files, still contain
 
 The `prune_trees` app does this for us. Having set your filepaths for each dataset in your `events` config file, simply run:  
 
-> ./bin/prune_trees cfg/event_config.ini
+> ./bin/prune_trees cfg/event_config.ini cfg/fit_config.ini
 
 This looks for ntuple files for each of the event types specified in the `event` config (you can select/deselect event types with the active/inactive fields) and produces a new set of files containing only the relevant trees for the analysis (energy, position, fit validity, pulse shape discrimination values, and true neutrino energy and reactor name for reactor neutrinos). Be warned, if using all event types, this will take some time! (of order several hours).
 
@@ -253,7 +229,7 @@ There are two likelihood scan apps. The first, `fixedosc_llhscan` initially loop
 
 To run the fixedosc LLH scan:  
 
-> ./bin/fixedosc_llhscan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+> ./bin/fixedosc_llhscan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini
 
 You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter specified in the fit config. A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
 
@@ -261,7 +237,7 @@ The other version of the likelihood scan, `llh_scan`, hands all the parameters, 
 
 To run the LLH scan:  
 
-> ./bin/llh_scan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+> ./bin/llh_scan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini
 
 Both LLH scan apps will also produce several subdirectories inside the `output_directory` set in the `fit_config`. `unscaled_pdfs` will contain each of the unscaled (normalised) PDFs without any systematics applied. `asimov_dists` will contain each of the PDFs scaled to their nominal rates with nominal systematics applied. If you're running with `fake_data = 1` in the `fit_config`, `fakedata_dists` will contain each of the PDFs scaled to their fake data value rate with systematics applied at their fake data values.
 
@@ -269,7 +245,7 @@ Both LLH scan apps will also produce several subdirectories inside the `output_d
 
 Now the time has come to run a fit. When we float the oscillation parameters, we need extra dimensions for the reactors PDF to contain the true neutrino energy and the reactor core it came from. As there are 483 cores, if we have 140 bins in each energy dimension, we end up with over 9 million bins! This means marginalising down to 1D to compare to data takes a lot of time. There are few ideas to get around this, but first let's run individual fits where we don't vary the oscillation parameters (so everything remains 1D and fast), and do this at all points in a grid of oscillation parameter values. We can do this for one point with:
 
-> ./bin/fixedosc_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+> ./bin/fixedosc_fit cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini
 
 The value of the oscillation parameters should be set (and fixed) in the `fit` config file. You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter. This performs a `Minuit` fit, with the oscillation parameters fixed at those values and the Minuit settings in the `fitCofig`. It will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs a fit. A variety of output files are produced (if the `save_outputs` in the `fitConfig` is set).
 
@@ -283,7 +259,9 @@ In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter
 
 If you want to run a full fit where everything is floated at once, there is an app to run some Markov Chain Monte Carlo. First you want to make sure everything in your fit config is looking sensible. The min and max values, and sigmas for each event type are fairly well tuned, so it's advised you leave these alone unless you know what you're doing. Certainly, for your first fit testing out the code I would leave it as is. If you have good reason to change them, you probably don't need to be reading this guide! You can run a full fit by:
 
-> ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini cfg/oscgrid.ini
+> ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini
+
+Set `save_outputs = 1` in the fit config to save the chain, posterior histograms, fit result and spectra. With `save_outputs = 0`, only console summaries are produced.
 
 In practice, run many chains in parallel on Condor with `util/submitCondor.py` (see Submitting Batch Jobs below). For example, 50 chains with the default config set in `cfg/mcmcDefault/` (oscillation parameters floated through the `FusedOsc` systematic):
 
@@ -295,7 +273,6 @@ python util/submitCondor.py mcmc /path/to/output/mcmcDefault_run1 \
     -i cfg/mcmcDefault/event_config.ini \
     -p cfg/mcmcDefault/pdf_config.ini \
     -s cfg/mcmcDefault/syst_config.ini \
-    -o cfg/mcmcDefault/oscgrid_config.ini \
     -n 50 \
     -w 86400 \
     -m 4000 \
@@ -324,13 +301,13 @@ Every batch system will be different, but for submitting to a Condor based queue
 
 You can submit N jobs with:  
 
-> python utils/submitCondor.py exec_name output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini -o cfg/oscgrid.ini -n N -w walltime
+> python utils/submitCondor.py exec_name output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini  -n N -w walltime
 
 The environment file you supply here should be whatever you use to set up ROOT, python, GSL, etc., not `antinullh/env.sh` (which should be sourced before running the python submission). The output directory will be created, with several subdirectories:
 
 `error`, `output` and `log` contain the console outputs and batch log. `sh` and `submit` contain the files used to submit these jobs, and `cfg` contains all the config files used to run the fit. The `output_directory` set in the `fit_config` file will be overwritten by the command line `output_dir` argument.
 
-You can run this script with any of the apps. If you're not running a fit, you probably don't need multiple simultaneous jobs so can just run with N=1. If you're running `make_osc_grid` with the submission script, it will automatically loop over every reactor core in the reactors JSON file and run `make_osc_grid` for each in parallel.
+This script supports the fit executables, `prune_trees` (using `-i` and `-f`), and `makeFixedOscTree` (using `-f`). Run `make_reactor_json` directly with an output JSON filename.
 
 <h3>Fixed Oscillation Parameters Fits</h3>
 
@@ -340,7 +317,7 @@ There is a script, similar to `utils/submitCondor.py` but for submitting these f
 
 You can submit the jobs with:
 
-> python utils/submitFixedOscJobs.py fixedosc_fit output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini  -p cfg/pdf_config.ini -s cfg/syst_config.ini -o cfg/oscgrid.ini -d fits_per_job -w walltime (s) -m requested_memory (MB) -j jobname
+> python utils/submitFixedOscJobs.py fixedosc_fit output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -i cfg/event_config.ini -p cfg/pdf_config.ini -s cfg/syst_config.ini -d fits_per_job -w walltime (s) -m requested_memory (MB) -j jobname
 
 In your fit config, be sure to have `fake_data=1` (and `asimov=0`), and set the oscillation parameter's fake data values to be their nominal values. This way, for every step in the grid, the fake dataset will be produced with the nominal values, and this will be the same for each fit. The python script will update the nominal values of the oscillation parameters in the config file to the current values in the fixed oscillation parameters scan, so we always fit the same fake data, but with different fixed oscillation parameter values each time. 
 
@@ -358,11 +335,11 @@ A lot of the postfit analysis will be done using scripts that reside in `util` (
 
 The first thing you'll want to do after running a set of fixed oscillation parameter fits is run `exec/makeFixedOscTree.cc`. This is currently the only postfit analysis step that requires compiling (which will be handled by the usual `Makefile`). It loops over the outputs of all the fits, and fills a tree. Each entry in the tree represents one fit, and each branch is a fit parameter. The nominal values and prefit constraints are also saved in vectors. You can run it with:
 
-> ./bin/makeFixedOscTree cfg/fit_config.ini cfg/oscgrid_config.ini
+> ./bin/makeFixedOscTree cfg/fit_config.ini
 
 The config files should be ones you've used to run one of the fits. If this takes a long time, you can submit it as a batch job using `utils/submitCondor.py`:
 
-> python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini-o cfg/oscgrid.ini -w walltime
+> python utils/submitCondor.py makeFixedOscTree output_dir -r /path/to/this/repo/ -e /path/to/env/file/ -f cfg/fit_config.ini -w walltime
 
 Once the tree is made, it finds the fit that had the best LLH, and reruns that fit with the `save_outputs` bool in the fit config set to true and Minuit settings updated to do a more rigorous fit. The covariance matrix from this fit is saved along with the tree of fit results.
 
@@ -527,7 +504,7 @@ where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `co
 
 <h4>Run Postfit Scripts</h4>
 
-This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. You need to supply it with a directory that contains a `fit_config` and an `oscgrid_config`. These should be identical to one of the ones you used to run these fits, but with the `output_directory` field in the `fit_config` set to the top level output directory for the set of fits. It is run with:
+This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. You need to supply it with a directory that contains a `fit_config.ini` containing `reactorsjson` and the fixed-oscillation scan counts. This should be identical to one of the ones you used to run these fits, but with the `output_directory` field in the `fit_config` set to the top level output directory for the set of fits. It is run with:
 
 > ./util/run_postfit_scripts.sh /path/to/config/dir <correlated_fit_bool> <(alpha,n)_classifier_bool> <datafit_bool>
 

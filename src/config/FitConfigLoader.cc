@@ -22,6 +22,19 @@ namespace antinufit
   {
     FitConfig ret;
     ConfigLoader::Open(fPath);
+    std::string reactorsJson;
+    ConfigLoader::Load("summary", "reactorsjson", reactorsJson);
+    if (reactorsJson.empty())
+      throw std::runtime_error("Fit config " + fPath + ": summary.reactorsjson must not be empty");
+    ret.SetReactorsJsonFile(reactorsJson);
+    int dmPoints = 500, thetaPoints = 500;
+    try { ConfigLoader::Load("summary", "fixedosc_dm_points", dmPoints); }
+    catch (const ConfigFieldMissing &) {}
+    try { ConfigLoader::Load("summary", "fixedosc_theta_points", thetaPoints); }
+    catch (const ConfigFieldMissing &) {}
+    if (dmPoints <= 0 || thetaPoints <= 0)
+      throw std::runtime_error("Fit config " + fPath + ": fixed-oscillation scan counts must be positive");
+    ret.SetFixedOscPoints(dmPoints, thetaPoints);
     int it;
     int burnIn;
     int HMCit;

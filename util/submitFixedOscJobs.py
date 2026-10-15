@@ -1,5 +1,6 @@
 import os
 import argparse
+import configparser
 
 deltam_min = 0
 deltam_max = 0
@@ -53,21 +54,18 @@ def read_fitcfg(fit_config):
 
     return deltam_min, deltam_max, theta_min, theta_max
 
-def read_osccfg(filename):
-    numvalsdeltam = None
-    numvalstheta = None
-
-    with open(filename, "r") as file:
-        for line in file:
-            if line.startswith("numvalsdm21sq"):
-                numvalsdeltam = int(line.split("=")[1].strip())
-            elif line.startswith("numvalsssqth12"):
-                numvalstheta = int(line.split("=")[1].strip())
-
-    return numvalsdeltam, numvalstheta
+def read_scan_points(filename):
+    config = configparser.ConfigParser()
+    if not config.read(filename):
+        raise FileNotFoundError(filename)
+    dm = config.getint("summary", "fixedosc_dm_points", fallback=500)
+    theta = config.getint("summary", "fixedosc_theta_points", fallback=500)
+    if dm <= 0 or theta <= 0:
+        raise ValueError("Fixed-oscillation scan counts must be positive")
+    return dm, theta
 
 def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
-                    fit_config, event_config, pdf_config, syst_config, osc_config,
+                    fit_config, event_config, pdf_config, syst_config,
                     walltime, mem, theta, start_idx, end_idx,
                     sleep_time=1, priority=5):
     '''
@@ -131,10 +129,6 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
     if syst_config != "":
         os.system("cp " + str(syst_config) + " " + str(configs_path) + "/" + os.path.basename(syst_config) )
         syst_config = configs_path + "/" + syst_config.split("/")[-1]
-    if osc_config != "":
-        os.system("cp " + str(osc_config) + " " + str(configs_path) + "/" + os.path.basename(osc_config) )
-        osc_config = configs_path + "/" + osc_config.split("/")[-1]
-
     other_commands = f'sleep $[($RANDOM%{sleep_time+1})+1]s'
 
     # Write sh file
@@ -152,7 +146,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
         new_filename = f"{base_name}_th{theta}_dm{deltam}{ext}"
         new_filename = configs_path + "/" + new_filename
 
-        out_macro_text += f"{exec_path} {new_filename} {event_config} {pdf_config} {syst_config} {osc_config}\n"
+        out_macro_text += f"{exec_path} {new_filename} {event_config} {pdf_config} {syst_config}\n"
 
     sh_filepath = "{0}/sh/".format(condor_path) + str(out_dir_base).replace("/", "") + '.sh'
     if not os.path.exists(os.path.dirname(sh_filepath)):
@@ -207,7 +201,6 @@ if __name__ == "__main__":
     parser.add_argument('-i', "--event_cfg", type=str, default="", help='event config path')
     parser.add_argument('-p', "--pdf_cfg", type=str, default="", help='pdf config path')
     parser.add_argument('-s', "--syst_cfg", type=str, default="", help='syst config path')
-    parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
     parser.add_argument('-d', "--numdeltams", type=int, default=250, help='number of deltam points (individual fits) per job')
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="max runtime (seconds)")
     parser.add_argument("-m", "--mem", type=float, default=300, help="max memory (MB)")
@@ -223,14 +216,13 @@ if __name__ == "__main__":
     event_config = run_dir + "/" + args.event_cfg if args.event_cfg != "" else ""
     pdf_config = run_dir + "/" + args.pdf_cfg if args.pdf_cfg != "" else ""
     syst_config = run_dir + "/" + args.syst_cfg if args.syst_cfg != "" else ""
-    osc_config = run_dir + "/" + args.osc_cfg if args.osc_cfg != "" else ""
     deltam_chunk = args.numdeltams
     walltime = args.wall_time
     mem = args.mem
     job_name = args.job_name
 
     deltam_min, deltam_max, theta_min, theta_max = read_fitcfg(fit_config)
-    numvalsdeltam, numvalstheta = read_osccfg(osc_config)
+    numvalsdeltam, numvalstheta = read_scan_points(fit_config)
 
     if job_name == "":
         job_name = base_name
@@ -250,5 +242,5 @@ if __name__ == "__main__":
 
             pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file,
                             fit_config, event_config, pdf_config, syst_config,
-                            osc_config, walltime, mem, theta,
+                            walltime, mem, theta,
                             start_idx, end_idx, sleep_time = 1, priority = 5)

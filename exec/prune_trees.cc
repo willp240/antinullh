@@ -13,7 +13,7 @@ energy to determine which alpha-n process an event was
 
 // Antinu headers
 #include <EventConfigLoader.hh>
-#include <OscGridConfigLoader.hh>
+#include <FitConfigLoader.hh>
 #include <Utilities.hh>
 
 // ROOT headers
@@ -109,15 +109,13 @@ int main(int argc, char *argv[])
 {
   if (argc != 3)
   {
-    std::cout << "Usage: prune_trees <event_config_file> <osc_grid_config_file>" << std::endl;
+    std::cout << "Usage: prune_trees <event_config_file> <fit_config_file>" << std::endl;
     return 1;
   }
 
   // Load up the reactors json file
-  std::string oscConfigFile(argv[2]);
-  OscGridConfigLoader oscGridLoader(oscConfigFile);
-  OscGridConfig oscGridConfig = oscGridLoader.Load();
-  std::string reactorsJSONFile = oscGridConfig.GetReactorsJsonFile();
+  FitConfigLoader fitLoader(argv[2]);
+  const std::string reactorsJSONFile = fitLoader.LoadActive().GetReactorsJsonFile();
   std::unordered_map<std::string, int> reactorNameIndex = LoadNameIndexMap(reactorsJSONFile);
 
   // Create the results directory if it doesn't already exist

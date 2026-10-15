@@ -13,16 +13,6 @@ namespace antinufit
   double OscProb(const ParameterDict &params, const std::vector<double> &obs_vals)
   {
 
-    // use index to determine distance
-    // First read the reactor distance info
-    // std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap("reactors.json");
-    // use distance to determine oscgrid name
-    // load up osc grid
-    // calc prob
-    // return prob
-
-    // antinufit::OscGrid osc1(oscgridFile1);
-
     Double_t nuE_parent = obs_vals.at(1);
 
     Double_t fDmSqr21 = params.at("deltam21");
@@ -171,8 +161,8 @@ namespace antinufit
   }
 
   // The part of OscProb2 that depends on neutrino energy and the oscillation parameters but not on the
-  // baseline. The arithmetic is copied from OscProb2 in the same order, so OscProb2Terms::Evaluate
-  // reproduces OscProb2 bit for bit.
+  // baseline. OscProb2Terms::Evaluate is numerically equivalent to OscProb2, up to floating-point
+  // rounding, while allowing the energy-dependent terms to be reused across reactor baselines.
   OscProb2Terms OscProb2EnergyTerms(double nuEnergy, double fDmSqr21, double fSSqrTheta12)
   {
     Double_t nuE_parent = nuEnergy;

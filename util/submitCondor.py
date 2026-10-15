@@ -1,7 +1,5 @@
 import os
 import argparse
-import configparser
-import json
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
@@ -16,19 +14,15 @@ def check_dir(dname):
     return dname
 
 
-def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = ""):
+def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = ""):
     '''
     submit a job to condor, write a sh file to source environment and execute command
     then write a submit file to be run by condor_submit
     '''
 
     print (job_name)
-    if exec_name == "make_osc_grids":
-        batch_name, index = job_name.split('_index_')
-    else:
-        index = ""
-        if batch_name == "":
-            batch_name = job_name
+    if batch_name == "":
+        batch_name = job_name
 
     # Set a condor path to be called later
     condor_path = "{0}/".format(out_dir)
@@ -49,10 +43,6 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     if syst_config != "":
         os.system("cp " + str(syst_config) + " " + str(configs_path) + "/" + os.path.basename(syst_config) )
         syst_config = configs_path + "/" + syst_config.split("/")[-1]
-    if osc_config != "":
-        os.system("cp " + str(osc_config) + " " + str(configs_path) + "/" + os.path.basename(osc_config) )
-        osc_config = configs_path + "/" + osc_config.split("/")[-1]
-
     other_commands = 'sleep $[($RANDOM%' + str(sleep_time+1) + ')+1]s'
 
     # Update output_directory in the fit config, if there is one
@@ -70,11 +60,12 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
         with open(fit_config, "w") as file:
             file.writelines(lines)
 
-    # make_osc_grids only takes: oscgrid_config index
-    if exec_name == "make_osc_grids":
-        exec_args = str(osc_config) + " " + index
+    if exec_name == "makeFixedOscTree":
+        exec_args = str(fit_config)
+    elif exec_name == "prune_trees":
+        exec_args = str(event_config) + " " + str(fit_config)
     else:
-        exec_args = str(fit_config) + " " + str(event_config) + " " + str(pdf_config) + " " + str(syst_config) + " " + str(osc_config)
+        exec_args = " ".join(str(path) for path in (fit_config, event_config, pdf_config, syst_config))
 
     # Write sh file to be ran
     out_macro_text = "#!/usr/bin/sh  \n" + \
@@ -142,12 +133,10 @@ if __name__ == "__main__":
     parser.add_argument('-i', "--event_cfg", type=str, default="", help='event config path')
     parser.add_argument('-p', "--pdf_cfg", type=str, default="", help='pdf config path')
     parser.add_argument('-s', "--syst_cfg", type=str, default="", help='syst config path')
-    parser.add_argument('-o', "--osc_cfg", type=str, default="", help='osc grid config path')
     parser.add_argument("-n", "--num_jobs", type=int, default=1, help="how many identical jobs would you like to run?")
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="what's the maximum runtime (in seconds, default 1 day)?")
     parser.add_argument("-m", "--mem", type=float, default=300, help="what's the maximum memory (in MB, default 300 MB)?")
     parser.add_argument("-j", "--job_name", type=str, default="", help='job name')
-    parser.add_argument("-g", "--grid_prefix", type=str, default="", help='make_osc_grids only: output path prefix, e.g. /path/to/savedir/reactor -> /path/to/savedir/reactor_<index>.root')
     args = parser.parse_args()
 
     # Check if output and condor directories exist, create if they don't
@@ -160,7 +149,6 @@ if __name__ == "__main__":
     event_config = args.event_cfg
     pdf_config = args.pdf_cfg
     syst_config = args.syst_cfg
-    osc_config = args.osc_cfg
     walltime = args.wall_time
     mem = args.mem
     job_name = args.job_name
@@ -172,70 +160,26 @@ if __name__ == "__main__":
         pdf_config = os.path.join(run_dir, args.pdf_cfg)
     if syst_config != "":
         syst_config = os.path.join(run_dir, args.syst_cfg)
-    if osc_config != "":
-        osc_config = os.path.join(run_dir, args.osc_cfg)
 
     if job_name == "":
         job_name = base_name
 
-    # If we're making osc grids, let's do them all in parallel jobs
-    if exec_name == "make_osc_grids":
-        # Get reactors json from oscgrid
-        config = configparser.ConfigParser()
-        if not config.read(osc_config):
-            raise FileNotFoundError("Could not read osc grid config: " + osc_config)
+    # Submit independent jobs
+    for i in range(args.num_jobs):
 
-        # Optionally override the output prefix: write it into a copy of the osc config
-        if args.grid_prefix != "":
-            grid_prefix = os.path.abspath(args.grid_prefix)
-            check_dir(os.path.dirname(grid_prefix))
-            config.set('summary', 'filename', grid_prefix)
-            osc_config = os.path.join(out_dir, os.path.basename(osc_config))
-            with open(osc_config, "w") as f:
-                config.write(f)
+        this_job_name = job_name + "_{0}".format(i)
 
-        # Access the reactors json filepath under the 'summary' section
-        reactorsjson_path = config.get('summary', 'reactorsjson')
-        # Relative reactors json paths are relative to the run dir (where the jobs cd to)
-        if not os.path.isabs(reactorsjson_path):
-            reactorsjson_path = os.path.join(run_dir, reactorsjson_path)
+        # With several jobs, give each its own subdirectory, otherwise they share
+        # one fit config output_directory and overwrite each other's results
+        if args.num_jobs > 1:
+            this_out_dir = check_dir("{0}/{1}/".format(out_dir, this_job_name))
+        else:
+            this_out_dir = out_dir
 
-        # Load the JSON file
-        with open(reactorsjson_path) as f:
-            data = json.load(f)
+        log_dir = check_dir("{0}/log/".format(this_out_dir))
+        error_dir = check_dir("{0}/error/".format(this_out_dir))
+        sh_dir = check_dir("{0}/sh/".format(this_out_dir))
+        submit_dir = check_dir("{0}/submit/".format(this_out_dir))
+        output_dir = check_dir("{0}/output/".format(this_out_dir))
 
-        # Loop over each key-value pair
-        for index, values in data.items():
-            # Convert the key to an integer
-            int_index = int(index)
-            # Each job is named only by its own reactor index
-            this_job_name = job_name + "_index_{0}".format(int_index)
-
-            log_dir = check_dir("{0}/log/".format(out_dir))
-            error_dir = check_dir("{0}/error/".format(out_dir))
-            sh_dir = check_dir("{0}/sh/".format(out_dir))
-            submit_dir = check_dir("{0}/submit/".format(out_dir))
-            output_dir = check_dir("{0}/output/".format(out_dir))
-
-            pycondor_submit(this_job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, mem, sleep_time = 1, priority = 5)
-
-    else:
-        # Otherwise do N jobs
-        for i in range(args.num_jobs):
-
-            this_job_name = job_name + "_{0}".format(i)
-
-            # With several jobs, give each its own subdirectory, otherwise they share
-            # one fit config output_directory and overwrite each other's results
-            if args.num_jobs > 1:
-                this_out_dir = check_dir("{0}/{1}/".format(out_dir, this_job_name))
-            else:
-                this_out_dir = out_dir
-
-            log_dir = check_dir("{0}/log/".format(this_out_dir))
-            error_dir = check_dir("{0}/error/".format(this_out_dir))
-            sh_dir = check_dir("{0}/sh/".format(this_out_dir))
-            submit_dir = check_dir("{0}/submit/".format(this_out_dir))
-            output_dir = check_dir("{0}/output/".format(this_out_dir))
-
-            pycondor_submit(this_job_name, exec_name, this_out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, osc_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = job_name)
+        pycondor_submit(this_job_name, exec_name, this_out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = job_name)

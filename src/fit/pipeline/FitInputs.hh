@@ -28,6 +28,7 @@ namespace antinufit
     ParameterDict maxs;
     ParameterDict noms;
     ParameterDict sigmas;
+    ParameterDict nbins;
 
     ParameterDict fdValues;
     std::map<std::string, bool> fixedPars;
@@ -60,6 +61,7 @@ namespace antinufit
     in.p.maxs = cfg.GetMaxima();
     in.p.noms = cfg.GetNominals();
     in.p.sigmas = cfg.GetSigmas();
+    in.p.nbins = cfg.GetNBins();
 
     in.p.fdValues = cfg.GetFakeDataVals();
     in.p.fixedPars = cfg.GetFixPars();

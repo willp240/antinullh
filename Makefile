@@ -11,7 +11,7 @@ RAT_LIB_NAME := RATEvent_Linux
 
 OXSX_ROOT := $(OXO_DIR)
 OXSX_INC := $(OXSX_ROOT)/include
-OXSX_LIB_DIR := $(OXSX_ROOT)/build 
+OXSX_LIB_DIR := $(OXSX_ROOT)/build/src
 OXSX_LIB_NAME := oxsx
 
 H5_LIBS = hdf5_hl_cpp hdf5_cpp hdf5_hl hdf5
@@ -32,7 +32,7 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/make_osc_grids bin/compare_osc_grids bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/validate_fused_osc bin/test_oscprob2_terms #bin/auto_corrs bin/make_plots bin/llh_scan
+all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc #bin/auto_corrs bin/make_plots bin/llh_scan
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
@@ -41,14 +41,6 @@ bin/prune_trees: exec/prune_trees.cc $(LIB)
 bin/make_reactor_json: exec/make_reactor_json.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/make_reactor_json.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) -larmadillo -o $@
-
-bin/make_osc_grids: exec/make_osc_grids.cc $(LIB)
-	mkdir -p bin
-	$(CXX)  exec/make_osc_grids.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) -o $@
-
-bin/compare_osc_grids: exec/compare_osc_grids.cc $(LIB)
-	mkdir -p bin
-	$(CXX)  exec/compare_osc_grids.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) -larmadillo -o $@
 
 bin/llh_scan: exec/llh_scan.cc $(LIB)
 	mkdir -p bin
@@ -65,14 +57,6 @@ bin/fixedosc_fit: exec/fixedosc_fit.cc $(LIB)
 bin/mcmc: exec/mcmc.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/mcmc.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
-
-bin/validate_fused_osc: exec/validate_fused_osc.cc $(LIB)
-	mkdir -p bin
-	$(CXX)  exec/validate_fused_osc.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
-
-bin/test_oscprob2_terms: exec/test_oscprob2_terms.cc $(LIB)
-	mkdir -p bin
-	$(CXX)  exec/test_oscprob2_terms.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) -o $@
 
 bin/auto_corrs: exec/auto_corrs.cc $(LIB)
 	mkdir -p bin
@@ -99,14 +83,10 @@ build/%.o : src/%.cc
 clean:
 	rm -f bin/prune_trees
 	rm -f bin/make_reactor_json
-	rm -f bin/make_osc_grids
-	rm -f bin/compare_osc_grids
 	rm -f bin/llh_scan
 	rm -f bin/fixedosc_fit
 	rm -f bin/fixedosc_llhscan
 	rm -f bin/mcmc
-	rm -f bin/validate_fused_osc
-	rm -f bin/test_oscprob2_terms
 	rm -f bin/auto_corrs
 	rm -f bin/make_plots
 	rm -f bin/makeFixedOscTree

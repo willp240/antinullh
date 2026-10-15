@@ -80,7 +80,7 @@ def computeRates(total, ratio):
     return u, th
 
 def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
-                    fit_config, event_config, pdf_config, syst_config, osc_config,
+                    fit_config, event_config, pdf_config, syst_config,
                     walltime, mem, ratio, sleep_time = 1, priority= 5):
     """
     Submit one job that runs one fit with U/Th fixed to the given ratio (sum held constant).
@@ -149,10 +149,6 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
     if syst_config != "":
         os.system("cp " + str(syst_config) + " " + str(configs_path) + "/" + os.path.basename(syst_config))
         syst_config = os.path.join(configs_path, os.path.basename(syst_config))
-    if osc_config != "":
-        os.system("cp " + str(osc_config) + " " + str(configs_path) + "/" + os.path.basename(osc_config))
-        osc_config = os.path.join(configs_path, os.path.basename(osc_config))
-
     other_commands = f"sleep $[($RANDOM%{sleep_time+1})+1]s"
 
     # Write sh file (ONE fit)
@@ -162,7 +158,7 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file,
         + "source " + run_dir + "/env_my.sh " + "\n"
         + "cd " + str(run_dir) + "\n"
         + other_commands + "\n"
-        + f"{exec_path} {new_fit_path} {event_config} {pdf_config} {syst_config} {osc_config}\n"
+        + f"{exec_path} {new_fit_path} {event_config} {pdf_config} {syst_config}\n"
     )
 
     out_dir_base = f"{out_dir.split('/')[-2]}_{ratio_dir}"
@@ -216,7 +212,6 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--event_cfg", type=str, default="", help="event config path")
     parser.add_argument("-p", "--pdf_cfg", type=str, default="", help="pdf config path")
     parser.add_argument("-s", "--syst_cfg", type=str, default="", help="syst config path")
-    parser.add_argument("-o", "--osc_cfg", type=str, default="", help="osc grid config path (passed through to executable)")
     parser.add_argument("-n", "--numratios", type=int, default=1, help=" 'ratios per job' (default 1)")
     parser.add_argument("-w", "--wall_time", type=int, default=86400, help="max runtime (seconds)")
     parser.add_argument("-m", "--mem", type=float, default=300, help="max memory (MB)")
@@ -232,7 +227,6 @@ if __name__ == "__main__":
     event_config = os.path.join(run_dir, args.event_cfg) if args.event_cfg != "" else ""
     pdf_config = os.path.join(run_dir, args.pdf_cfg) if args.pdf_cfg != "" else ""
     syst_config = os.path.join(run_dir, args.syst_cfg) if args.syst_cfg != "" else ""
-    osc_config = os.path.join(run_dir, args.osc_cfg) if args.osc_cfg != "" else ""
     walltime = args.wall_time
     mem = args.mem
     job_name = args.job_name
@@ -251,6 +245,6 @@ if __name__ == "__main__":
         submit_dir = check_dir("{0}/submit/".format(out_dir))
         output_dir = check_dir("{0}/output/".format(out_dir))
         pycondor_submit(batch_name, exec_name, out_dir, run_dir, env_file,
-                        fit_config, event_config, pdf_config, syst_config, osc_config,
+                        fit_config, event_config, pdf_config, syst_config,
                         walltime, mem, r, sleep_time=1, priority=5)
 

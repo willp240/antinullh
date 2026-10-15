@@ -43,7 +43,6 @@ alphan="$3"
 data="$4"
 
 fit_config="$cfg_dir/fit_config.ini"
-osc_config="$cfg_dir/oscgrid_config.ini"
 dirname=$(get_output_directory "$fit_config")
 
 # Output log file
@@ -62,7 +61,7 @@ corr=$(normalise_bool "$corr")
 alphan=$(normalise_bool "$alphan")
 data=$(normalise_bool "$data")
 
-cmd="./bin/makeFixedOscTree ${fit_config} ${osc_config}"
+cmd="./bin/makeFixedOscTree ${fit_config}"
 
 echo "Running command: $cmd"
 $cmd | tee tmp_output.log
