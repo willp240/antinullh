@@ -1,4 +1,5 @@
 #include <SystFactory.hh>
+#include <OscParams.hh>
 
 namespace antinufit
 {
@@ -121,10 +122,10 @@ namespace antinufit
     {
 
       // First declare possible functions
-      ShapeFunction GeoOscProb = [](const ParameterDict &params, const std::vector<double> &obs_vals)
+      ShapeFunction GeoOscProb = [paramnamevec_](const ParameterDict &params, const std::vector<double> &obs_vals)
       {
         double fDmSqr21 = params.at("deltam21");
-        double fSSqrTheta12 = params.at("sinsqtheta12");
+        double fSSqrTheta12 = Theta12ToSinSq(paramnamevec_.at(1), params.at("sinsqtheta12"));
         double fDmSqr32 = 2.451e-3;
         double fSSqrTheta13 = 0.0216;
 
@@ -137,78 +138,6 @@ namespace antinufit
         double prob = (fSSqrTheta13 * fSSqrTheta13) + (fCSqrTheta13 * fCSqrTheta13) * (1 - 0.5 * fSSqr2Theta_12);
 
         return prob;
-      };
-
-      ShapeFunction OscProb = [&indexdistancemap_](const ParameterDict &params, const std::vector<double> &obs_vals)
-      {
-        Double_t nuE_parent = obs_vals.at(2);
-        Double_t baseline = indexdistancemap_.at(obs_vals.at(1));
-        Double_t fDmSqr21 = params.at("deltam21");
-        Double_t fDmSqr32 = 2.451e-3;
-        Double_t fSSqrTheta12 = params.at("sinsqtheta12");
-        Double_t fSSqrTheta13 = 0.0216;
-
-        // Declare quantities to use in loops
-        Double_t scale;
-        Double_t fOscProb = 0.0;
-        Double_t Ne = 8.13e23;
-
-        Double_t fDmSqr31 = fDmSqr32 + fDmSqr21;
-
-        Double_t H_ee_vac = fDmSqr21 * (fSSqrTheta12 * (1 - fSSqrTheta13) - (1.0 / 3.0)) + fDmSqr31 * (fSSqrTheta13 - (1.0 / 3.0));
-        Double_t H_neq2 = (1 - fSSqrTheta13) * (fDmSqr21 * fDmSqr21 * fSSqrTheta12 * (1 + fSSqrTheta12 * (fSSqrTheta13 - 1)) + fDmSqr31 * fDmSqr31 * fSSqrTheta13 - 2.0 * fDmSqr21 * fDmSqr31 * fSSqrTheta12 * fSSqrTheta13);
-
-        Double_t a0_vac = -(2.0 / 27.0) * (fDmSqr21 * fDmSqr21 * fDmSqr21 + fDmSqr31 * fDmSqr31 * fDmSqr31) + (1.0 / 9.0) * (fDmSqr21 * fDmSqr21 * fDmSqr31 + fDmSqr21 * fDmSqr31 * fDmSqr31);
-        Double_t a1_vac = (1.0 / 3.0) * (fDmSqr21 * fDmSqr31 - fDmSqr21 * fDmSqr21 - fDmSqr31 * fDmSqr31);
-        Double_t Y_ee_vac = (2.0 / 3.0) * a1_vac + H_ee_vac * H_ee_vac + H_neq2;
-
-        // Declare quantities to use in loop
-        Double_t alpha = -2.535e-31 * Ne; // conversion factor in eV2/MeV
-        Double_t A_CC;
-        Double_t alpha_1;
-        Double_t a0;
-        Double_t a1;
-        Double_t Y_ee;
-        Double_t H_ee;
-        Double_t eigen[3];
-        Double_t X[3];
-        Double_t arcCos;
-        Double_t preFact;
-        Double_t s_10;
-        Double_t s_20;
-        Double_t s_21;
-
-        // do calculation
-        scale = 1.267e3 * baseline / nuE_parent; // for nuE in [MeV] and baseline in [km]
-        A_CC = alpha * nuE_parent;               // for A_CC in [eV^2] and nuE in [MeV]
-
-        // Compute new values for H_ee, Y, a0 and a1 (make sure and Y are updated after their use by others)
-        alpha_1 = H_ee_vac * A_CC + (1.0 / 3.0) * A_CC * A_CC;
-
-        a0 = a0_vac - Y_ee_vac * A_CC - (1.0 / 3.0) * H_ee_vac * A_CC * A_CC - (2.0 / 27.0) * A_CC * A_CC * A_CC;
-        a1 = a1_vac - alpha_1;
-        Y_ee = Y_ee_vac + (2.0 / 3.0) * alpha_1;
-        H_ee = H_ee_vac + (2.0 / 3.0) * A_CC;
-
-        // Get eigenvalues of H, and constants X and theta
-        arcCos = (1.0 / 3.0) * acos(1.5 * (a0 / a1) * sqrt(-3.0 / a1));
-        preFact = 2.0 * sqrt(-a1 / 3.0);
-
-        for (int i = 0; i < 3; ++i)
-        {
-          eigen[i] = preFact * cos(arcCos - (2.0 / 3.0) * M_PI * i);
-          X[i] = (1.0 / 3.0) + (eigen[i] * H_ee + Y_ee) / (3.0 * eigen[i] * eigen[i] + a1);
-        }
-
-        s_10 = sin(scale * (eigen[1] - eigen[0]));
-        s_20 = sin(scale * (eigen[2] - eigen[0]));
-        s_21 = sin(scale * (eigen[2] - eigen[1]));
-
-        // Compute probability
-        fOscProb = 4.0 * (X[1] * X[0] * s_10 * s_10 + X[2] * X[0] * s_20 * s_20 + X[2] * X[1] * s_21 * s_21);
-
-        // fOscProb is the disappearance probability; the PDF weight is P_ee
-        return 1.0 - fOscProb;
       };
 
       // The bin-by-bin efficiencies scaling for the alpha,n classifier on the reactor IBD PDF for PPO
@@ -607,15 +536,7 @@ namespace antinufit
 
       Shape *shape = new Shape(name);
 
-      if (function == "OscProb")
-      {
-        shape->SetShapeFunction(OscProb, paramnamevec_);
-        shape->RenameParameter(paramnamevec_.at(0), "deltam21");
-        shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
-        ParameterDict params({{"deltam21", paramvals_.at(paramnamevec_.at(0))}, {"sinsqtheta12", paramvals_.at(paramnamevec_.at(1))}});
-        shape->SetParameters(params);
-      }
-      else if (function == "GeoOscProb")
+      if (function == "GeoOscProb")
       {
         shape->SetShapeFunction(GeoOscProb, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
@@ -761,14 +682,15 @@ namespace antinufit
 
     else if (type == "FusedOsc")
     {
-      // Reactor oscillation on the 1D energy PDF; param_names = deltam21, sin^2(theta12)
+      // Reactor oscillation on the 1D energy PDF; the angle name determines its representation.
       OscWeight1D::ProbMode mode = OscWeight1D::BinCentre;
       if (function == "BinAverage")
         mode = OscWeight1D::BinAverage;
       else if (function != "")
         throw ValueError("Unknown function, " + function + ", for systematic type: " + type);
-      if (paramnamevec_.size() != 2)
-        throw ValueError("FusedOsc systematic " + name + " needs param_names = deltam21,sinsqtheta12");
+      if (paramnamevec_.size() != 2 || paramnamevec_.at(0) != "deltam21")
+        throw ValueError("FusedOsc systematic " + name +
+                         " needs param_names = deltam21 followed by theta12, sintheta12, or sinsqtheta12");
       OscWeight1D *osc = new OscWeight1D(name, paramnamevec_.at(0), paramnamevec_.at(1), indexdistancemap_, mode);
       osc->SetParameter(paramnamevec_.at(0), paramvals_.at(paramnamevec_.at(0)));
       osc->SetParameter(paramnamevec_.at(1), paramvals_.at(paramnamevec_.at(1)));
