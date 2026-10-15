@@ -83,8 +83,7 @@ namespace antinufit
       double nuEnergy = ev.GetDatum("nu_energy");
       int reacIndex = ev.GetDatum("reactorIndex");
       double baseline = indexDistance_[reacIndex];
-      // double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sin(M_PI*theta12_/180)*sin(M_PI*theta12_/180));
-      double oscprob = antinufit::OscProb2(baseline, nuEnergy, deltam21_, sinsqth12_);
+      double oscprob = antinufit::OscProb(baseline, nuEnergy, deltam21_, sinsqth12_);
       double r = rndm->Rndm();
       if (r > oscprob)
       {
