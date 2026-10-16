@@ -29,7 +29,8 @@ namespace antinufit
     static Systematic *New(const std::string &name,
                            const std::string &type_,
                            const std::vector<std::string> &paramnamevec_,
-                           const ParameterDict &paramvals_);
+                           const ParameterDict &paramvals_,
+                           const ShapeFunction &shapeFunction_ = ShapeFunction());
   };
 
 }

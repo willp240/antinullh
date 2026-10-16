@@ -33,6 +33,6 @@ dataset=dataset1
 param_names=deltam21,sinsqtheta12
 dist_obs=energy
 trans_obs=energy
-type=FusedOsc
+type=Shape:ReactorOscProb
 group=osc_group
 dataset=dataset1

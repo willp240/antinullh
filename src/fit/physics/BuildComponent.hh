@@ -53,20 +53,11 @@ namespace antinufit
                                                   const std::unordered_map<int, double> &indexDistance,
                                                   std::map<std::string, double> &reactorRatioOut,
                                                   std::map<std::string, double> &reactorRatioFDOut,
-                                                  const BuildComponentConfig &cfg = BuildComponentConfig(),
-                                                  const BinnedED *reactorMC = nullptr)
+                                                  const BuildComponentConfig &cfg = BuildComponentConfig())
   {
     ComponentBuildResult r;
 
-    // The Shape applies oscillation; the fit PDF is the same MC projected onto energy.
-    if (reactorMC)
-    {
-      r.dist = reactorMC->Marginalise(reactorMC->GetAxes().GetAxis(0).GetName());
-      r.dist.SetObservables(setup.pdfConfig.GetBranchNames(1));
-      r.dist.SetName(pdfName);
-      r.fakeDist = r.dist;
-    }
-    else if (ev.GetOscillated())
+    if (ev.GetOscillated())
     {
       // Ensure keys exist
       reactorRatioOut[pdfName];

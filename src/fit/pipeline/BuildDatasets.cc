@@ -6,10 +6,6 @@
 #include <RateReporting.hh>
 
 #include <IO.h>
-#include <Shape.h>
-#include <Event.h>
-#include <algorithm>
-#include <cmath>
 
 namespace antinufit
 {
@@ -30,7 +26,7 @@ namespace antinufit
             FitInputs &in,
             const OutputDirs &dirs,
             const DatasetSetup &setup,
-            SystSetup &syst,
+            const SystSetup &syst,
             const BuildDatasetsConfig &cfg,
             const OscParams &osc,
             const std::unordered_map<int, double> &indexDistance,
@@ -43,76 +39,13 @@ namespace antinufit
             BuildResult &out)
         {
             std::cout << "Building distribution for " << pdfName << std::endl;
-
-            std::string oscillationName;
-            bool floatingOscillations = false;
-            const std::vector<std::string> groups = ev.GetGroup();
-            for (const auto &entry : syst.type)
-            {
-                if (entry.second != "FusedOsc" && entry.second.rfind("FusedOsc:", 0) != 0)
-                    continue;
-                floatingOscillations = true;
-                const auto &datasets = syst.dataSets.at(entry.first);
-                if (std::find(datasets.begin(), datasets.end(), dsName) == datasets.end())
-                    continue;
-                const std::string &group = syst.group.at(entry.first);
-                if (group.empty())
-                    throw std::runtime_error("FusedOsc needs an explicit group: " + entry.first);
-                if (std::find(groups.begin(), groups.end(), group) == groups.end())
-                    continue;
-                if (!ev.GetOscillated() || groups.front() != group || ev.GetNumDimensions() != 3 ||
-                    !oscillationName.empty() || syst.byDataset[dsName].count(entry.first))
-                    throw std::runtime_error("FusedOsc must be first and belong to one oscillated 3D component: " + entry.first);
-                oscillationName = entry.first;
-            }
-            if (floatingOscillations && ev.GetOscillated() && oscillationName.empty())
-                throw std::runtime_error("No FusedOsc group for oscillated component " + pdfName);
-
             // Get MC events from file
             std::unique_ptr<DataSet> dataSet = LoadMCDataset(ev.GetPrunedPath());
             if (!dataSet)
-            {
-                if (!oscillationName.empty())
-                    throw std::runtime_error("Cannot load reactor MC for " + pdfName);
                 return;
-            }
             model.pdfGroups.push_back(ev.GetGroup());
 
             const int numDimensions = ev.GetNumDimensions();
-            BinnedED reactorMC;
-            if (!oscillationName.empty())
-            {
-                const auto &params = syst.paramNames.at(oscillationName);
-                const std::string &type = syst.type.at(oscillationName);
-                const auto &obs = syst.distObs.at(oscillationName);
-                if (params.size() != 2 || params.front() != "deltam21" ||
-                    obs != std::vector<std::string>{"energy"} || syst.transObs.at(oscillationName) != obs ||
-                    type != "FusedOsc")
-                    throw std::runtime_error("Invalid FusedOsc parameters, observables or mode: " + oscillationName);
-                for (const auto &entry : syst.byDataset[dsName])
-                    if (syst.group.at(entry.first).empty() || syst.group.at(entry.first) == syst.group.at(oscillationName))
-                        throw std::runtime_error("FusedOsc must have its own group: " + oscillationName);
-
-                // Check reactor identities before histogram filling can clamp them into another bin.
-                const BinAxis reactorAxis = DistBuilder::BuildAxes(setup.pdfConfig, 3).GetAxis(1);
-                for (size_t i = 0; i < dataSet->GetNEntries(); ++i)
-                {
-                    const double reactor = dataSet->GetEntry(i).GetDatum("reactorIndex");
-                    if (!std::isfinite(reactor) || reactor < reactorAxis.GetMin() || reactor >= reactorAxis.GetMax() ||
-                        std::fabs(reactor - std::round(reactor)) > 1e-6 || !indexDistance.count(int(std::lround(reactor))))
-                        throw std::runtime_error("Invalid reactor index or missing baseline in " + pdfName + " event " + std::to_string(i));
-                }
-                reactorMC = DistBuilder::Build(pdfName, 3, setup.pdfConfig, dataSet.get());
-                std::unique_ptr<Shape> shape(new Shape(oscillationName));
-                shape->SetShapeFunction(MakeReactorOscillationShape(reactorMC, indexDistance, params[1]), params);
-                for (const std::string &param : params)
-                    shape->SetParameter(param, in.p.noms.at(param));
-                shape->SetAxes(DistBuilder::BuildAxes(setup.pdfConfig, 1));
-                shape->SetDistributionObs(obs);
-                shape->SetTransformationObs(syst.transObs.at(oscillationName));
-                syst.byDataset[dsName][oscillationName] = shape.get();
-                syst.owned.push_back(std::move(shape));
-            }
 
             // Build the component dists (no systematics yet)
             ComponentBuildResult comp = BuildComponentDists(
@@ -126,7 +59,7 @@ namespace antinufit
                 indexDistance,
                 reactorRatio,
                 reactorRatioFD,
-                cfg.component, oscillationName.empty() ? nullptr : &reactorMC);
+                cfg.component);
 
             // Beeston-Barlow generated rate (pre-normalise count)
             model.genRates.push_back(comp.generated);
@@ -150,8 +83,7 @@ namespace antinufit
                 syst.group,
                 in.p.noms);
 
-            if (oscillationName.empty() || in.run.isFakeData)
-                fakeDataDist = ApplySystematicsByGroups(
+            fakeDataDist = ApplySystematicsByGroups(
                 std::move(fakeDataDist),
                 model.pdfGroups.back(),
                 syst.byDataset.at(dsName),
@@ -277,7 +209,7 @@ namespace antinufit
         FitInputs &in,
         const OutputDirs &dirs,
         const DatasetSetup &setup,
-        SystSetup &syst,
+        const SystSetup &syst,
         const OscParams &osc,
         const std::unordered_map<int, double> &indexDistance,
         const DatasetParsInfo &dsParsInfo,
@@ -314,12 +246,6 @@ namespace antinufit
                     out.reactorRatioFD,
                     out);
             }
-
-            for (const auto &entry : syst.type)
-                if ((entry.second == "FusedOsc" || entry.second.rfind("FusedOsc:", 0) == 0) &&
-                    std::find(syst.dataSets.at(entry.first).begin(), syst.dataSets.at(entry.first).end(), dsName) !=
-                        syst.dataSets.at(entry.first).end() && !syst.byDataset[dsName].count(entry.first))
-                    throw std::runtime_error("Unused FusedOsc systematic " + entry.first + " in " + dsName);
 
             std::cout << std::endl;
             SaveFinalDatasetDists(in, dirs, dsName, model);

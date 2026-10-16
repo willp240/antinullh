@@ -262,11 +262,11 @@ If you want to run a full fit where everything is floated at once, there is an a
 
 Set `save_outputs = 1` in the fit config to save the chain, posterior histograms, fit result and spectra. With `save_outputs = 0`, only console summaries are produced.
 
-`FusedOsc` uses OXO's ordinary `Shape` systematic. During component building, `MakeReactorOscillationShape` in `Functions.cc` prepares a function from the 3D reactor MC histogram; the fit uses that histogram's 1D reconstructed-energy projection. The function supplies the oscillated/original count ratio for each energy bin, using true-energy bin centres. Put its dedicated group first in each reactor component's group list, before detector systematics.
+`Shape:ReactorOscProb` selects the reactor oscillation function for OXO's ordinary `Shape` systematic. Systematic setup prepares its 3D MC histogram before creating the Shape. Set the reactor component to `dimensions=1` and `oscillated=0`: the normal dataset builder makes an unoscillated 1D PDF, and Shape applies the oscillation weights during the fit. Put the Shape's dedicated group first in that component's group list, before detector systematics. The function uses true-energy bin centres and returns the oscillated/original count ratio for each reconstructed-energy bin.
 
-For `FusedOsc`, set `param_names=deltam21,theta12`, `deltam21,sintheta12`, or `deltam21,sinsqtheta12`. The angle parameter must have the same name in the fit config. `theta12` is in degrees; the other names denote sin(theta12) and sin²(theta12). Both reactor and geoneutrino systematics convert internally to sin²(theta12). Bounds, proposal widths, priors and saved samples stay in the configured representation; a uniform prior in one representation is not uniform in the others.
+For `Shape:ReactorOscProb`, set `param_names=deltam21,theta12`, `deltam21,sintheta12`, or `deltam21,sinsqtheta12`. The angle parameter must have the same name in the fit config. `theta12` is in degrees; the other names denote sin(theta12) and sin²(theta12). Both reactor and geoneutrino systematics convert internally to sin²(theta12). Bounds, proposal widths, priors and saved samples stay in the configured representation; a uniform prior in one representation is not uniform in the others.
 
-In practice, run many chains in parallel on Condor with `util/submitCondor.py` (see Submitting Batch Jobs below). For example, 50 chains with the default config set in `cfg/mcmcDefault/` (oscillation parameters floated through the `FusedOsc` systematic):
+In practice, run many chains in parallel on Condor with `util/submitCondor.py` (see Submitting Batch Jobs below). For example, 50 chains with the default config set in `cfg/mcmcDefault/` (oscillation parameters floated through the `Shape:ReactorOscProb` systematic):
 
 ```
 python util/submitCondor.py mcmc /path/to/output/mcmcDefault_run1 \

@@ -24,14 +24,6 @@
 
 using namespace antinufit;
 
-namespace
-{
-  bool IsFusedOsc(const std::string &type)
-  {
-    return type == "FusedOsc" || type.rfind("FusedOsc:", 0) == 0;
-  }
-}
-
 void mcmc(const std::string &fitConfigFile_,
           const std::string &evConfigFile_,
           const std::string &pdfConfigFile_,
@@ -64,16 +56,8 @@ void mcmc(const std::string &fitConfigFile_,
   SystSetup syst = BuildSystematics(systConfigFile_,
                                     setup.pdfConfig,
                                     in.p.noms,
-                                    setup.dsPDFMap);
-
-  // MCMC needs floating oscillation weights for every oscillated component.
-  const bool hasFloatingOscillation = std::any_of(syst.type.begin(), syst.type.end(),
-      [](const auto &entry) { return IsFusedOsc(entry.second); });
-  if (!hasFloatingOscillation)
-    for (const auto &dataset : setup.dsPDFMap)
-      for (const auto &component : dataset.second)
-        if (component.second.GetOscillated())
-          throw std::runtime_error("MCMC needs a FusedOsc systematic for oscillated components");
+                                    setup.dsPDFMap,
+                                    indexDistance);
 
   // Build osc pars
   OscParams osc = BuildOscParams(in.p.noms);
@@ -112,13 +96,10 @@ void mcmc(const std::string &fitConfigFile_,
 
   // Starting point:
   //  - a fixed parameter stays nominal (the sampler never moves it);
-  //  - the oscillation parameters (those of the FusedOsc systematics), and any free parameter with no Gaussian
+  //  - the oscillation parameters, and any free parameter with no Gaussian
   //    prior on itself, start uniformly in [min, max];
   //  - every other free parameter starts at nominal + Gaussian(0, prior sigma), redrawn until inside [min, max].
-  std::set<std::string> oscParNames;
-  for (std::map<std::string, std::string>::iterator systIt = syst.type.begin(); systIt != syst.type.end(); ++systIt)
-    if (IsFusedOsc(systIt->second))
-      oscParNames.insert(syst.paramNames[systIt->first].begin(), syst.paramNames[systIt->first].end());
+  const std::set<std::string> oscParNames = {"deltam21", osc.theta12name};
 
   ParameterDict startVals = allParVals;
   std::cout << "Starting point:" << std::endl;

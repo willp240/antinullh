@@ -8,7 +8,8 @@ namespace antinufit
   SystFactory::New(const std::string &name,
                    const std::string &type_,
                    const std::vector<std::string> &paramnamevec_,
-                   const ParameterDict &paramvals_)
+                   const ParameterDict &paramvals_,
+                   const ShapeFunction &shapeFunction_)
   {
     Systematic *syst;
 
@@ -526,7 +527,13 @@ namespace antinufit
 
       Shape *shape = new Shape(name);
 
-      if (function == "GeoOscProb")
+      if (shapeFunction_)
+      {
+        shape->SetShapeFunction(shapeFunction_, paramnamevec_);
+        for (const std::string &param : paramnamevec_)
+          shape->SetParameter(param, paramvals_.at(param));
+      }
+      else if (function == "GeoOscProb")
       {
         shape->SetShapeFunction(GeoOscProb, paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
