@@ -84,7 +84,7 @@ namespace antinufit
     // Validate params exist in fit config
     CheckSystParams(out, noms);
 
-    for (const auto &dataset : dsPDFMap)
+    for (const std::pair<const std::string, EvMap> &dataset : dsPDFMap)
       out.byDataset[dataset.first];
 
     // Build the configured systematics for each dataset
@@ -101,24 +101,26 @@ namespace antinufit
                                   out.paramNames[systName].begin(),
                                   out.paramNames[systName].end());
 
-      // Each dataset owns its systematics; their parameters are still shared by name.
+      // Each dataset owns its systematics; their parameters are still shared by name
       for (const std::string &ds : out.dataSets.at(systName))
       {
         ShapeFunction shapeFunction;
+        // This Shape function needs a detailed MC histogram before it can be created
         if (out.type.at(systName) == "Shape:ReactorOscProb")
         {
-          const auto &params = out.paramNames.at(systName);
+          // Check the parameter names, energy observables and group are configured correctly
+          const std::vector<std::string> &params = out.paramNames.at(systName);
           const std::string &group = out.group.at(systName);
           if (params.size() != 2 || params.front() != "deltam21" || group.empty() ||
               out.distObs.at(systName) != std::vector<std::string>{"energy"} ||
               out.transObs.at(systName) != out.distObs.at(systName))
             throw std::runtime_error("Invalid reactor oscillation Shape configuration: " + systName);
 
-          // This function needs the unoscillated MC of exactly one component.
+          // Find one matching component with an unoscillated 1D PDF and this group first
           const EventConfig *component = nullptr;
-          for (const auto &entry : dsPDFMap.at(ds))
+          for (const std::pair<const std::string, EventConfig> &entry : dsPDFMap.at(ds))
           {
-            const auto groups = entry.second.GetGroup();
+            const std::vector<std::string> groups = entry.second.GetGroup();
             if (std::find(groups.begin(), groups.end(), group) == groups.end())
               continue;
             if (component || groups.front() != group || entry.second.GetNumDimensions() != 1 ||
@@ -126,19 +128,25 @@ namespace antinufit
               throw std::runtime_error("Reactor oscillation Shape needs one unoscillated 1D component with its group first: " + systName);
             component = &entry.second;
           }
+          // Stop if no component supplies the MC for this Shape
           if (!component)
             throw std::runtime_error("No MC component for reactor oscillation Shape " + systName + " in " + ds);
-          for (const auto &entry : out.group)
+
+          // Keep this group exclusive so another systematic cannot run before oscillation
+          for (const std::pair<const std::string, std::string> &entry : out.group)
           {
-            const auto &datasets = out.dataSets.at(entry.first);
+            const std::vector<std::string> &datasets = out.dataSets.at(entry.first);
             if (entry.first != systName && (entry.second.empty() || entry.second == group) &&
                 std::find(datasets.begin(), datasets.end(), ds) != datasets.end())
               throw std::runtime_error("Reactor oscillation Shape needs its own group: " + systName);
           }
 
-          auto mc = LoadMCDataset(component->GetPrunedPath());
+          // Open the selected component's MC file
+          std::unique_ptr<DataSet> mc = LoadMCDataset(component->GetPrunedPath());
           if (!mc)
             throw std::runtime_error("Cannot load MC for reactor oscillation Shape " + systName);
+
+          // Check reactor IDs and baselines before filling can clamp invalid IDs into edge bins
           const BinAxis reactorAxis = DistBuilder::BuildAxes(pdfConfig, 3).GetAxis(1);
           for (size_t i = 0; i < mc->GetNEntries(); ++i)
           {
@@ -147,6 +155,8 @@ namespace antinufit
                 std::fabs(reactor - std::round(reactor)) > 1e-6 || !indexDistance.count(int(std::lround(reactor))))
               throw std::runtime_error("Invalid reactor index or missing baseline in " + component->GetName() + " event " + std::to_string(i));
           }
+
+          // Build (reconstructed energy, reactor ID, true energy) counts and prepare the Shape function
           const BinnedED source = DistBuilder::Build(systName, 3, pdfConfig, mc.get());
           shapeFunction = MakeReactorOscillationShape(source, indexDistance, params[1]);
         }
@@ -162,7 +172,7 @@ namespace antinufit
       }
     }
 
-    // A parameter shared by several systematics applies to the union of their datasets.
+    // A parameter shared by several systematics applies to the union of their datasets
     out.parDataSets.clear();
     for (const std::pair<const std::string, std::vector<std::string>> &entry : out.paramNames)
       for (const std::string &parameter : entry.second)
