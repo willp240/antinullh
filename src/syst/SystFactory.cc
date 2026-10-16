@@ -10,16 +10,6 @@ namespace antinufit
                    const std::vector<std::string> &paramnamevec_,
                    const ParameterDict &paramvals_)
   {
-    std::unordered_map<int, double> defaultIndexMap;
-    return New(name, type_, paramnamevec_, paramvals_, defaultIndexMap);
-  }
-  Systematic *
-  SystFactory::New(const std::string &name,
-                   const std::string &type_,
-                   const std::vector<std::string> &paramnamevec_,
-                   const ParameterDict &paramvals_,
-                   const std::unordered_map<int, double> &indexdistancemap_)
-  {
     Systematic *syst;
 
     std::vector<std::string> type_vec = SplitString(type_, ':');
@@ -678,23 +668,6 @@ namespace antinufit
       }
 
       syst = shape;
-    }
-
-    else if (type == "FusedOsc")
-    {
-      // Reactor oscillation on the 1D energy PDF; the angle name determines its representation.
-      OscWeight1D::ProbMode mode = OscWeight1D::BinCentre;
-      if (function == "BinAverage")
-        mode = OscWeight1D::BinAverage;
-      else if (function != "")
-        throw ValueError("Unknown function, " + function + ", for systematic type: " + type);
-      if (paramnamevec_.size() != 2 || paramnamevec_.at(0) != "deltam21")
-        throw ValueError("FusedOsc systematic " + name +
-                         " needs param_names = deltam21 followed by theta12, sintheta12, or sinsqtheta12");
-      OscWeight1D *osc = new OscWeight1D(name, paramnamevec_.at(0), paramnamevec_.at(1), indexdistancemap_, mode);
-      osc->SetParameter(paramnamevec_.at(0), paramvals_.at(paramnamevec_.at(0)));
-      osc->SetParameter(paramnamevec_.at(1), paramvals_.at(paramnamevec_.at(1)));
-      syst = osc;
     }
 
     else

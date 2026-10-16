@@ -45,7 +45,7 @@ namespace antinufit
         FitInputs &in,
         const OutputDirs &dirs,
         const DatasetSetup &setup,
-        const SystSetup &syst,
+        SystSetup &syst,
         const OscParams &osc,
         const std::unordered_map<int, double> &indexDistance,
         const DatasetParsInfo &dsParsInfo,

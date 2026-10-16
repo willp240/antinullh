@@ -3,7 +3,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
@@ -60,8 +59,7 @@ namespace antinufit
   inline SystSetup BuildSystematics(const std::string &systConfigFile,
                                     const PDFConfig &pdfConfig,
                                     const ParameterDict &noms,
-                                    const DSMap &dsPDFMap,
-                                    const std::unordered_map<int, double> &indexDistance)
+                                    const DSMap &dsPDFMap)
   {
     SystSetup out;
 
@@ -80,30 +78,23 @@ namespace antinufit
     // Validate params exist in fit config
     CheckSystParams(out, noms);
 
+    for (const auto &dataset : dsPDFMap)
+      out.byDataset[dataset.first];
+
     // Build each systematic once
     for (std::map<std::string, std::string>::const_iterator kv = out.type.begin();
          kv != out.type.end(); ++kv)
     {
       const std::string &systName = kv->first;
 
+      for (const std::string &ds : out.dataSets.at(systName))
+        if (!dsPDFMap.count(ds))
+          throw std::runtime_error("Unknown dataset " + ds + " for systematic " + systName);
+
+      // Reactor Shapes need the component's MC histogram, which is built in BuildDatasets.
       const std::string &type = out.type.at(systName);
       if (type == "FusedOsc" || type.rfind("FusedOsc:", 0) == 0)
-      {
-        for (const std::string &ds : out.dataSets.at(systName))
-        {
-          if (!dsPDFMap.count(ds))
-            throw std::runtime_error("Unknown dataset " + ds + " for systematic " + systName);
-          std::unique_ptr<Systematic> syst(SystFactory::New(
-              systName, out.type.at(systName), out.paramNames.at(systName), noms,
-              indexDistance));
-          syst->SetAxes(DistBuilder::BuildAxes(pdfConfig, out.distObs.at(systName).size()));
-          syst->SetTransformationObs(out.transObs.at(systName));
-          syst->SetDistributionObs(out.distObs.at(systName));
-          out.byDataset[ds][systName] = syst.get();
-          out.owned.push_back(std::move(syst));
-        }
-        continue; // Construct only after the dataset's reactor MC source is attached.
-      }
+        continue;
 
       out.fullParamNameVec.insert(out.fullParamNameVec.end(),
                                   out.paramNames[systName].begin(),
@@ -113,8 +104,7 @@ namespace antinufit
           SystFactory::New(systName,
                            out.type[systName],
                            out.paramNames[systName],
-                           noms,
-                           indexDistance));
+                           noms));
 
       AxisCollection axes = DistBuilder::BuildAxes(pdfConfig, out.distObs[systName].size());
       syst->SetAxes(axes);
@@ -125,13 +115,6 @@ namespace antinufit
       // Assign to datasets
       for (std::vector<std::string>::const_reference ds : out.dataSets[systName])
       {
-        if (dsPDFMap.find(ds) == dsPDFMap.end())
-        {
-          std::cout << "ERROR: SystConfig defines systematic " << systName
-                    << " applying to dataset " << ds
-                    << " that is not defined in EventConfig" << std::endl;
-          throw;
-        }
         out.byDataset[ds][systName] = syst.get();
       }
 

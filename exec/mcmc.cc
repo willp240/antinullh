@@ -8,7 +8,6 @@
 #include <ParamUtils.hh>
 #include <CombineLLHs.hh>
 #include <BuildDatasets.hh>
-#include <FusedOscSetup.hh>
 #include <RateReporting.hh>
 
 // OXO headers
@@ -65,10 +64,16 @@ void mcmc(const std::string &fitConfigFile_,
   SystSetup syst = BuildSystematics(systConfigFile_,
                                     setup.pdfConfig,
                                     in.p.noms,
-                                    setup.dsPDFMap,
-                                    indexDistance);
+                                    setup.dsPDFMap);
 
-  ValidateFusedOscSetup(setup, syst);
+  // MCMC needs floating oscillation weights for every oscillated component.
+  const bool hasFloatingOscillation = std::any_of(syst.type.begin(), syst.type.end(),
+      [](const auto &entry) { return IsFusedOsc(entry.second); });
+  if (!hasFloatingOscillation)
+    for (const auto &dataset : setup.dsPDFMap)
+      for (const auto &component : dataset.second)
+        if (component.second.GetOscillated())
+          throw std::runtime_error("MCMC needs a FusedOsc systematic for oscillated components");
 
   // Build osc pars
   OscParams osc = BuildOscParams(in.p.noms);

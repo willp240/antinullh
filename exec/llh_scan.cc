@@ -107,7 +107,7 @@ void llh_scan(const std::string &fitConfigFile_,
     fullParamNameVec.insert(fullParamNameVec.end(), systParamNames[it->first].begin(), systParamNames[it->first].end());
 
     // Now build the systematic
-    Systematic *syst = SystFactory::New(it->first, systType[it->first], systParamNames[it->first], noms, indexDistance);
+    Systematic *syst = SystFactory::New(it->first, systType[it->first], systParamNames[it->first], noms);
     AxisCollection systAxes = DistBuilder::BuildAxes(pdfConfig, systDistObs[it->first].size());
     syst->SetAxes(systAxes);
     // The "dimensions" the systematic applies to

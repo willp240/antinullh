@@ -10,7 +10,6 @@
 #include <DatasetSetup.hh>
 #include <FitInputs.hh>
 #include <OscParams.hh>
-#include <OscWeight1D.hh>
 
 namespace antinufit
 {
@@ -55,21 +54,17 @@ namespace antinufit
                                                   std::map<std::string, double> &reactorRatioOut,
                                                   std::map<std::string, double> &reactorRatioFDOut,
                                                   const BuildComponentConfig &cfg = BuildComponentConfig(),
-                                                  OscWeight1D *floatingOsc = nullptr)
+                                                  const BinnedED *reactorMC = nullptr)
   {
     ComponentBuildResult r;
 
-    if (ev.GetOscillated() && floatingOsc)
+    // The Shape applies oscillation; the fit PDF is the same MC projected onto energy.
+    if (reactorMC)
     {
-      const AxisCollection axes = DistBuilder::BuildAxes(setup.pdfConfig, 3);
-      const size_t clamped = OscWeight1D::CheckEvents(dataSet, axes, indexDistance);
-      BinnedED source = DistBuilder::Build(pdfName, 3, setup.pdfConfig, dataSet);
-      r.dist = DistBuilder::Build(pdfName, 1, setup.pdfConfig, dataSet);
-      floatingOsc->SetSource(source, r.dist);
+      r.dist = reactorMC->Marginalise(reactorMC->GetAxes().GetAxis(0).GetName());
+      r.dist.SetObservables(setup.pdfConfig.GetBranchNames(1));
+      r.dist.SetName(pdfName);
       r.fakeDist = r.dist;
-      std::cout << floatingOsc->GetName() << ": " << floatingOsc->GetNNonZero()
-                << " nonzero source bins, " << floatingOsc->GetNPairs()
-                << " occupied reactor/energy pairs, " << clamped << " clamped events\n";
     }
     else if (ev.GetOscillated())
     {

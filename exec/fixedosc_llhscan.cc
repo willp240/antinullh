@@ -65,8 +65,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
   SystSetup syst = BuildSystematics(systConfigFile_,
                                     setup.pdfConfig,
                                     in.p.noms,
-                                    setup.dsPDFMap,
-                                    indexDistance);
+                                    setup.dsPDFMap);
 
   // Build osc pars
   OscParams osc = BuildOscParams(in.p.noms);

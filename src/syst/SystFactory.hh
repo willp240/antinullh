@@ -3,7 +3,6 @@
 // Antinu headers
 #include <Functions.hh>
 #include <Utilities.hh>
-#include <OscWeight1D.hh>
 
 // OXO headers
 #include <Shift.h>
@@ -31,11 +30,6 @@ namespace antinufit
                            const std::string &type_,
                            const std::vector<std::string> &paramnamevec_,
                            const ParameterDict &paramvals_);
-    static Systematic *New(const std::string &name,
-                           const std::string &type_,
-                           const std::vector<std::string> &paramnamevec_,
-                           const ParameterDict &paramvals_,
-                           const std::unordered_map<int, double> &indexdistancemap_);
   };
 
 }
