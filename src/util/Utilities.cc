@@ -49,8 +49,10 @@ namespace antinufit
         file >> reactorData;
 
         // Loop through the JSON object and fill the maps
-        for (const auto &[key, value] : reactorData.items())
+        for (nlohmann::json::const_iterator entry = reactorData.cbegin(); entry != reactorData.cend(); ++entry)
         {
+            const std::string &key = entry.key();
+            const nlohmann::json &value = entry.value();
             int intKey = std::stoi(key); // Convert the reactor key to int
             double distance = value[1];  // Second element is the distance
 
@@ -78,8 +80,10 @@ namespace antinufit
         file >> reactorData;
 
         // Loop through the JSON object and fill the maps
-        for (const auto &[key, value] : reactorData.items())
+        for (nlohmann::json::const_iterator entry = reactorData.cbegin(); entry != reactorData.cend(); ++entry)
         {
+            const std::string &key = entry.key();
+            const nlohmann::json &value = entry.value();
             int intKey = std::stoi(key);        // Convert the reactor key to int
             std::string reactorName = value[0]; // First element is the string
 

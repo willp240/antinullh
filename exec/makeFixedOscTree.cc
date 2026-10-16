@@ -335,7 +335,7 @@ void makeFixedOscTree(const std::string &fitConfigFile_)
 
     // Make error entry for each parameter
     std::vector<std::string> newKeys;
-    for (const auto &pair : branchMap)
+    for (const std::pair<const std::string, double> &pair : branchMap)
     {
         newKeys.push_back(pair.first + "_err");
         if (pair.first.find("reactor") != std::string::npos)
@@ -344,26 +344,26 @@ void makeFixedOscTree(const std::string &fitConfigFile_)
         }
     }
     // Now add the new entries
-    for (const auto &key : newKeys)
+    for (const std::string &key : newKeys)
         branchMap[key] = 0;
 
     branchMap["LLH"] = 0;
     branchMap["fit_valid"] = 0;
 
     // Make sure everything's Initialised to 0
-    for (auto &[_, v] : branchMap)
-        v = 0;
+    for (std::pair<const std::string, double> &entry : branchMap)
+        entry.second = 0;
 
     // And tell it to fill with the values from the map
-    for (auto &[name, value] : branchMap)
-        tree.Branch(name.c_str(), &value);
+    for (std::pair<const std::string, double> &entry : branchMap)
+        tree.Branch(entry.first.c_str(), &entry.second);
 
     double bestLLH = 999;
     double bestDeltam = 999;
     double bestTheta = 999;
 
     // Loop over all .output files in output dir
-    for (const auto &entry : std::filesystem::directory_iterator((outDir + "/output").c_str()))
+    for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator((outDir + "/output").c_str()))
     {
         if (entry.is_regular_file() && entry.path().extension() == ".output")
         {

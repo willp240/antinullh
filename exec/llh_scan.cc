@@ -86,7 +86,7 @@ void llh_scan(const std::string &fitConfigFile_,
   std::vector<std::string> fullParamNameVec;
 
   // Reactor baselines are shared by fixed and floating oscillation calculations.
-  const auto indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
+  const std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
 
   // Loop over systematics and declare each one
   std::map<std::string, Systematic *> systMap;
@@ -215,7 +215,7 @@ void llh_scan(const std::string &fitConfigFile_,
         dist = systIt->second->operator()(dist, &norm);
         // Set syst parameter to fake data value, and apply to fake data dist and rescale
         std::set<std::string> systParamNames = systMap[systIt->first]->GetParameterNames();
-        for (auto itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
+        for (std::set<std::string>::iterator itSystParam = systParamNames.begin(); itSystParam != systParamNames.end(); ++itSystParam)
         {
           systMap[systIt->first]->SetParameter(*itSystParam, fdValues[*itSystParam]);
         }

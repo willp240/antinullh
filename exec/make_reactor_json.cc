@@ -60,9 +60,9 @@ int main(int argc, char *argv[])
 
   nlohmann::json j;
 
-  for (const auto &[key, value] : reactorIndex)
+  for (const std::pair<const int, std::tuple<std::string, double>> &entry : reactorIndex)
   {
-    j[std::to_string(key)] = {std::get<0>(value), std::get<1>(value)};
+    j[std::to_string(entry.first)] = {std::get<0>(entry.second), std::get<1>(entry.second)};
   }
 
   // Save to file

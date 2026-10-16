@@ -142,7 +142,7 @@ namespace antinufit
       for (size_t j = 0; j < nE; ++j)
         if (occupied[r * nE + j])
         {
-          const auto baseline = baselines.find(int(std::lround(low)));
+          const std::unordered_map<int, double>::const_iterator baseline = baselines.find(int(std::lround(low)));
           if (baseline == baselines.end())
             throw ValueError("No baseline for reactor index " + std::to_string(int(std::lround(low))));
           reactors[j].emplace_back(r * nE + j, baseline->second);

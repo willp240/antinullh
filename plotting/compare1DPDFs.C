@@ -48,7 +48,7 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
     TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
 
     // Add files from the pdfs directory
-    for (const auto &entry : std::filesystem::directory_iterator(dirname1.c_str()))
+    for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(dirname1.c_str()))
     {
         pdfFiles.push_back(entry.path());
     }
@@ -65,7 +65,7 @@ void compare1DPDFs(std::string dirname1, std::string dirname2, std::string label
     c1->cd();
 
     // Loop over each file
-    for (const auto &entry : pdfFiles)
+    for (const std::filesystem::path &entry : pdfFiles)
     {
 
         std::string filePath1 = entry.string();

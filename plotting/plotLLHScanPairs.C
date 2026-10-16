@@ -111,7 +111,7 @@ void plotLLHScanPairs(const char *filename = "llh_scan.root")
     bool firstPage = true;
 
     // Loop through histograms
-    for (const auto &kv : hists)
+    for (const std::pair<const TString, TH1D *> &kv : hists)
     {
         TString name = kv.first;
         std::cout << name << std::endl;

@@ -46,7 +46,7 @@ void fixedosc_fit(const std::string &fitConfigFile_,
   DatasetSetup setup = LoadDatasetSetup(evConfigFile_, pdfConfigFile_);
 
   // Reactor baselines are shared by fixed and floating oscillation calculations.
-  const auto indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
+  const std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
 
   // Build systematics store
   SystSetup syst = BuildSystematics(systConfigFile_,

@@ -28,7 +28,7 @@ void plot2DPDFs(std::string dirname)
     TFile *outfile = new TFile(outrootfilename.c_str(), "RECREATE");
 
     // Add files from the pdfs directory
-    for (const auto &entry : std::filesystem::directory_iterator(dirname.c_str()))
+    for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(dirname.c_str()))
     {
         pdfFiles.push_back(entry.path());
     }
@@ -45,7 +45,7 @@ void plot2DPDFs(std::string dirname)
     c1->cd();
 
     // Loop over each file
-    for (const auto &entry : pdfFiles)
+    for (const std::filesystem::path &entry : pdfFiles)
     {
 
         std::string filePath = entry.string();

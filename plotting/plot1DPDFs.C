@@ -37,7 +37,7 @@ void plot1DPDFs(std::string dirname)
     c1->cd();
 
     // Loop over files in the directory
-    for (const auto &dirent : std::filesystem::directory_iterator(dirname))
+    for (const std::filesystem::directory_entry &dirent : std::filesystem::directory_iterator(dirname))
     {
         const std::filesystem::path p = dirent.path();
         if (!dirent.is_regular_file()) continue;
@@ -49,7 +49,7 @@ void plot1DPDFs(std::string dirname)
 
         // Base name before the last underscore (if any)
         std::string hname = histName;
-        if (auto pos = histName.rfind('_'); pos != std::string::npos)
+        if (std::string::size_type pos = histName.rfind('_'); pos != std::string::npos)
             hname.erase(pos);
 
         // Open ROOT file

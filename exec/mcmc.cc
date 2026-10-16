@@ -51,7 +51,7 @@ void mcmc(const std::string &fitConfigFile_,
   DatasetSetup setup = LoadDatasetSetup(evConfigFile_, pdfConfigFile_);
 
   // Reactor baselines are shared by fixed and floating oscillation calculations.
-  const auto indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
+  const std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
 
   SystSetup syst = BuildSystematics(systConfigFile_,
                                     setup.pdfConfig,
@@ -92,7 +92,7 @@ void mcmc(const std::string &fitConfigFile_,
   ParameterDict sigmas = in.p.sigmas;
   const ParameterDict &nbins = in.p.nbins;
   const ParameterDict &constrSigmas = in.constraints.sigmas;
-  auto &fixedPars = in.p.fixedPars;
+  std::map<std::string, bool> &fixedPars = in.p.fixedPars;
 
   // Starting point:
   //  - a fixed parameter stays nominal (the sampler never moves it);
