@@ -38,7 +38,7 @@ namespace antinufit
         }
     }
 
-    // Prepare the component PDFs and the selected data distribution for each dataset
+    // Prepare likelihood inputs and output distributions for each dataset
     PreparedDatasetMap BuildDatasets(
         const FitConfig &fitConfig, const FitParameters &p,
         const DatasetSetup &setup,
@@ -60,7 +60,7 @@ namespace antinufit
             if (fitConfig.GetFakeData())
                 fakePdfs.reserve(dsIt->second.size());
 
-            // Build each component PDF for this dataset
+            // Stage 1: load MC and build normalised component PDFs and reactor fractions
             for (EvMap::const_iterator evIt = dsIt->second.begin(); evIt != dsIt->second.end(); ++evIt)
             {
                 const std::string &pdfName = evIt->first;
@@ -136,7 +136,7 @@ namespace antinufit
 
             }
 
-            // Use the normalised PDFs to build nominal and fake-data counts
+            // Stage 2: use the PDFs and configured rates to build Asimov and fake data
             dataset.asimov = BinnedED("asimov", setup.systAxes);
             dataset.asimov.SetObservables(setup.dataObs);
             if (fitConfig.GetFakeData())
@@ -180,7 +180,7 @@ namespace antinufit
                     dataset.fakeComponents = std::move(fakeComponents);
             }
 
-            // Select the distribution that the likelihood will treat as data
+            // Stage 3: select the distribution that the likelihood will treat as data
             if (fitConfig.GetAsimov())
                 dataset.dataDist = dataset.asimov;
             else if (fitConfig.GetFakeData())
@@ -188,7 +188,7 @@ namespace antinufit
             else
                 dataset.dataDist = LoadDataDist(setup.dataPath.at(dsName), setup.pdfConfig);
 
-            // Initialise parameters used by this dataset's likelihood
+            // Stage 4: initialise this dataset's parameters with reactor rate scaling
             dataset.initialValues = InitialiseDatasetParams(p.noms, datasetPars, dsName);
             for (EvMap::const_iterator component = dsIt->second.begin();
                  component != dsIt->second.end(); ++component)

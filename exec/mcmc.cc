@@ -1,3 +1,5 @@
+// Sample the floating-oscillation model with Metropolis MCMC
+// Reactor oscillation varies through the configured shape systematic
 // Antinu headers
 #include <AnalysisConfig.hh>
 #include <DatasetSetup.hh>

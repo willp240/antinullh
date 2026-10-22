@@ -1,3 +1,5 @@
+// Fit the fixed-oscillation model with Minuit
+// Reactor oscillation is baked into the PDFs at the configured parameter values
 // Antinu headers
 #include <AnalysisConfig.hh>
 #include <DatasetSetup.hh>

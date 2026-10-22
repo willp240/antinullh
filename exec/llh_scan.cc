@@ -1,3 +1,5 @@
+// Scan the floating-oscillation model used by mcmc
+// Vary parameters in the prepared likelihood with the others held nominal
 #include <AnalysisConfig.hh>
 #include <DatasetSetup.hh>
 #include <OutputDirs.hh>

@@ -1,3 +1,5 @@
+// Scan the fixed-oscillation model used by fixedosc_fit
+// Rebuild reactor PDFs at each oscillation point and hold other parameters nominal
 // Antinu headers
 #include <AnalysisConfig.hh>
 #include <DatasetSetup.hh>
@@ -263,19 +265,20 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     else
       nom = std::abs(nom);
 
-    // And a bit of jiggery pokery here to guarantee that the nominal value is one of the scan points
+    // Shift the grid so the nominal value is a bin centre
     const double lower = fitParameters.mins.at(name);
     const double upper = fitParameters.maxs.at(name);
-    double width = (upper - lower) / (npoints);
-    int numStepsBelowNom = floor((nominalValue - lower) / width);
-    int numStepsAboveNom = floor((upper - nominalValue) / width);
-
-    double min = nominalValue - numStepsBelowNom * width;
-    double max = nominalValue + numStepsAboveNom * width;
+    const double width = (upper - lower) / npoints;
+    if (!(width > 0))
+      throw std::runtime_error("Invalid scan bounds for " + name);
+    const int stepsBelowNom = static_cast<int>(std::floor((nominalValue - lower) / width));
+    const double first = nominalValue - stepsBelowNom * width;
 
     // Make histogram for this parameter
     TString htitle = Form("%s, Asimov Rate: %f", labelName[name].c_str(), nom);
-    TH1D *hScan = new TH1D((name + "_full").c_str(), (labelName[name] + "_full").c_str(), npoints, (min - (width / 2)) / nom, (max + (width / 2)) / nom);
+    TH1D *hScan = new TH1D((name + "_full").c_str(), (labelName[name] + "_full").c_str(), npoints,
+                          (first - width / 2) / nom,
+                          (first + (npoints - 0.5) * width) / nom);
     hScan->SetTitle(std::string(htitle + ";" + labelName[name] + " (rel. to |Asimov|); -(ln L_{full})").c_str());
 
     std::cout << "Scanning for " << name << std::endl;

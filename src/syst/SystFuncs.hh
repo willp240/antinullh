@@ -17,7 +17,9 @@
 
 namespace antinufit
 {
-  double BirksLaw(const ParameterDict &, const double &);
+  double BirksLaw(double energy, double birksConstant);
+  ShapeFunction MakeAlphaNClassifierShape(const std::string &functionName,
+                                          const std::string &parameterName);
   // Disappearance probability 1 - P_ee(baseline [km], nuEnergy [MeV], deltam21, sin^2(theta12))
   double OscProb(double, double, double, double);
 

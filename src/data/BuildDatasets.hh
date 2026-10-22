@@ -26,25 +26,27 @@ namespace antinufit
         return src;
     }
 
-    // Likelihood inputs, selected data, and optional distributions for one dataset
+    // Prepared inputs and optional output distributions for one dataset
     struct PreparedDataset
     {
-        // Inputs to the per-dataset likelihood
+        // Normalised component PDFs and their likelihood settings
         std::vector<BinnedED> pdfs;
         std::vector<std::vector<std::string>> pdfGroups;
         std::vector<int> genRates;
         std::vector<NormFittingStatus> normFittingStatuses;
+
+        // Selected observed, Asimov, or fake data and nominal starting values
         BinnedED dataDist;
         ParameterDict initialValues;
 
-        // Nominal and fake-data counts used to select or write the data distribution
+        // Generated distributions and rates retained for selection, reporting, or output
         BinnedED asimov;
         BinnedED fakeDataset;
         std::vector<BinnedED> nominalComponents; // Retained only for requested output
         std::vector<BinnedED> fakeComponents;    // Retained only for requested output
         std::map<std::string, double> nominalNonBufferRates;
 
-        // Reactor factors calculated while filling the component histograms
+        // Reactor survival fractions used to scale nominal and fake-data rates
         std::map<std::string, double> reactorRatio;
         std::map<std::string, double> reactorFakeRatio;
     };
@@ -56,6 +58,7 @@ namespace antinufit
     void ApplyReactorRateScales(FitParameters &p,
                                 const PreparedDatasetMap &datasets);
 
+    // Build PDFs, generated distributions, selected data, and initial values for each dataset
     PreparedDatasetMap BuildDatasets(
         const FitConfig &fitConfig, const FitParameters &p,
         const DatasetSetup &setup,
