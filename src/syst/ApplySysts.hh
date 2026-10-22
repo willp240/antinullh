@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include <SystSetup.hh>
+#include <BuildSysts.hh>
 
 #include <ParameterDict.h>
 #include <BinnedED.h>
@@ -13,22 +13,22 @@
 namespace antinufit
 {
 
-  // Apply all systematics that match any of `groupsForPdf` (or whose group == "").
-  // Sets each systematic's parameters from `paramValues` before applying.
-  // Returns the transformed distribution.
-  inline BinnedED ApplySystematicsByGroups(
+  // Apply all systematics that match any of `groupsForPdf` (or whose group == "")
+  // Sets each systematic's parameters from `paramValues` before applying
+  // Returns the transformed distribution
+  inline BinnedED ApplySystsByGroups(
       BinnedED dist,
       const std::vector<std::string> &groupsForPdf,
-      const std::map<std::string, Systematic *> &systsForDataset,
+      const std::map<std::string, std::unique_ptr<Systematic>> &systsForDataset,
       const std::map<std::string, std::string> &systGroup,
       const ParameterDict &paramValues)
   {
     for (const std::string &grp : groupsForPdf)
     {
-      for (std::map<std::string, Systematic *>::const_iterator it = systsForDataset.begin(); it != systsForDataset.end(); ++it)
+      for (std::map<std::string, std::unique_ptr<Systematic>>::const_iterator it = systsForDataset.begin(); it != systsForDataset.end(); ++it)
       {
         const std::string &systName = it->first;
-        Systematic *syst = it->second;
+        Systematic *syst = it->second.get();
 
         // If group is "", apply to all groups
         const std::map<std::string, std::string>::const_iterator gIt = systGroup.find(systName);

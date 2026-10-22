@@ -16,7 +16,7 @@ OXSX_LIB_NAME := oxsx
 
 H5_LIBS = hdf5_hl_cpp hdf5_cpp hdf5_hl hdf5
 
-SRC_FILES := $(wildcard src/*.cc src/*/*.cc src/*/*/*.cc src/*/*/*.cc)
+SRC_FILES := $(wildcard src/*.cc src/*/*.cc src/*/*/*.cc)
 OBJ_FILES := $(patsubst src/%.cc,build/%.o,$(SRC_FILES))
 
 INC_DIRS := $(wildcard src/*/ src/*/*/) $(OXSX_INC) $(RAT_EXTRN_INC) $(RAT_INC)
@@ -32,7 +32,7 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc #bin/auto_corrs bin/make_plots bin/llh_scan
+all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/llh_scan #bin/auto_corrs bin/make_plots
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
@@ -72,6 +72,7 @@ bin/makeFixedOscTree: exec/makeFixedOscTree.cc $(LIB)
 
 $(LIB) : $(OBJ_FILES)
 	mkdir -p $(LIB_DIR)
+	$(RM) $@
 	ar rcs  $@ $^
 
 build/%.o : src/%.cc

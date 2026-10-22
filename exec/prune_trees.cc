@@ -14,7 +14,7 @@ energy to determine which alpha-n process an event was
 // Antinu headers
 #include <EventConfigLoader.hh>
 #include <FitConfigLoader.hh>
-#include <Utilities.hh>
+#include <ReactorBaselines.hh>
 
 // ROOT headers
 #include <TChain.h>

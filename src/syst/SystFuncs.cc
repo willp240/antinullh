@@ -1,4 +1,4 @@
-#include "Functions.hh"
+#include "SystFuncs.hh"
 #include <OscParams.hh>
 #include <Exceptions.h>
 #include <cmath>
@@ -19,7 +19,7 @@ namespace antinufit
 
     // The part of OscProb that depends on neutrino energy and the oscillation parameters but not on the
     // baseline. OscProbTerms::Evaluate is numerically equivalent to OscProb, up to floating-point
-    // rounding, while allowing the energy-dependent terms to be reused across reactor baselines.
+    // rounding, while allowing the energy-dependent terms to be reused across reactor baselines
     OscProbTerms OscProbEnergyTerms(double nuEnergy, double fDmSqr21, double fSSqrTheta12)
     {
       Double_t nuE_parent = nuEnergy;
@@ -98,14 +98,14 @@ namespace antinufit
     if (reactorMC.GetNDims() != 3 || reactorMC.GetObservables().at(1) != "reactorIndex" ||
         reactorMC.GetObservables().at(2) != "nu_energy")
       throw ValueError("Reactor oscillation needs MC axes (energy, reactorIndex, nu_energy)");
-    Theta12ToSinSq(theta12Name, 0.0); // Check the configured angle convention.
+    Theta12ToSinSq(theta12Name, 0.0); // Check the configured angle convention
     const BinAxis energyAxis = reactorMC.GetAxes().GetAxis(0);
     const BinAxis &reactorAxis = reactorMC.GetAxes().GetAxis(1);
     const BinAxis &trueAxis = reactorMC.GetAxes().GetAxis(2);
     const size_t nR = reactorAxis.GetNBins(), nE = trueAxis.GetNBins();
 
     // Keep only occupied MC bins. Each row belongs to one reconstructed-energy bin;
-    // its entries contain a reactor/true-energy index and the MC contribution.
+    // its entries contain a reactor/true-energy index and the MC contribution
     using Entry = std::pair<size_t, double>;
     std::vector<std::vector<Entry>> rows(energyAxis.GetNBins());
     std::vector<bool> occupied(nR * nE, false);
@@ -131,7 +131,7 @@ namespace antinufit
       }
 
     // Group occupied reactor/true-energy pairs by true energy, so the expensive
-    // energy-dependent probability terms are calculated once per true-energy bin.
+    // energy-dependent probability terms are calculated once per true-energy bin
     std::vector<std::vector<Entry>> reactors(nE);
     for (size_t r = 0; r < nR; ++r)
     {

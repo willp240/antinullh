@@ -1,8 +1,8 @@
 #pragma once
 
 // Antinu headers
-#include <Functions.hh>
-#include <Utilities.hh>
+#include <SystFuncs.hh>
+#include <StringUtils.hh>
 
 // OXO headers
 #include <Shift.h>

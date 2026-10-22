@@ -7,8 +7,9 @@
 #include <string>
 #include <vector>
 
-#include <FitInputs.hh>
+#include <FitParameters.hh>
 #include <OscParams.hh>
+#include <PDFConfig.hh>
 
 namespace antinufit
 {
@@ -26,12 +27,11 @@ namespace antinufit
     return out;
   }
 
-  inline void PrintFitSummary(const FitInputs &in,
+  inline void PrintFitSummary(const FitParameters &p,
                               const std::map<std::string, std::vector<std::string>> &datasets,
-                              const OscParams &osc)
+                              const OscParams &osc,
+                              const PDFConfig &pdfConfig)
   {
-    const FitParamState &p = in.p;
-    const FitConstraints &c = in.constraints;
 
     // Preferred ordering for readability
     std::vector<std::string> orderedNames = {
@@ -89,11 +89,11 @@ namespace antinufit
       std::cout << std::left << std::setw(20) << datasetString << "| ";
 
       // Constraint columns (simple Gaussian priors only)
-      const ParameterDict::const_iterator cmIt = c.means.find(name);
-      if (cmIt != c.means.end())
+      const ParameterDict::const_iterator cmIt = p.constraintMeans.find(name);
+      if (cmIt != p.constraintMeans.end())
       {
         std::cout << std::left << std::setw(20) << cmIt->second
-                  << "| " << std::left << std::setw(20) << c.sigmas.at(name)
+                  << "| " << std::left << std::setw(20) << p.constraintSigmas.at(name)
                   << "| ";
       }
       else
@@ -114,7 +114,7 @@ namespace antinufit
     std::cout << " -------------------------------------------------------------------------------------------------------------------------------------------------------\n";
 
     // Ratio constraints
-    if (!c.ratioMeans.empty())
+    if (!p.ratioMeans.empty())
     {
       std::cout << "\n************** Ratio Constraints **************\n";
       std::cout << " -------------------------------------------------------------------------------------------------\n";
@@ -125,20 +125,20 @@ namespace antinufit
                 << "| \n";
       std::cout << " =================================================================================================\n";
 
-      for (ParameterDict::const_iterator it = c.ratioMeans.begin(); it != c.ratioMeans.end(); ++it)
+      for (ParameterDict::const_iterator it = p.ratioMeans.begin(); it != p.ratioMeans.end(); ++it)
       {
         const std::string &a = it->first;
         std::cout << "| " << std::left << std::setw(25) << a
-                  << "| " << std::left << std::setw(25) << c.ratioParName.at(a)
+                  << "| " << std::left << std::setw(25) << p.ratioParName.at(a)
                   << "| " << std::left << std::setw(20) << it->second
-                  << "| " << std::left << std::setw(20) << c.ratioSigmas.at(a)
+                  << "| " << std::left << std::setw(20) << p.ratioSigmas.at(a)
                   << "| \n";
       }
       std::cout << " -------------------------------------------------------------------------------------------------\n";
     }
 
     // Fraction constraints
-    if (!c.fracMeans.empty())
+    if (!p.fracMeans.empty())
     {
       std::cout << "\n************** Fractional Diff. Constraints **************\n";
       std::cout << " -------------------------------------------------------------------------------------------------\n";
@@ -149,20 +149,20 @@ namespace antinufit
                 << "| \n";
       std::cout << " =================================================================================================\n";
 
-      for (ParameterDict::const_iterator it = c.fracMeans.begin(); it != c.fracMeans.end(); ++it)
+      for (ParameterDict::const_iterator it = p.fracMeans.begin(); it != p.fracMeans.end(); ++it)
       {
         const std::string &a = it->first;
         std::cout << "| " << std::left << std::setw(25) << a
-                  << "| " << std::left << std::setw(25) << c.fracParName.at(a)
+                  << "| " << std::left << std::setw(25) << p.fracParName.at(a)
                   << "| " << std::left << std::setw(20) << it->second
-                  << "| " << std::left << std::setw(20) << c.fracSigmas.at(a)
+                  << "| " << std::left << std::setw(20) << p.fracSigmas.at(a)
                   << "| \n";
       }
       std::cout << " -------------------------------------------------------------------------------------------------\n";
     }
 
     // Shape constraints
-    if (!c.shapeMeans.empty())
+    if (!p.shapeMeans.empty())
     {
       std::cout << "\n************** Shape Constraints **************\n";
       std::cout << " -------------------------------------------------------------------------------------------------\n";
@@ -173,17 +173,17 @@ namespace antinufit
                 << "| \n";
       std::cout << " =================================================================================================\n";
 
-      for (ParameterDict::const_iterator it = c.shapeMeans.begin(); it != c.shapeMeans.end(); ++it)
+      for (ParameterDict::const_iterator it = p.shapeMeans.begin(); it != p.shapeMeans.end(); ++it)
       {
         const std::string &k = it->first;
         std::cout << "| " << std::left << std::setw(25) << k
-                  << "| " << std::left << std::setw(25) << c.shapeFuncName.at(k)
+                  << "| " << std::left << std::setw(25) << p.shapeFuncName.at(k)
                   << "| " << std::left << std::setw(20) << it->second
-                  << "| " << std::left << std::setw(20) << c.shapeSigmas.at(k)
+                  << "| " << std::left << std::setw(20) << p.shapeSigmas.at(k)
                   << "| \n";
 
-        const std::map<std::string, std::vector<std::string>>::const_iterator pnIt = c.shapeParNames.find(k);
-        if (pnIt != c.shapeParNames.end())
+        const std::map<std::string, std::vector<std::string>>::const_iterator pnIt = p.shapeParNames.find(k);
+        if (pnIt != p.shapeParNames.end())
         {
           for (std::vector<std::string>::const_reference pname : pnIt->second)
           {
@@ -199,7 +199,7 @@ namespace antinufit
     }
 
     // Correlations
-    if (!c.corrs.empty())
+    if (!p.corrs.empty())
     {
       std::cout << "\n************** Correlations **************\n";
       std::cout << " ---------------------------------------------------------------------------\n";
@@ -209,17 +209,29 @@ namespace antinufit
                 << "| \n";
       std::cout << " ===========================================================================\n";
 
-      for (ParameterDict::const_iterator it = c.corrs.begin(); it != c.corrs.end(); ++it)
+      for (ParameterDict::const_iterator it = p.corrs.begin(); it != p.corrs.end(); ++it)
       {
         const std::string &a = it->first;
         std::cout << "| " << std::left << std::setw(25) << a
-                  << "| " << std::left << std::setw(25) << c.corrParName.at(a)
+                  << "| " << std::left << std::setw(25) << p.corrParName.at(a)
                   << "| " << std::left << std::setw(20) << it->second
                   << "| \n";
       }
       std::cout << " ---------------------------------------------------------------------------\n";
     }
 
+    std::cout << "\nLLH buffer bins by axis:\n";
+    for (const std::string &axisName : pdfConfig.GetAxisNames())
+    {
+      if (pdfConfig.HasLLHBufferBins(axisName))
+      {
+        const std::pair<int, int> bins = pdfConfig.GetLLHBufferBins(axisName);
+        std::cout << "  " << axisName << ": low=" << bins.first
+                  << ", high=" << bins.second << '\n';
+      }
+      else
+        std::cout << "  " << axisName << ": none\n";
+    }
     std::cout << "\n";
   }
 

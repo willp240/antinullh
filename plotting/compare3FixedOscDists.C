@@ -4,6 +4,16 @@
 #include <TH2D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
+#include <TLegend.h>
+#include <TPad.h>
+
+#include <filesystem>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
 
 // c++ Headers
 #include <sys/stat.h>
@@ -15,7 +25,7 @@
 /// First open the root files (made by makeFixedOscTree) and find the
 /// minimum LLH entries.
 /// Then go into the corresponding fit directories and load up the
-/// histograms from scaled_dists
+/// histograms from postfit_dists
 ///
 /// Plot the data from the first fit, and the total fitted distribution
 /// from each fit
@@ -24,7 +34,7 @@
 ///
 /////////////////////////////////////////////////////////////////// */
 
-std::ostringstream GetBestFitDir(const char *filename, TTree *tree)
+std::filesystem::path GetBestFitDir(const char *filename, TTree *tree)
 {
 
     // Get the list of branches
@@ -70,16 +80,40 @@ std::ostringstream GetBestFitDir(const char *filename, TTree *tree)
     // Directory of best LLH fit
     std::filesystem::path dirPath(filename);
     dirPath.replace_filename("");
-    std::ostringstream directory;
-    directory << dirPath.string() << "/th" << std::fixed << std::setprecision(3) << bestTheta
+    std::ostringstream relativePath;
+    relativePath << "th" << std::fixed << std::setprecision(3) << bestTheta
               << "/th" << std::fixed << std::setprecision(3) << bestTheta
-              << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM
-              << "/postfit_dists/";
+              << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM;
 
-    return directory;
+    return dirPath / relativePath.str();
 }
 
-void compare3FixedOscDists(const char *filename1, const char *filename2, const char *filename3, std::string label1, std::string label2, std::string label3)
+std::unique_ptr<TH1D> LoadHistogram(const std::filesystem::path &path,
+                                   const std::string &name)
+{
+    TFile file(path.string().c_str(), "READ");
+    if (file.IsZombie())
+    {
+        std::cerr << "Error: Could not open file " << path << std::endl;
+        return nullptr;
+    }
+
+    TH1D *saved = nullptr;
+    file.GetObject("oxsx_saved", saved);
+    if (!saved)
+    {
+        std::cerr << "Error: Could not find TH1D 'oxsx_saved' in " << path << std::endl;
+        return nullptr;
+    }
+
+    std::unique_ptr<TH1D> histogram(static_cast<TH1D *>(saved->Clone(name.c_str())));
+    histogram->SetDirectory(nullptr);
+    return histogram;
+}
+
+void compare3FixedOscDists(const char *filename1, const char *filename2, const char *filename3,
+                           std::string label1, std::string label2, std::string label3,
+                           std::string datasetName)
 {
 
     // Open the ROOT files
@@ -128,33 +162,25 @@ void compare3FixedOscDists(const char *filename1, const char *filename2, const c
         return;
     }
 
-    std::ostringstream bestfitdir1 = GetBestFitDir(filename1, tree1);
-    std::ostringstream bestfitdir2 = GetBestFitDir(filename2, tree2);
-    std::ostringstream bestfitdir3 = GetBestFitDir(filename3, tree3);
+    const std::filesystem::path bestfitdir1 = GetBestFitDir(filename1, tree1);
+    const std::filesystem::path bestfitdir2 = GetBestFitDir(filename2, tree2);
+    const std::filesystem::path bestfitdir3 = GetBestFitDir(filename3, tree3);
 
-    std::filesystem::path datapath = std::filesystem::path(bestfitdir1.str() + "/../data.root");
-    TFile *datafile1 = TFile::Open(datapath.c_str(), "READ");
-    TH1D *hdata = nullptr;
-    datafile1->GetObject("oxsx_saved", hdata);
-
-    TFile *scaledfile1 = TFile::Open((bestfitdir1.str() + "/postfitdist.root").c_str(), "READ");
-    TH1D *hscaled1 = nullptr;
-    scaledfile1->GetObject("oxsx_saved", hscaled1);
-
-    TFile *scaledfile2 = TFile::Open((bestfitdir2.str() + "/postfitdist.root").c_str(), "READ");
-    TH1D *hscaled2 = nullptr;
-    scaledfile2->GetObject("oxsx_saved", hscaled2);
-
-    TFile *scaledfile3 = TFile::Open((bestfitdir3.str() + "/postfitdist.root").c_str(), "READ");
-    TH1D *hscaled3 = nullptr;
-    scaledfile3->GetObject("oxsx_saved", hscaled3);
+    const std::string dataFileName = "data_" + datasetName + ".root";
+    const std::string postfitFileName = "postfitdist_" + datasetName + ".root";
+    std::unique_ptr<TH1D> hdata = LoadHistogram(bestfitdir1 / dataFileName, "comparison_data");
+    std::unique_ptr<TH1D> hscaled1 = LoadHistogram(bestfitdir1 / "postfit_dists" / postfitFileName, "comparison_fit1");
+    std::unique_ptr<TH1D> hscaled2 = LoadHistogram(bestfitdir2 / "postfit_dists" / postfitFileName, "comparison_fit2");
+    std::unique_ptr<TH1D> hscaled3 = LoadHistogram(bestfitdir3 / "postfit_dists" / postfitFileName, "comparison_fit3");
+    if (!hdata || !hscaled1 || !hscaled2 || !hscaled3)
+        return;
 
     TLegend *t1 = new TLegend(0.5, 0.48, 0.85, 0.85);
     t1->SetLineWidth(2);
-    t1->AddEntry(hdata, "Data", "l");
-    t1->AddEntry(hscaled1, label1.c_str(), "l");
-    t1->AddEntry(hscaled2, label2.c_str(), "l");
-    t1->AddEntry(hscaled3, label3.c_str(), "l");
+    t1->AddEntry(hdata.get(), "Data", "l");
+    t1->AddEntry(hscaled1.get(), label1.c_str(), "l");
+    t1->AddEntry(hscaled2.get(), label2.c_str(), "l");
+    t1->AddEntry(hscaled3.get(), label3.c_str(), "l");
 
     hdata->SetLineColor(kBlack);
     hdata->SetLineWidth(4);
@@ -212,9 +238,9 @@ void compare3FixedOscDists(const char *filename1, const char *filename2, const c
     TH1D *hscaled3Div = (TH1D *)hscaled3->Clone("hscaled3Div");
 
     lower->cd();
-    hscaled1Div->Divide(hdata);
-    hscaled2Div->Divide(hdata);
-    hscaled3Div->Divide(hdata);
+    hscaled1Div->Divide(hdata.get());
+    hscaled2Div->Divide(hdata.get());
+    hscaled3Div->Divide(hdata.get());
     hscaled1Div->GetYaxis()->SetRangeUser(0.9, 1.1);
     hscaled1Div->GetXaxis()->SetTitleFont(42);
     hscaled1Div->GetYaxis()->SetTitleFont(42);
@@ -242,8 +268,8 @@ void compare3FixedOscDists(const char *filename1, const char *filename2, const c
     pathObj.replace_filename("plots/");
     if (stat(pathObj.string().c_str(), &st) == -1)
         mkdir(pathObj.string().c_str(), 0700);
-    pathObj.replace_filename("distcomp.pdf");
+    pathObj.replace_filename("distcomp_" + datasetName + ".pdf");
     c1->SaveAs(pathObj.string().c_str());
-    pathObj.replace_filename("distcomp.root");
+    pathObj.replace_filename("distcomp_" + datasetName + ".root");
     c1->SaveAs(pathObj.string().c_str());
 }

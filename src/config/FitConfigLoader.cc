@@ -1,5 +1,5 @@
 #include <FitConfigLoader.hh>
-#include <Utilities.hh>
+#include <StringUtils.hh>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>

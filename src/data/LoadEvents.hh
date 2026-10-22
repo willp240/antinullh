@@ -10,7 +10,7 @@
 #include <TH1D.h>
 
 #include <ROOTNtuple.h>
-#include <DistBuilder.hh>
+#include <BuildDist.hh>
 #include <DistTools.h>
 
 namespace antinufit
@@ -44,7 +44,7 @@ namespace antinufit
         ROOTNtuple dataToFit(path, objectName.c_str());
 
         // Build binned distribution from the ntuple
-        return DistBuilder::Build(distName.c_str(),
+        return BuildDist::Build(distName.c_str(),
                                   pdfConfig.GetDataAxisCount(),
                                   pdfConfig,
                                   static_cast<DataSet *>(&dataToFit));
@@ -61,7 +61,7 @@ namespace antinufit
         BinnedED dataDist(distName.c_str(), loaded);
 
         dataDist.SetObservables(pdfConfig.GetDataBranchNames());
-        AxisCollection axes = DistBuilder::BuildAxes(pdfConfig, pdfConfig.GetDataAxisCount());
+        AxisCollection axes = BuildDist::BuildAxes(pdfConfig, pdfConfig.GetDataAxisCount());
         dataDist.SetAxes(axes);
 
         return dataDist;
@@ -71,9 +71,9 @@ namespace antinufit
     throw std::runtime_error("No TNtuple or TH1* found in data file: " + path);
   }
 
-  // Returns nullptr if the file can't be opened.
-  // Owns the dataset via unique_ptr so you can't leak it.
-  inline std::unique_ptr<DataSet> LoadMCDataset(const std::string &path,
+  // Returns nullptr if the file can't be opened
+  // Owns the dataset via unique_ptr so you can't leak it
+  inline std::unique_ptr<DataSet> LoadEvents(const std::string &path,
                                                 const std::string &treeName = "pruned")
   {
     try

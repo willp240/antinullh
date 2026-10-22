@@ -1,6 +1,6 @@
 #include <DistConfigLoader.hh>
 #include <DistConfig.hh>
-#include <DistBuilder.hh>
+#include <BuildDist.hh>
 #include <EventConfig.hh>
 #include <EventConfigLoader.hh>
 #include <iostream>
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]){
     }
 
     // create and fill
-    BinnedED dist = DistBuilder::Build(it->first, pConfig, dataSet, log);
+    BinnedED dist = BuildDist::Build(it->first, pConfig, dataSet, log);
 
     std::vector<double> gen;
     gen.push_back(dist.Integral());

@@ -9,8 +9,8 @@
 namespace antinufit
 {
 
-  // Return which theta12-like parameter is present ("theta12", "sintheta12", or "sinsqtheta12").
-  // Throws if none / more than one is present, or if deltam21 is missing.
+  // Return which theta12-like parameter is present ("theta12", "sintheta12", or "sinsqtheta12")
+  // Throws if none / more than one is present, or if deltam21 is missing
   inline std::string GetTheta12ParamName(const ParameterDict &noms)
   {
     const bool hasTheta12 = noms.find("theta12") != noms.end();
@@ -37,7 +37,7 @@ namespace antinufit
     return "sinsqtheta12";
   }
 
-  // Convert the stored theta parameter value to sin^2(theta12).
+  // Convert the stored theta parameter value to sin^2(theta12)
   // Assumes:
   //   - "theta12"      is in degrees
   //   - "sintheta12"   is sin(theta12)
@@ -60,7 +60,7 @@ namespace antinufit
     throw std::runtime_error("Unknown theta12 parameter name: " + theta12name);
   }
 
-  // Bundle of oscillation-parameter conventions + nominal values.
+  // Bundle of oscillation-parameter conventions + nominal values
   struct OscParams
   {
     std::string theta12name; // "theta12" | "sintheta12" | "sinsqtheta12"
@@ -70,7 +70,7 @@ namespace antinufit
     double theta12_sinsq() const { return Theta12ToSinSq(theta12name, theta12); }
   };
 
-  // Build OscParams from nominal values. Validates required params exist via GetTheta12ParamName.
+  // Build OscParams from nominal values. Validates required params exist via GetTheta12ParamName
   inline OscParams BuildOscParams(const ParameterDict &noms)
   {
     OscParams o;

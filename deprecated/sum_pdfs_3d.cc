@@ -1,6 +1,6 @@
 #include <DistConfigLoader.hh>
 #include <DistConfig.hh>
-#include <DistBuilder.hh>
+#include <BuildDist.hh>
 #include <EventConfig.hh>
 #include <EventConfigLoader.hh>
 #include <iostream>

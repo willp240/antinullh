@@ -1,11 +1,11 @@
-#include <DistBuilder.hh>
+#include <BuildDist.hh>
 #include <iostream>
 
 namespace antinufit
 {
 
   AxisCollection
-  DistBuilder::BuildAxes(const PDFConfig &config_)
+  BuildDist::BuildAxes(const PDFConfig &config_)
   {
 
     int numAxes = config_.GetAxisCount();
@@ -13,7 +13,7 @@ namespace antinufit
   }
 
   AxisCollection
-  DistBuilder::BuildAxes(const PDFConfig &config_, const int numDimensions)
+  BuildDist::BuildAxes(const PDFConfig &config_, const int numDimensions)
   {
 
     if (numDimensions > config_.GetAxisCount())
@@ -42,7 +42,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::Build(const std::string &name_, const PDFConfig pdfConfig_, DataSet *data_)
+  BuildDist::Build(const std::string &name_, const PDFConfig &pdfConfig_, DataSet *data_)
   {
 
     int numAxes = pdfConfig_.GetAxisCount();
@@ -50,7 +50,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::Build(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_)
+  BuildDist::Build(const std::string &name_, const int numDimensions_, const PDFConfig &pdfConfig_, DataSet *data_)
   {
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
@@ -64,7 +64,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_, DataSet *data_, double deltam21_, double sinsqth12_, std::unordered_map<int, double> indexDistance_, double &ratio)
+  BuildDist::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig &pdfConfig_, DataSet *data_, double deltam21_, double sinsqth12_, const std::unordered_map<int, double> &indexDistance_, double &ratio)
   {
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
@@ -72,7 +72,7 @@ namespace antinufit
     BinnedED dist(name_, axes);
     const std::vector<std::string> p = pdfConfig_.GetBranchNames(numDimensions_);
     dist.SetObservables(p);
-    TRandom3 *rndm = new TRandom3();
+    TRandom3 rndm;
 
     // Fill it up
     for (int i = 0; i < data_->GetNEntries(); i++)
@@ -82,9 +82,9 @@ namespace antinufit
       Event ev = data_->GetEntry(i);
       double nuEnergy = ev.GetDatum("nu_energy");
       int reacIndex = ev.GetDatum("reactorIndex");
-      double baseline = indexDistance_[reacIndex];
+      double baseline = indexDistance_.at(reacIndex);
       double oscprob = antinufit::OscProb(baseline, nuEnergy, deltam21_, sinsqth12_);
-      double r = rndm->Rndm();
+      double r = rndm.Rndm();
       if (r > oscprob)
       {
         dist.Fill(ev);
@@ -97,7 +97,7 @@ namespace antinufit
   }
 
   BinnedED
-  DistBuilder::BuildFlatDist(const std::string &name_, const int numDimensions_, const PDFConfig pdfConfig_)
+  BuildDist::BuildFlatDist(const std::string &name_, const int numDimensions_, const PDFConfig &pdfConfig_)
   {
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);

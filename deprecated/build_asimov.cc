@@ -7,7 +7,7 @@
 #include <IO.h>
 #include <BinnedED.h>
 #include <AxisCollection.h>
-#include <DistBuilder.hh>
+#include <BuildDist.hh>
 #include <CutConfig.hh>
 #include <CutConfigLoader.hh>
 #include <CutCollection.h>
@@ -82,13 +82,13 @@ void BuildAzimov(const std::string &evConfigFile_,
   bool setAxes = false;
   if (!loadPDF_)
   {
-    AxisCollection axes = DistBuilder::BuildAxes(pConfig);
+    AxisCollection axes = BuildDist::BuildAxes(pConfig);
     azimov = BinnedED("azimov", axes);
     setAxes = true;
   }
 
   // load up systematics
-  AxisCollection systAxes = DistBuilder::BuildAxes(pConfig);
+  AxisCollection systAxes = BuildDist::BuildAxes(pConfig);
   std::vector<std::string> dataObs = pConfig.GetBranchNames();
   ObsSet dataObsSet(dataObs);
 
@@ -126,7 +126,7 @@ void BuildAzimov(const std::string &evConfigFile_,
   {
     DataSet *ds = new ROOTNtuple(it->second.GetSplitFakePath(), "pruned");
     BinnedED dist;
-    dist = DistBuilder::Build(it->first, pConfig, ds, cutCol, log);
+    dist = BuildDist::Build(it->first, pConfig, ds, cutCol, log);
     unsigned long nGen = ds->GetNEntries();
     if (it->second.GetNGenerated())
     {

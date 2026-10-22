@@ -1,6 +1,6 @@
 #include <DistConfigLoader.hh>
 #include <DistConfig.hh>
-#include <DistBuilder.hh>
+#include <BuildDist.hh>
 #include <iostream>
 #include <sys/stat.h>
 #include <BinnedED.h>

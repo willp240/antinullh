@@ -1,6 +1,6 @@
 #pragma once
 
-#include <FitInputs.hh>
+#include <FitParameters.hh>
 #include <PDFConfig.hh>
 
 #include <BinnedED.h>
@@ -16,7 +16,7 @@
 
 namespace antinufit
 {
-  typedef std::map<std::string, std::map<std::string, double>> RateByDatasetAndPdf;
+  typedef std::map<std::string, std::map<std::string, double>> ComponentRates;
 
   inline double IntegrateBufferedBins(const BinnedED &dist,
                                       const PDFConfig &pdfConfig,
@@ -65,11 +65,24 @@ namespace antinufit
     return rootHist.Integral(binMin, binMax);
   }
 
+  inline std::map<std::string, double> GetComponentRates(
+      const std::vector<BinnedED> &pdfs,
+      const std::vector<BinnedED> &components,
+      const PDFConfig &pdfConfig,
+      const std::vector<std::string> &dataObs)
+  {
+    std::map<std::string, double> rates;
+    for (size_t i = 0; i < components.size(); ++i)
+      rates[pdfs.at(i).GetName()] += IntegrateBufferedBins(
+          components[i], pdfConfig, dataObs);
+    return rates;
+  }
+
   inline void PrintNominalBestFitSummary(
-      const FitInputs &in,
+      const FitParameters &p,
       const ParameterDict &bestFit,
-      const RateByDatasetAndPdf &nominalRatesByDataset,
-      const RateByDatasetAndPdf &bestFitRatesByDataset)
+      const ComponentRates &nominalRatesByDataset,
+      const ComponentRates &bestFitRatesByDataset)
   {
     struct RateComparison
     {
@@ -81,7 +94,7 @@ namespace antinufit
 
     RateByParameter ratesByParameter;
 
-    for (RateByDatasetAndPdf::const_iterator dsIt = nominalRatesByDataset.begin();
+    for (ComponentRates::const_iterator dsIt = nominalRatesByDataset.begin();
          dsIt != nominalRatesByDataset.end(); ++dsIt)
     {
       const std::string &dsName = dsIt->first;
@@ -92,7 +105,7 @@ namespace antinufit
       }
     }
 
-    for (RateByDatasetAndPdf::const_iterator dsIt = bestFitRatesByDataset.begin();
+    for (ComponentRates::const_iterator dsIt = bestFitRatesByDataset.begin();
          dsIt != bestFitRatesByDataset.end(); ++dsIt)
     {
       const std::string &dsName = dsIt->first;
@@ -110,8 +123,8 @@ namespace antinufit
     std::cout << std::string(81, '-') << std::endl;
     std::cout << std::defaultfloat << std::setprecision(5) << std::showpoint;
 
-    for (ParameterDict::const_iterator parIt = in.p.noms.begin();
-         parIt != in.p.noms.end(); ++parIt)
+    for (ParameterDict::const_iterator parIt = p.noms.begin();
+         parIt != p.noms.end(); ++parIt)
     {
       const std::string &parName = parIt->first;
       const double nominalValue = parIt->second;

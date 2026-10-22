@@ -1,13 +1,15 @@
 // Antinu headers
-#include <FitConfigLoader.hh>
+#include <AnalysisConfig.hh>
 #include <DatasetSetup.hh>
 #include <OutputDirs.hh>
 #include <FitSummary.hh>
-#include <ApplySystematics.hh>
-#include <Projection.hh>
-#include <ParamUtils.hh>
+#include <FitParameters.hh>
+#include <FitConstraints.hh>
 #include <CombineLLHs.hh>
 #include <BuildDatasets.hh>
+#include <BuildComponent.hh>
+#include <BuildLikelihood.hh>
+#include <WriteDists.hh>
 #include <RateReporting.hh>
 
 // OXO headers
@@ -32,52 +34,55 @@ void mcmc(const std::string &fitConfigFile_,
   Rand::SetSeed(0);
 
   // Load up the fit configuration information
-  FitConfigLoader fitLoader(fitConfigFile_);
-  FitConfig fitConfig = fitLoader.LoadActive();
-  FitInputs in = MakeFitInputs(fitConfig);
+  AnalysisConfig config = LoadAnalysisConfig(fitConfigFile_, evConfigFile_,
+                                             pdfConfigFile_, systConfigFile_);
+  const FitConfig &fitConfig = config.fit;
+  const DatasetSetup &setup = config.datasets;
+  const std::unordered_map<int, double> &indexDistance = config.reactorBaselines;
+  // Copy parameter settings from the config so pruning and reactor scaling can modify them
+  FitParameters fitParameters = MakeFitParameters(fitConfig);
 
   // Make sure output dirs exist
-  OutputDirs dirs = MakeOutputDirs(in.run.outDir);
+  OutputDirs dirs = MakeOutputDirs(fitConfig.GetOutDir());
   const std::string projDir1D = dirs.outDir + "/1dlhproj";
   const std::string projDir2D = dirs.outDir + "/2dlhproj";
-  if (in.run.saveOutputs)
+  if (fitConfig.GetSaveOutputs())
   {
     EnsureDirs(dirs);
     EnsureDir(projDir1D);
     EnsureDir(projDir2D);
   }
 
-  // Load in pdf axis and data path info
-  DatasetSetup setup = LoadDatasetSetup(evConfigFile_, pdfConfigFile_);
-
-  // Reactor baselines are shared by fixed and floating oscillation calculations.
-  const std::unordered_map<int, double> indexDistance = LoadIndexDistanceMap(fitConfig.GetReactorsJsonFile());
-
-  SystSetup syst = BuildSystematics(systConfigFile_,
+  // Build systematics
+  SystsByDataset syst = BuildSysts(config.systematics,
                                     setup.pdfConfig,
-                                    in.p.noms,
+                                    fitParameters.noms,
                                     setup.dsPDFMap,
                                     indexDistance);
 
-  // Build osc pars
-  OscParams osc = BuildOscParams(in.p.noms);
+  // Read nominal oscillation values and identify the theta12 parameter convention
+  OscParams osc = BuildOscParams(fitParameters.noms);
 
-  // Prune any parameters that aren't in fit config
-  DatasetParsInfo dsParsInfo = PruneUnusedParameters(in, setup, syst, osc);
+  // Remove fit parameters not used by any dataset
+  DatasetParameterMap datasetPars = PruneUnusedParameters(fitParameters, setup, config.systematics, osc);
 
-  PrintFitSummary(in, dsParsInfo.datasetPars, osc);
+  PrintFitSummary(fitParameters, datasetPars, osc, setup.pdfConfig);
 
-  // Builds the components of the Asimov datsets with nominal systs applied, and combines with
-  // data to make a llh for each dataset
-  BuildResult datasets = BuildDatasets(in, dirs, setup, syst, osc, indexDistance, dsParsInfo);
+  // Build component PDFs, the Asimov distribution, and the data distribution for each dataset
+  PreparedDatasetMap datasets = BuildDatasets(fitConfig, fitParameters, setup, syst, config.systematics, osc, indexDistance, datasetPars);
+  // Use the calculated reactor ratios to scale fit rates, bounds, priors, and fake-data rates
+  ApplyReactorRateScales(fitParameters, datasets);
+  // Write input PDFs, Asimov distributions, and fake-data distributions if enabled
+  if (fitConfig.GetSaveOutputs())
+    WriteInputDists(datasets, setup, dirs);
   
-  // Now combine the LLH for each dataset
-  CombinedLLH combined = CombineLLHs(datasets.llhs, datasets.initialByDataset);
-  StatisticSum &fullLLH = combined.llh;
-  ParameterDict allParVals = combined.initialValues;
+  // Build one likelihood per dataset, then combine them
+  std::vector<BinnedNLLH> datasetLLHs = BuildDatasetLikelihoods(datasets, syst, config.systematics, fitConfig, setup.pdfConfig);
+  StatisticSum fullLLH = CombineLLHs(datasetLLHs);
+  ParameterDict allParVals = GetInitialValues(datasets);
 
   // Finally apply all our constraints
-  ApplyConstraints(fullLLH, in.constraints, in.p.noms);
+  ApplyConstraints(fullLLH, fitParameters, fitParameters.noms);
   fullLLH.RegisterFitComponents();
 
   // Sampling settings remain specific to MCMC
@@ -86,19 +91,19 @@ void mcmc(const std::string &fitConfigFile_,
   const double sigmaScale = fitConfig.GetSigmaScale();
   const std::string &outDir = dirs.outDir;
   const std::string &postfitDistDir = dirs.postfitDistDir;
-  ParameterDict &mins = in.p.mins;
-  ParameterDict &maxs = in.p.maxs;
-  ParameterDict &noms = in.p.noms;
-  ParameterDict sigmas = in.p.sigmas;
-  const ParameterDict &nbins = in.p.nbins;
-  const ParameterDict &constrSigmas = in.constraints.sigmas;
-  std::map<std::string, bool> &fixedPars = in.p.fixedPars;
+  ParameterDict &mins = fitParameters.mins;
+  ParameterDict &maxs = fitParameters.maxs;
+  ParameterDict &noms = fitParameters.noms;
+  ParameterDict sigmas = fitParameters.sigmas;
+  const ParameterDict &nbins = fitParameters.nbins;
+  const ParameterDict &constrSigmas = fitParameters.constraintSigmas;
+  std::map<std::string, bool> &fixedPars = fitParameters.fixedPars;
 
   // Starting point:
   //  - a fixed parameter stays nominal (the sampler never moves it);
   //  - the oscillation parameters, and any free parameter with no Gaussian
   //    prior on itself, start uniformly in [min, max];
-  //  - every other free parameter starts at nominal + Gaussian(0, prior sigma), redrawn until inside [min, max].
+  //  - every other free parameter starts at nominal + Gaussian(0, prior sigma), redrawn until inside [min, max]
   const std::set<std::string> oscParNames = {"deltam21", osc.theta12name};
 
   ParameterDict startVals = allParVals;
@@ -137,17 +142,18 @@ void mcmc(const std::string &fitConfigFile_,
   timer.Stop();
   std::cout << "NLLH at the starting point: " << startLLH << ", eval time: " << timer.RealTime() << " s" << std::endl;
 
-  // And now the optimiser
+  // Scale the configured sigmas to set the width of each Gaussian MCMC proposal
   MetropolisSampler sampler;
   for (ParameterDict::iterator it = sigmas.begin(); it != sigmas.end(); ++it)
     sigmas[it->first] *= sigmaScale;
   sampler.SetSigmas(sigmas);
+  // Keep fixed parameters at their current values when proposing a new step
   for (std::map<std::string, bool>::iterator fixIt = fixedPars.begin(); fixIt != fixedPars.end(); ++fixIt)
     if (fixIt->second)
       sampler.Fix(fixIt->first);
 
   MCMC mh(sampler);
-  mh.SetSaveChain(in.run.saveOutputs);
+  mh.SetSaveChain(fitConfig.GetSaveOutputs());
   mh.SetMaxIter(nsteps);
   mh.SetBurnIn(burnin);
   mh.SetMinima(mins);
@@ -160,7 +166,7 @@ void mcmc(const std::string &fitConfigFile_,
   mh.SetTestStatLogged(true);
   mh.SetFlipSign(true);
 
-  // Create some axes for the mc to fill
+  // Use configured bounds and bin counts for posterior histograms and projections
   AxisCollection lhAxes;
   for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
     lhAxes.AddAxis(BinAxis(it->first, it->second, maxs.at(it->first), nbins.at(it->first)));
@@ -179,7 +185,7 @@ void mcmc(const std::string &fitConfigFile_,
   std::cout << "LLH: " << finalLLH << "\nFit Valid: " << validFit << std::endl;
 
   // Now save the results
-  if (in.run.saveOutputs)
+  if (fitConfig.GetSaveOutputs())
   {
     res.SaveAs(outDir + "/fit_result.txt");
     std::ofstream file(outDir + "/fit_result.txt", std::ios::app);
@@ -190,7 +196,8 @@ void mcmc(const std::string &fitConfigFile_,
 
   MCMCSamples samples = mh.GetSamples();
 
-  if (in.run.saveOutputs)
+  // Save the output tree
+  if (fitConfig.GetSaveOutputs())
   {
     // Output filename is aboveDirectory_resultDirectory.root, inside outDir
     std::string chainFileName = outDir;
@@ -217,12 +224,12 @@ void mcmc(const std::string &fitConfigFile_,
   const HistMap &proj1D = samples.Get1DProjections();
   const HistMap &proj2D = samples.Get2DProjections();
 
-  if (in.run.saveOutputs)
+  if (fitConfig.GetSaveOutputs())
     std::cout << "Saving LH projections to \n\t" << projDir1D << "\n\t" << projDir2D << std::endl;
   std::cout << "Posterior (after burn-in, from the 1D projections): mean +- std" << std::endl;
   for (HistMap::const_iterator it = proj1D.begin(); it != proj1D.end(); ++it)
   {
-    if (in.run.saveOutputs)
+    if (fitConfig.GetSaveOutputs())
       IO::SaveHistogram(it->second, projDir1D + "/" + it->first + ".root");
     if (fixedPars[it->first])
       continue;
@@ -239,40 +246,37 @@ void mcmc(const std::string &fitConfigFile_,
       std::cout << "  " << it->first << ": " << sumX / sum << " +- " << sqrt(std::max(0.0, sumXX / sum - sumX * sumX / sum / sum))
                 << "   (nominal " << noms[it->first] << ")" << std::endl;
   }
-  if (in.run.saveOutputs)
+  if (fitConfig.GetSaveOutputs())
     for (HistMap::const_iterator it = proj2D.begin(); it != proj2D.end(); ++it)
       IO::SaveHistogram(it->second, projDir2D + "/" + it->first + ".root");
 
-  // Calculate postfit rates even when optional component spectra are not saved.
-  RateByDatasetAndPdf bestFitNonBufferRates;
-  for (DSMap::const_iterator dsIt = setup.dsPDFMap.begin(); dsIt != setup.dsPDFMap.end(); ++dsIt)
+  // Rebuild each dataset's predicted distribution using the fitted values
+  ComponentRates bestFitRates;
+  for (PreparedDatasetMap::const_iterator dataset = datasets.begin();
+       dataset != datasets.end(); ++dataset)
   {
-    const DatasetModel &model = datasets.models.at(dsIt->first);
-    BinnedED postfitDist = BinnedED("postfit dist", setup.systAxes);
-    postfitDist.SetObservables(setup.dataObs);
-    for (size_t i = 0; i < model.pdfs.size(); i++)
-    {
-      const std::string name = model.pdfs.at(i).GetName();
-      BinnedED postfitPDF = ApplySystematicsByGroups(model.pdfs.at(i), model.pdfGroups.at(i),
-                                                   syst.byDataset.at(dsIt->first), syst.group, bestFit);
-      postfitPDF.Scale(bestFit.at(name));
-      postfitPDF = ProjectToDataObs(postfitPDF, postfitDist, setup.dataObs);
-      bestFitNonBufferRates[dsIt->first][name] += IntegrateBufferedBins(postfitPDF, setup.pdfConfig, setup.dataObs);
-      if (in.run.saveOutputs)
-        IO::SaveHistogram(postfitPDF.GetHistogram(), postfitDistDir + "/" + name + "_" + dsIt->first + ".root");
-      // Sum all scaled distributions to get full postfit "dataset"
-      postfitDist.Add(postfitPDF);
-    }
-    if (in.run.saveOutputs)
-    {
-      IO::SaveHistogram(postfitDist.GetHistogram(), postfitDistDir + "/postfitdist_" + dsIt->first + ".root");
-      BinnedED dataDist = ProjectToDataObs(datasets.dataDists.at(dsIt->first), postfitDist, setup.dataObs);
-      IO::SaveHistogram(dataDist.GetHistogram(), outDir + "/data_" + dsIt->first + ".root");
-    }
+    const std::string &dsName = dataset->first;
+    BinnedED total("postfit dist", setup.systAxes);
+    total.SetObservables(setup.dataObs);
+    // Reactor rate factors are already included in bestFit, so use 1.0 here
+    std::vector<BinnedED> components = BuildComponents(
+        dataset->second.pdfs, dataset->second.pdfGroups,
+        syst, config.systematics, dsName, bestFit,
+        std::vector<double>(dataset->second.pdfs.size(), 1.0), total, setup.dataObs);
+    // Count events outside the likelihood buffer bins for the rate summary
+    bestFitRates[dsName] = GetComponentRates(
+        dataset->second.pdfs, components,
+        setup.pdfConfig, setup.dataObs);
+    if (fitConfig.GetSaveOutputs())
+      WritePostfitDists(dsName, dataset->second, setup, components, total, dirs);
   }
-  PrintNominalBestFitSummary(in, bestFit, datasets.nominalNonBufferRates, bestFitNonBufferRates);
+  // Compare these fitted rates with the nominal rates saved during dataset building
+  ComponentRates nominalRates;
+  for (PreparedDatasetMap::const_iterator dataset = datasets.begin(); dataset != datasets.end(); ++dataset)
+    nominalRates[dataset->first] = dataset->second.nominalNonBufferRates;
+  PrintNominalBestFitSummary(fitParameters, bestFit, nominalRates, bestFitRates);
 
-  if (in.run.saveOutputs)
+  if (fitConfig.GetSaveOutputs())
   {
     // Save autocorrelations
     std::ofstream cofs((outDir + "/auto_correlations.txt").c_str());

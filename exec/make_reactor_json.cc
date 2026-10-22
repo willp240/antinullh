@@ -17,7 +17,7 @@ baselines in km, and integer indices to the specified JSON output file.
 #include <RAT/DB.hh>
 
 // AntinuLLH headers
-#include <Utilities.hh>
+#include <ReactorBaselines.hh>
 
 using namespace antinufit;
 

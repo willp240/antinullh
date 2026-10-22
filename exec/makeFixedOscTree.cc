@@ -1,6 +1,6 @@
 // Antinu headers
 #include <PDFConfigLoader.hh>
-#include <DistBuilder.hh>
+#include <BuildDist.hh>
 #include <FitConfigLoader.hh>
 #include <EventConfigLoader.hh>
 #include <SystConfigLoader.hh>
@@ -35,14 +35,14 @@ using namespace antinufit;
 ///
 /// App for making a TTree of the results of a set of fixed
 /// fits. Each Entry in the TTree represents one of the fits, and
-/// each branch represents one of the fit parameters.
+/// each branch represents one of the fit parameters
 /// First open the root file (made by makeFixedOscTree) and find the
 /// minimum LLH entry. The user supplies the fit config and
-/// fit config used to produce one (any) of the fits.
+/// fit config used to produce one (any) of the fits
 ///
 /// There is a function for reading either the txt or root files
 /// outputted by the fits. The root file is used by default as it
-/// contains more information.
+/// contains more information
 ///
 /// As well as the TTree with postfit values, the prefit values and
 /// constraints are also saved in a file saved in the top directory
@@ -175,7 +175,7 @@ bool parseFitResultsTxt(const std::string &filename, std::map<std::string, doubl
         // The refactored fitter prints a nominal-vs-best-fit summary after the
         // canonical Best Fit Values block.  Do not parse that second table as
         // another set of fit results: its first numeric column is the nominal
-        // value and would otherwise overwrite every fitted branch value.
+        // value and would otherwise overwrite every fitted branch value
         if (inParamsSection &&
             (line.find("Parameter Summary (Nominal vs Best Fit)") != std::string::npos ||
              line.find("Fit complete for:") != std::string::npos))
