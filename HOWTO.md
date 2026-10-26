@@ -169,6 +169,10 @@ The `type` field in the syst config accepts these values (the names after a colo
 - `Shape:AlphaNClass{Reac,GeoU,GeoTh,BPLike,AlphaN}{PPO,BisMSB}` – Alpha-n classifier shape systematics for each listed component and scintillator.
 - `Shape:reactor_nubar_norm`, `Shape:geonu_U_norm`, `Shape:geonu_Th_norm`, `Shape:alphan_PRecoil_norm`, `Shape:alphan_CScatter_norm`, `Shape:alphan_OExcited_norm`, `Shape:bipolike_norm`, `Shape:atmospheric_norm` – Shape normalisation factors.
 
+For `Shape:ReactorOscProb`, set the reactor component to `dimensions=1` and `oscillated=0`, with the Shape's dedicated group first in its group list. `BuildSysts` uses the component's MC to prepare the oscillation shape, which is applied to the unoscillated PDF during the fit.
+
+Set `param_names=deltam21,theta12`, `deltam21,sintheta12`, or `deltam21,sinsqtheta12`, matching the names in the fit config. `theta12` is in degrees; the other forms are sin(theta12) and sin²(theta12).
+
 <h3>Output (src/output)</h3>
 
 - `FitSummary.hh/.cc` – Prints a summary of the fit parameters, datasets, oscillation settings and PDF axes.
@@ -252,14 +256,10 @@ If you want to run a full fit where everything is floated at once, there is an a
 
 Set `save_outputs = 1` in the fit config to save the chain, posterior histograms, fit result and spectra. With `save_outputs = 0`, only console summaries are produced.
 
-`Shape:ReactorOscProb` selects the reactor oscillation function for OXO's ordinary `Shape` systematic. Systematic setup prepares its 3D MC histogram before creating the Shape. Set the reactor component to `dimensions=1` and `oscillated=0`: the normal dataset builder makes an unoscillated 1D PDF, and Shape applies the oscillation weights during the fit. Put the Shape's dedicated group first in that component's group list, before detector systematics. The function uses true-energy bin centres and returns the oscillated/original count ratio for each reconstructed-energy bin.
-
-For `Shape:ReactorOscProb`, set `param_names=deltam21,theta12`, `deltam21,sintheta12`, or `deltam21,sinsqtheta12`. The angle parameter must have the same name in the fit config. `theta12` is in degrees; the other names denote sin(theta12) and sin²(theta12). Both reactor and geoneutrino systematics convert internally to sin²(theta12). Bounds, proposal widths, priors and saved samples stay in the configured representation; a uniform prior in one representation is not uniform in the others.
-
 In practice, run many chains in parallel on Condor with `util/submitCondor.py` (see Submitting Batch Jobs below). For example, 50 chains with the default config set in `cfg/mcmcDefault/`:
 
 ```
-python util/submitCondor.py mcmc /path/to/output/mcmcDefault_run1 \
+python util/submitCondor.py mcmc /path/to/output/mcmcDefault_run \
     -r /path/to/this/repo \
     -e /path/to/your/env_file.sh \
     -f cfg/mcmcDefault/fit_config.ini \
