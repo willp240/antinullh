@@ -74,13 +74,12 @@ namespace antinufit
       ScaleFunction *scale_func = new ScaleFunction(name);
       if (function == "BirksLaw" || function == "BirksLaw2")
       {
-        const std::string parameter = function == "BirksLaw" ? "birks_constant" : "birks_constant2";
+        const std::string parameter = paramnamevec_.at(0);
         const ScaleFunc birks = [parameter](const ParameterDict &params, const double &energy)
         {
           return BirksLaw(energy, params.at(parameter));
         };
         scale_func->SetScaleFunction(birks, paramnamevec_);
-        scale_func->RenameParameter(paramnamevec_.at(0), parameter);
         ParameterDict params({{parameter, paramvals_.at(paramnamevec_.at(0))}});
         scale_func->SetParameters(params);
       }
@@ -93,25 +92,6 @@ namespace antinufit
 
     else if (type == "Shape")
     {
-
-      // First declare possible functions
-      ShapeFunction GeoOscProb = [paramnamevec_](const ParameterDict &params, const std::vector<double> &obs_vals)
-      {
-        double fDmSqr21 = params.at("deltam21");
-        double fSSqrTheta12 = Theta12ToSinSq(paramnamevec_.at(1), params.at("sinsqtheta12"));
-        double fDmSqr32 = 2.451e-3;
-        double fSSqrTheta13 = 0.0216;
-
-        // prob = s13^4 + c13^4 * (1 - (1/2) * sin^2(2 * theta_12))
-        // First get fCSqrTheta13 (cos^2(theta_12)) via cos^2 = (1 - sin^2)
-        double fCSqrTheta13 = (1 - fSSqrTheta13) * (1 - fSSqrTheta13);
-        // Now let's get sin^2(2 * theta_12) from sin^(2x) = 4*sin^2(x) * (1 - sin^2(x))
-        double fSSqr2Theta_12 = 4 * fSSqrTheta12 * (1 - fSSqrTheta12);
-        // Finally bring it all together
-        double prob = (fSSqrTheta13 * fSSqrTheta13) + (fCSqrTheta13 * fCSqrTheta13) * (1 - 0.5 * fSSqr2Theta_12);
-
-        return prob;
-      };
 
       static const std::set<std::string> normalisationNames = {
           "reactor_nubar_norm", "geonu_U_norm", "geonu_Th_norm",
@@ -127,7 +107,7 @@ namespace antinufit
       }
       else if (function == "GeoOscProb")
       {
-        shape->SetShapeFunction(GeoOscProb, paramnamevec_);
+        shape->SetShapeFunction(MakeGeoOscProbShape(paramnamevec_), paramnamevec_);
         shape->RenameParameter(paramnamevec_.at(0), "deltam21");
         shape->RenameParameter(paramnamevec_.at(1), "sinsqtheta12");
         ParameterDict params({{"deltam21", paramvals_.at(paramnamevec_.at(0))}, {"sinsqtheta12", paramvals_.at(paramnamevec_.at(1))}});

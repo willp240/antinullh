@@ -134,55 +134,51 @@ The name of these tables should be the name of the systematic.
 - `group`: This is the group of pdfs the systematic will be applied to. If this is left blank it will apply to all PDFs
 - `dataset`: This is the dataset the systematic applies to. This should match the name of a dataset defined in the `event` config file
 
-<h3>Systematic Related Functions (src/syst)</h3>
+<h3>Data Preparation (src/data)</h3>
 
-<h4>Systematic Factory</h4>
+- `BuildDist.hh/.cc` – Builds binned PDFs from MC events using the PDF config, including flat and oscillated distributions, and constructs their axes.
+- `DatasetSetup.hh` – Loads the event and PDF configs into the dataset names, active components, data paths and observables needed for a run.
+- `LoadEvents.hh` – Opens pruned MC ntuples and loads observed data from a ROOT ntuple or histogram.
+- `BuildDatasets.hh/.cc` – Prepares each dataset for fitting, from its MC PDFs through to the selected data distribution and initial parameter values.
+- `BuildComponent.hh/.cc` – Turns prepared PDFs into expected event distributions by applying systematics and rates, then sums them for a dataset.
 
-The systematic factory, when given a systematic name, type, and list of associated fit parameters, will return a systematic object to be used in the analysis. For some systematics, a reactor-distance map can also be handed to the systematic factory. The allowed types are the `OXO` systematic classes, along with a possible function name and ploy name, each separated with a colon. The possible functions and ploys are defined in the `SystematicFactory`. These are the current allowed combinations
+<h3>Fit Construction (src/fit)</h3>
 
-- `Scale`: A linear `Scale` systematic
-- `Shift`: A `Shift` systematic
-- `Conv:Gaussian:SquareRootScale`: A Convolution with a Gaussian function where the width of the Gaussian runs with the square root of the axis in question
-- `ScaleFunction:BirksLaw`: A `ScaleFunction` systematic where the function used modifies Birk's Constant
+- `FitParameters.hh/.cc` – Collects parameter settings from the fit config, initialises dataset values, and removes parameters and constraints unused by the selected datasets.
+- `OscParams.hh` – Checks which theta12 convention is configured, converts it to sin-squared theta12, and holds the nominal oscillation values.
+- `BuildLikelihood.hh/.cc` – Configures a `BinnedNLLH` for each prepared dataset, including its components, data and systematics.
+- `CombineLLHs.hh` – Combines the dataset likelihoods into a `StatisticSum` and gathers their initial parameter values.
+- `FitConstraints.hh` – Adds Gaussian, correlated, ratio, fractional difference and shape constraints to the combined likelihood.
+- `ShapeConstraints.hh` – Defines the named functions used by shape constraints.
 
-<h4>Functions</h4>
+<h3>Systematics (src/syst)</h3>
 
-Functions that can be passed to systematics are defined in here. Currently they are Birk's Law and the Oscillation Probability calculations. However, to pass lambdas to these functions, they had to be defined inline so this file may soon be removed.
+- `SystFactory.hh/.cc` – Selects a configured systematic type and connects it to the appropriate OXO class and function.
+- `SystFuncs.hh/.cc` – Implements the physics and shape functions used by systematics, including Birk's law, geoneutrino and reactor oscillation, and alpha-n classification.
+- `BuildSysts.hh/.cc` – Uses `SystFactory` to create and configure one instance of each applicable systematic for every dataset, including the MC-based reactor oscillation shape.
+- `ApplySysts.hh` – Applies the systematics matching a component's groups at the supplied parameter values.
+
+<h4>Available Systematic Types</h4>
+
+The `type` field in the syst config accepts these values (the names after a colon select a function or, for convolution, a kernel and width dependence):
+
+- `Scale`, `Shift` – Linear axis scaling and shifting, direct from OXO.
+- `Conv:Gaussian:SquareRootScale` – Gaussian smearing with a square-root-dependent width.
+- `ScaleFunction:BirksLaw` – Birk's-law energy scaling
+- `Shape:GeoOscProb`, `Shape:ReactorOscProb` – Geoneutrino and reactor oscillation shapes.
+- `Shape:AlphaNClass{Reac,GeoU,GeoTh,BPLike,AlphaN}{PPO,BisMSB}` – Alpha-n classifier shape systematics for each listed component and scintillator.
+- `Shape:reactor_nubar_norm`, `Shape:geonu_U_norm`, `Shape:geonu_Th_norm`, `Shape:alphan_PRecoil_norm`, `Shape:alphan_CScatter_norm`, `Shape:alphan_OExcited_norm`, `Shape:bipolike_norm`, `Shape:atmospheric_norm` – Shape normalisation factors.
+
+<h3>Output (src/output)</h3>
+
+- `FitSummary.hh/.cc` – Prints a summary of the fit parameters, datasets, oscillation settings and PDF axes.
+- `OutputDirs.hh` – Defines and creates the directories used for fit distributions.
+- `RateReporting.hh` – Calculates component rates outside the likelihood buffer bins and prints nominal and best-fit comparisons.
+- `WriteDists.hh` – Writes input PDFs, Asimov and fake-data distributions, and post-fit components and totals to ROOT files.
 
 <h3>Utils (src/util)</h3>
 
-<h4>Utilities</h4>
-
-This file contains reactor JSON loading, reactor-distance calculations, string utilities and fit-parameter reporting.
-
-<h4>DistBuilder</h4>
-
-The DistBuilder class can build a <code>BinnedED</code> from a combination of a PDF Config and a dataset. There are methods to build directly from events in the dataset, oscillate events from the dataset, or produce just a flat distribution.
-
-<h3>Fit Utils</h3>
-There are a number of functions and structs used to keep clutter out of the main execs. These live in three subdirectories under `/src/fit`:
-
-<h4>`pipeline/`</h4>
-- FitInputs.hh – Canonical struct of all run + parameter settings derived from FitConfig.
-- DatasetSetup.hh – Static description of datasets, PDFs, axes, and data paths.
-- DatasetModel.hh – Per-dataset container for built PDFs, groups, rates, asimov/fake dists.
-- BuildDatasets.cc/.hh – Builds all dataset models and per-dataset LLHs from setup + physics.
-- CombineLLHs.hh – Merges dataset LLHs into a global StatisticSum with shared params.
-- ParamUtils.hh – Small helpers for initialising/handling ParameterDicts.
-- FitSummary.hh – Prints a clean summary of the fit configuration and parameters.
-
-<h4>`physics/`</h4>
-- OscParams.hh – Interprets and stores oscillation parameters consistently.
-- BuildComponent.hh – Builds a single PDF component from MC (pre-systematics).
-- ApplySystematics.hh – Applies relevant systematics to a PDF by group.
-- SystSetup.hh – Constructs and organises all systematic objects per dataset.
-- FitConstraints.hh – Applies standard parameter constraints to the global LLH.
-- ShapeConstraints.hh – Applies shape-specific constraint logic.
-
-<h4>`io/`</h4>
-- OutputDirs.hh – Defines and creates output directory structure.
-- LoadDataset.hh – Loads MC datasets and real data distributions from file.
-- Projection.hh – Projects/marginalises PDFs to match data observables.
+- `StringUtils.hh/.cc` – Contains small string helpers for splitting delimited values and stripping quote marks.
 
 <h2>Apps</h2>
 
