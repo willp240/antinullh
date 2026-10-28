@@ -1,5 +1,6 @@
 #include <BuildDist.hh>
 #include <iostream>
+#include <stdexcept>
 
 namespace antinufit
 {
@@ -82,7 +83,11 @@ namespace antinufit
       Event ev = data_->GetEntry(i);
       double nuEnergy = ev.GetDatum("nu_energy");
       int reacIndex = ev.GetDatum("reactorIndex");
-      double baseline = indexDistance_.at(reacIndex);
+      const std::unordered_map<int, double>::const_iterator baselineIt = indexDistance_.find(reacIndex);
+      if (baselineIt == indexDistance_.end())
+        throw std::runtime_error("No reactor baseline for index " + std::to_string(reacIndex) +
+                                 " in " + name_ + " event " + std::to_string(i));
+      double baseline = baselineIt->second;
       double oscprob = antinufit::OscProb(baseline, nuEnergy, deltam21_, sinsqth12_);
       double r = rndm.Rndm();
       if (r > oscprob)
