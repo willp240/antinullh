@@ -37,6 +37,7 @@ namespace
   struct OscillationPoint
   {
     double deltam21 = 0.0;
+    double theta12 = 0.0;
     double theta12SinSq = 0.0;
   };
 
@@ -58,6 +59,8 @@ namespace
                               const FitConfig &fitConfig,
                               const FitParameters &fitParameters,
                               const PDFConfig &pdfConfig,
+                              const OscillationPoint &point,
+                              const std::string &theta12name,
                               double nomllh)
   {
     std::vector<BinnedNLLH> pointLLHs;
@@ -106,6 +109,8 @@ namespace
 
     // Scale reactor rate values and Gaussian priors by the change from nominal
     ParameterDict values = GetInitialValues(datasets);
+    values.at("deltam21") = point.deltam21;
+    values.at(theta12name) = point.theta12;
     ParameterDict nominal = fitParameters.noms;
     FitParameters scanParameters = fitParameters;
     for (std::map<std::string, double>::const_iterator entry = factors.begin();
@@ -205,6 +210,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
     OscillationPoint point;
     point.deltam21 = dm;
+    point.theta12 = theta12_nom;
     point.theta12SinSq = Theta12ToSinSq(theta12name, theta12_nom);
     scanPoints.push_back(point);
   }
@@ -216,6 +222,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
     OscillationPoint point;
     point.deltam21 = deltam21_nom;
+    point.theta12 = th;
     point.theta12SinSq = Theta12ToSinSq(theta12name, th);
     scanPoints.push_back(point);
   }
@@ -306,6 +313,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
       fullLLH.SetParameters(allParVals);
     }
     // Write Histos
+    outFile.cd();
     hScan->Write();
   }
 
@@ -390,12 +398,14 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
     }
 
     const double deltaLLH = EvaluateScanDeltaLLH(
-        datasets, pointData, syst, config.systematics, fitConfig, fitParameters, setup.pdfConfig, nomllh);
+        datasets, pointData, syst, config.systematics, fitConfig, fitParameters,
+        setup.pdfConfig, point, theta12name, nomllh);
     if (scanningDeltam)
       hDeltam->SetBinContent(pointIndex + 1, deltaLLH);
     else
       hTheta12->SetBinContent(pointIndex + 1, deltaLLH);
   }
+  outFile.cd();
   hDeltam->Write();
   hTheta12->Write();
 

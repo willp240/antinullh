@@ -547,4 +547,4 @@ If you really want to dig into the chain and be sure it has fully converged, you
 
 This will produce a root file, `output_tree_autoCorr.root` (if running over `output_tree.root`) containing a plot for each parameter of autocorrelation of parameter value at different lag (from 0 to 1000 steps).  
 
-This can be useful step-size tuning and debugging.  
+This can be useful step-size tuning and debugging.
