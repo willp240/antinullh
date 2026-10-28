@@ -61,9 +61,12 @@ namespace antinufit
 
       // Datasets column
       std::string datasetString;
-      const std::map<std::string, std::vector<std::string>>::const_iterator dsIt = datasets.find(name);
-      if (dsIt != datasets.end())
-        datasetString = Join(dsIt->second);
+      std::vector<std::string> parameterDatasets;
+      for (std::map<std::string, std::vector<std::string>>::const_iterator dsIt = datasets.begin();
+           dsIt != datasets.end(); ++dsIt)
+        if (std::find(dsIt->second.begin(), dsIt->second.end(), name) != dsIt->second.end())
+          parameterDatasets.push_back(dsIt->first);
+      datasetString = Join(parameterDatasets);
       std::cout << std::left << std::setw(20) << datasetString << "| ";
 
       // Constraint columns (simple Gaussian priors only)
