@@ -102,14 +102,16 @@ void llh_scan(const std::string &fitConfigFile,
     // Place the nominal point exactly at a bin centre, as in fixedosc_llhscan
     const int stepsBelow = static_cast<int>(std::floor((centre - lower) / step));
     const double first = centre - stepsBelow * step;
-    const double scale = centre == 0.0 ? 1.0 : std::abs(centre);
+    const bool oscillationParameter = name == "deltam21" || name == "sinsqtheta12" || name == "theta12";
+    const double scale = oscillationParameter || centre == 0.0 ? 1.0 : std::abs(centre);
     std::map<std::string, std::string>::const_iterator labelIt = labels.find(name);
     const std::string label = labelIt == labels.end() ? name : labelIt->second;
     TH1D scan((name + "_full").c_str(), label.c_str(), npoints,
               (first - step / 2) / scale,
               (first + (npoints - 0.5) * step) / scale);
-    scan.SetTitle((label + ";" + label +
-                   " (relative to |nominal|); -(ln L_{full})").c_str());
+    const std::string axisUnits = name == "deltam21" ? " (eV^{2})" :
+                                  oscillationParameter ? "" : " (relative to |nominal|)";
+    scan.SetTitle((label + ";" + label + axisUnits + "; -(ln L_{full})").c_str());
 
     std::cout << "Scanning " << name << '\n';
     ParameterDict trial = nominal;
