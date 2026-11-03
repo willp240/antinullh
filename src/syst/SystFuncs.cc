@@ -94,10 +94,10 @@ namespace antinufit
     {
       const double sinSqTheta12 = Theta12ToSinSq(paramNames.at(1), params.at("sinsqtheta12"));
       const double sinSqTheta13 = 0.0216;
-      const double cosSqTheta13 = (1.0 - sinSqTheta12) * (1.0 - sinSqTheta12);
+      const double cosSqTheta13 = (1.0 - sinSqTheta13) * (1.0 - sinSqTheta13);
       const double sinSq2Theta12 = 4.0 * sinSqTheta12 * (1.0 - sinSqTheta12);
       return sinSqTheta13 * sinSqTheta13 +
-             cosSqTheta13 * cosSqTheta13 * (1.0 - 0.5 * sinSq2Theta12);
+             cosSqTheta13 * (1.0 - 0.5 * sinSq2Theta12);
     };
   }
 
