@@ -2,6 +2,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TH2D.h>
+#include <TH2I.h>
 #include <TH1D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
@@ -31,7 +32,7 @@
 // Function that takes in a TH2D, and returns a pair of TH1Ds. Each is a profile of the two axis of the TH2D
 // It loops through the bins on one axis. For each bin, it loops through all the bins on the other axis,
 // finding the minimum LLH for that row. This is then repeated for the other axis
-std::pair<TH1D *, TH1D *> GetMinProfiles(TH2D *hist2D)
+std::pair<TH1D *, TH1D *> GetMinProfiles(TH2D *hist2D, TH2I *occupied)
 {
 
     std::pair<TH1D *, TH1D *> Profile;
@@ -41,18 +42,18 @@ std::pair<TH1D *, TH1D *> GetMinProfiles(TH2D *hist2D)
 
     // Create a TH1D histogram to store the minimum Y value for each X bin
     TH1D *minProfileX = new TH1D("minProfileX", "minProfileX", nBinsX, hist2D->GetXaxis()->GetXmin(), hist2D->GetXaxis()->GetXmax());
-    TH1D *minProfileY = new TH1D("minProfileY", "minProfileY", nBinsX, hist2D->GetYaxis()->GetXmin(), hist2D->GetYaxis()->GetXmax());
+    TH1D *minProfileY = new TH1D("minProfileY", "minProfileY", nBinsY, hist2D->GetYaxis()->GetXmin(), hist2D->GetYaxis()->GetXmax());
 
     for (int i = 1; i <= nBinsX; i++)
     {
         double minVal = std::numeric_limits<double>::max(); // Set to large value
-        bool hasValue = false;                              // To check if any non-zero bin exists
+        bool hasValue = false;
 
         // Loop over all Y bins at this X
         for (int j = 1; j <= nBinsY; j++)
         {
             double binContent = hist2D->GetBinContent(i, j);
-            if (binContent != 0 && binContent < minVal)
+            if (occupied->GetBinContent(i, j) > 0 && binContent < minVal)
             {
                 minVal = binContent;
                 hasValue = true;
@@ -76,13 +77,13 @@ std::pair<TH1D *, TH1D *> GetMinProfiles(TH2D *hist2D)
     for (int i = 1; i <= nBinsY; i++)
     {
         double minVal = std::numeric_limits<double>::max(); // Set to large value
-        bool hasValue = false;                              // To check if any non-zero bin exists
+        bool hasValue = false;
 
         // Loop over all Y bins at this X
         for (int j = 1; j <= nBinsX; j++)
         {
             double binContent = hist2D->GetBinContent(j, i);
-            if (binContent != 0 && binContent < minVal)
+            if (occupied->GetBinContent(j, i) > 0 && binContent < minVal)
             {
                 minVal = binContent;
                 hasValue = true;
@@ -238,6 +239,8 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     TH2D* hLLH = new TH2D("hLLH", ("#Delta LLH;#Delta m^{2}, eV^{2};" + theta12labelunit).c_str(),
 			  nBinsX, minThetaBin, maxThetaBin,
 			  nBinsY, minDeltamBin, maxDeltamBin);
+    TH2I* occupied = new TH2I("occupied", "occupied", nBinsX, minThetaBin, maxThetaBin,
+                              nBinsY, minDeltamBin, maxDeltamBin);
     
     // Loop over the tree entries and fill the histogram
     for (Long64_t i = 0; i < nEntries; i++)
@@ -248,6 +251,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
 	    int biny = hLLH->GetYaxis()->FindBin(deltam);
 
 	    hLLH->SetBinContent(binx, biny, 2*(llh - minLLH));
+        occupied->SetBinContent(binx, biny, 1);
     }
     
     // Draw the 2D histogram
@@ -294,7 +298,7 @@ void plotFixedOscLLH(const char *filename = "fit_results.root")
     c1->Write("c1");
 
     // Now we're going to make the profile LLH plots
-    std::pair<TH1D *, TH1D *> Profile = GetMinProfiles(hLLH);
+    std::pair<TH1D *, TH1D *> Profile = GetMinProfiles(hLLH, occupied);
 
     // Profile LLH of theta
     TCanvas *c2 = new TCanvas("c2", "theta LLH", 800, 600);
