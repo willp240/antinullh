@@ -87,6 +87,12 @@ def parse_plot_params(lines):
 # --------------------------------------------------------------
 # Combine results (norm-style)
 # --------------------------------------------------------------
+def normalisation_rate_error(rate, normalisation, normalisation_error):
+    if not math.isfinite(normalisation) or normalisation == 0:
+        raise ValueError("Cannot infer a component rate error from a zero or nonfinite normalisation")
+    return abs(rate * normalisation_error / normalisation)
+
+
 def combine_results_normstyle(integrals, fit_params, geo_corr, alphan):
     postfit_central = {}
     postfit_uncert = {}
@@ -118,20 +124,20 @@ def combine_results_normstyle(integrals, fit_params, geo_corr, alphan):
         norm_param = base + "_norm"
         if norm_param not in fit_params:
             continue
-        _, norm_err = fit_params[norm_param]
+        norm_val, norm_err = fit_params[norm_param]
         part = "ppo" if stem.endswith("_2p2ppo") else "bismsb"
         postfit_central[stem] = integral
-        postfit_uncert[stem] = integral * norm_err
+        postfit_uncert[stem] = normalisation_rate_error(integral, norm_val, norm_err)
         base_to_parts.setdefault(base, {})
-        base_to_parts[base][part] = (integral, norm_err)
+        base_to_parts[base][part] = (integral, norm_val, norm_err)
 
     # Totals
     for base, parts in base_to_parts.items():
         if "ppo" in parts and "bismsb" in parts:
-            (ppo_val, norm_err) = parts["ppo"]
-            (bismsb_val, _) = parts["bismsb"]
+            (ppo_val, norm_val, norm_err) = parts["ppo"]
+            (bismsb_val, _, _) = parts["bismsb"]
             total_val = ppo_val + bismsb_val
-            total_unc = total_val * norm_err
+            total_unc = normalisation_rate_error(total_val, norm_val, norm_err)
             postfit_central[base + "_total"] = total_val
             postfit_uncert[base + "_total"] = total_unc
 
@@ -225,8 +231,12 @@ def add_geo_ratios(central, uncert, corr_ppo, corr_bi=None):
         # Totals
         geo_u_total = geo_u_ppo + geo_u_bi
         geo_th_total = geo_th_ppo + geo_th_bi
-        geo_u_total_unc = math.hypot(geo_u_ppo_unc, geo_u_bi_unc)
-        geo_th_total_unc = math.hypot(geo_th_ppo_unc, geo_th_bi_unc)
+        if corr_bi is None:
+            geo_u_total_unc = uncert["geonu_U_total"]
+            geo_th_total_unc = uncert["geonu_Th_total"]
+        else:
+            geo_u_total_unc = math.hypot(geo_u_ppo_unc, geo_u_bi_unc)
+            geo_th_total_unc = math.hypot(geo_th_ppo_unc, geo_th_bi_unc)
         r_tot, r_tot_unc = ratio_and_unc(geo_u_total, geo_u_total_unc, geo_th_total, geo_th_total_unc, corr_ppo)
 
         central["geo_ratio_ppo"], uncert["geo_ratio_ppo"] = r_ppo, r_ppo_unc
@@ -313,6 +323,8 @@ def main():
     print("Running plotFixedOscParams...")
     lines = run_plot_fixed_osc_params(fit_result_tree, corr, alphan)
     fit_params, geo_corr, mode = parse_plot_params(lines)
+    if not fit_params:
+        raise RuntimeError("No fitted parameters were recovered from plotFixedOscParams; check the saved covariance errors")
     print(f"Detected mode: {mode}-style")
     print(f"Geo correlation(s): {geo_corr}")
 
