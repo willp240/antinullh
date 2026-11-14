@@ -28,7 +28,7 @@ def run_get_integrals(postfit_dir):
 
 
 def run_plot_fixed_osc_params(fit_result_tree, corr, alphan):
-    cmd = ["root", "-l", "-b", "-q", f'plotting/plotFixedOscParams.C("{fit_result_tree}",{corr},{alphan})']
+    cmd = ["root", "-l", "-b", "-q", f'plotting/plotFixedOscParams.C("{fit_result_tree}",{int(corr)},{int(alphan)})']
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print("❌ Error running plotFixedOscParams:\n", result.stderr)
@@ -87,237 +87,26 @@ def parse_plot_params(lines):
 # --------------------------------------------------------------
 # Combine results (norm-style)
 # --------------------------------------------------------------
-def normalisation_rate_error(rate, normalisation, normalisation_error):
-    if not math.isfinite(normalisation) or normalisation == 0:
-        raise ValueError("Cannot infer a component rate error from a zero or nonfinite normalisation")
-    return abs(rate * normalisation_error / normalisation)
-
-
-def combine_results_normstyle(integrals, fit_params, geo_corr, alphan):
-    postfit_central = {}
-    postfit_uncert = {}
-
-    # Oscillation and systematics (direct from fit)
-    oscillation_params = {"deltam21", "sinsqtheta12"}
-    systematics = {}
-    if not alphan:
-        systematics = {
-        "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
-        "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2"
-        }
-    else:
-        systematics = {
-        "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
-        "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2",
-        "class_a_ppo", "class_a_bismsb", "class_s_ppo", "class_s_bismsb"
-        }
-    for p, (val, err) in fit_params.items():
-        if p in oscillation_params or p in systematics:
-            postfit_central[p] = val
-            postfit_uncert[p] = err
-
-    # Normalisations
-    base_to_parts = {}
-    for stem, integral in integrals.items():
-        base = re.sub(r"(_2p2ppo|_bismsb)$", "", stem)
-        base = re.sub(r"2$", "", base)
-        norm_param = base + "_norm"
-        if norm_param not in fit_params:
-            continue
-        norm_val, norm_err = fit_params[norm_param]
-        part = "ppo" if stem.endswith("_2p2ppo") else "bismsb"
-        postfit_central[stem] = integral
-        postfit_uncert[stem] = normalisation_rate_error(integral, norm_val, norm_err)
-        base_to_parts.setdefault(base, {})
-        base_to_parts[base][part] = (integral, norm_val, norm_err)
-
-    # Totals
-    for base, parts in base_to_parts.items():
-        if "ppo" in parts and "bismsb" in parts:
-            (ppo_val, norm_val, norm_err) = parts["ppo"]
-            (bismsb_val, _, _) = parts["bismsb"]
-            total_val = ppo_val + bismsb_val
-            total_unc = normalisation_rate_error(total_val, norm_val, norm_err)
-            postfit_central[base + "_total"] = total_val
-            postfit_uncert[base + "_total"] = total_unc
-
-    # Geo ratios (shared corr)
-    corr = geo_corr.get("shared", 0.0)
-    add_geo_ratios(postfit_central, postfit_uncert, corr)
-    return postfit_central, postfit_uncert
-
-
-# --------------------------------------------------------------
-# Combine results (direct-style)
-# --------------------------------------------------------------
-def combine_results_directstyle(integrals, fit_params, geo_corr, alphan):
-    postfit_central = {}
-    postfit_uncert = {}
-
-    oscillation_params = {"deltam21", "sinsqtheta12"}
-    systematics = {}
-    if not alphan:
-        systematics = {
-        "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
-        "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2"
-        }
-    else:
-        systematics = {
-        "energy_scale", "energy_conv", "birks_constant", "p_recoil_energy_scale",
-        "energy_scale2", "energy_conv2", "birks_constant2", "p_recoil_energy_scale2",
-        "class_a_ppo", "class_a_bismsb", "class_s_ppo", "class_s_bismsb"
-        }
-
-    for p, (val, err) in fit_params.items():
-        if p in oscillation_params or p in systematics:
-            postfit_central[p] = val
-            postfit_uncert[p] = err
-
-    # Normalisation-like parameters (use directly)
-    base_to_parts = {}
-    for stem, integral in integrals.items():
-        base = re.sub(r"(_2p2ppo|_bismsb)$", "", stem)
-        if base not in fit_params:
-            continue
-        fit_val, fit_err = fit_params[base]
-        part = "ppo" if stem.endswith("_2p2ppo") else "bismsb"
-        postfit_central[stem] = integral
-        postfit_uncert[stem] = integral * fit_err / fit_val
-        base = re.sub(r"2$", "", base)
-        base_to_parts.setdefault(base, {})
-        base_to_parts[base][part] = (integral, fit_err)
-
-    # Compute totals
-    for base, parts in base_to_parts.items():
-        if "ppo" in parts and "bismsb" in parts:
-            val_ppo, err_ppo = parts["ppo"]
-            val_bi, err_bi = parts["bismsb"]
-            total_val = val_ppo + val_bi
-            total_unc = err_ppo+err_bi
-            postfit_central[base + "_total"] = total_val
-            postfit_uncert[base + "_total"] = total_unc
-
-    # Geo ratios (separate corr for ppo/bismsb)
-    ppo_corr = geo_corr.get("ppo", 0.0)
-    bi_corr = geo_corr.get("bismsb", 0.0)
-    add_geo_ratios(postfit_central, postfit_uncert, ppo_corr, bi_corr)
-
-    return postfit_central, postfit_uncert
-
-
-# --------------------------------------------------------------
-# Geo ratio helper
-# --------------------------------------------------------------
-def add_geo_ratios(central, uncert, corr_ppo, corr_bi=None):
-    def safe_get(name):
-        return central[name], uncert[name]
-
-    try:
-        # PPO
-        geo_u_ppo, geo_u_ppo_unc = safe_get("geonu_U_2p2ppo") if "geonu_U_2p2ppo" in central else safe_get("geonu_U")
-        geo_th_ppo, geo_th_ppo_unc = safe_get("geonu_Th_2p2ppo") if "geonu_Th_2p2ppo" in central else safe_get("geonu_Th")
-        # bisMSB
-        geo_u_bi, geo_u_bi_unc = safe_get("geonu_U2_bismsb") if "geonu_U2_bismsb" in central else safe_get("geonu_U2")
-        geo_th_bi, geo_th_bi_unc = safe_get("geonu_Th2_bismsb") if "geonu_Th2_bismsb" in central else safe_get("geonu_Th2")
-
-        def ratio_and_unc(n, n_unc, d, d_unc, corr):
-            r = n / d
-            rel = math.sqrt((n_unc / n)**2 + (d_unc / d)**2 - 2*(n_unc / n)*(d_unc / d)*corr)
-            return r, r * rel
-
-        r_ppo, r_ppo_unc = ratio_and_unc(geo_u_ppo, geo_u_ppo_unc, geo_th_ppo, geo_th_ppo_unc, corr_ppo)
-        r_bi, r_bi_unc = ratio_and_unc(geo_u_bi, geo_u_bi_unc, geo_th_bi, geo_th_bi_unc, corr_bi if corr_bi else corr_ppo)
-
-        # Totals
-        geo_u_total = geo_u_ppo + geo_u_bi
-        geo_th_total = geo_th_ppo + geo_th_bi
-        if corr_bi is None:
-            geo_u_total_unc = uncert["geonu_U_total"]
-            geo_th_total_unc = uncert["geonu_Th_total"]
-        else:
-            geo_u_total_unc = math.hypot(geo_u_ppo_unc, geo_u_bi_unc)
-            geo_th_total_unc = math.hypot(geo_th_ppo_unc, geo_th_bi_unc)
-        r_tot, r_tot_unc = ratio_and_unc(geo_u_total, geo_u_total_unc, geo_th_total, geo_th_total_unc, corr_ppo)
-
-        central["geo_ratio_ppo"], uncert["geo_ratio_ppo"] = r_ppo, r_ppo_unc
-        central["geo_ratio_bismsb"], uncert["geo_ratio_bismsb"] = r_bi, r_bi_unc
-        central["geo_ratio_total"], uncert["geo_ratio_total"] = r_tot, r_tot_unc
-    except KeyError:
-        pass
-
-
-# --------------------------------------------------------------
-# CSV writer (same as before)
-# --------------------------------------------------------------
-def write_csv(outdir, central, uncert, mode, alphan):
-
-    ordered_labels = []
-
-    if not alphan:
-        ordered_labels = [
-            ("deltam21", "Deltam"),
-            ("sinsqtheta12", "Theta"),
-            ("reactor_nubar_2p2ppo", "Reac osc PPO"),
-            ("reactor_nubar2_bismsb", "Reac osc bisMSB"),
-            ("reactor_nubar_total", "Reac osc total"),
-            ("geonu_U_2p2ppo", "Geo U PPO"), ("geonu_U2_bismsb", "Geo U bisMSB"), ("geonu_U_total", "Geo U total"),
-            ("geonu_Th_2p2ppo", "Geo Th PPO"), ("geonu_Th2_bismsb", "Geo Th bisMSB"), ("geonu_Th_total", "Geo Th total"),
-            ("geo_ratio_ppo", "Geo Ratio PPO"), ("geo_ratio_bismsb", "Geo Ratio bisMSB"), ("geo_ratio_total", "Geo Ratio total"),
-            ("alphan_CScatter_2p2ppo", "AN CS PPO"), ("alphan_CScatter2_bismsb", "AN CS bisMSB"), ("alphan_CScatter_total", "AN CS total"),
-            ("alphan_OExcited_2p2ppo", "AN OE PPO"), ("alphan_OExcited2_bismsb", "AN OE bisMSB"), ("alphan_OExcited_total", "AN OE total"),
-            ("alphan_PRecoil_2p2ppo", "AN PR PPO"), ("alphan_PRecoil2_bismsb", "AN PR bisMSB"), ("alphan_PRecoil_total", "AN PR total"),
-            ("bipolike_2p2ppo", "BiPo like PPO"), ("bipolike2_bismsb", "BiPo like bisMSB"), ("bipolike_total", "BiPo like total"),
-            ("atmospheric_2p2ppo", "Atmos PPO"), ("atmospheric2_bismsb", "Atmos bisMSB"), ("atmospheric_total", "Atmos total"),
-            ("energy_scale", "E Scale PPO"), ("energy_scale2", "E Scale bisMSB"),
-            ("birks_constant", "Birk's PPO"), ("birks_constant2", "Birk's bisMSB"),
-            ("energy_conv", "E Conv PPO"), ("energy_conv2", "E Conv bisMSB"),
-            ("p_recoil_energy_scale", "E Scale PR PPO"), ("p_recoil_energy_scale2", "E Scale PR bisMSB")
-        ]
-    else:
-        ordered_labels = [
-            ("deltam21", "Deltam"),
-            ("sinsqtheta12", "Theta"),
-            ("reactor_nubar_2p2ppo", "Reac osc PPO"),
-            ("reactor_nubar2_bismsb", "Reac osc bisMSB"),
-            ("reactor_nubar_total", "Reac osc total"),
-            ("geonu_U_2p2ppo", "Geo U PPO"), ("geonu_U2_bismsb", "Geo U bisMSB"), ("geonu_U_total", "Geo U total"),
-            ("geonu_Th_2p2ppo", "Geo Th PPO"), ("geonu_Th2_bismsb", "Geo Th bisMSB"), ("geonu_Th_total", "Geo Th total"),
-            ("geo_ratio_ppo", "Geo Ratio PPO"), ("geo_ratio_bismsb", "Geo Ratio bisMSB"), ("geo_ratio_total", "Geo Ratio total"),
-            ("alphan_CScatter_2p2ppo", "AN CS PPO"), ("alphan_CScatter2_bismsb", "AN CS bisMSB"), ("alphan_CScatter_total", "AN CS total"),
-            ("alphan_OExcited_2p2ppo", "AN OE PPO"), ("alphan_OExcited2_bismsb", "AN OE bisMSB"), ("alphan_OExcited_total", "AN OE total"),
-            ("alphan_PRecoil_2p2ppo", "AN PR PPO"), ("alphan_PRecoil2_bismsb", "AN PR bisMSB"), ("alphan_PRecoil_total", "AN PR total"),
-            ("bipolike_2p2ppo", "BiPo like PPO"), ("bipolike2_bismsb", "BiPo like bisMSB"), ("bipolike_total", "BiPo like total"),
-            ("atmospheric_2p2ppo", "Atmos PPO"), ("atmospheric2_bismsb", "Atmos bisMSB"), ("atmospheric_total", "Atmos total"),
-            ("energy_scale", "E Scale PPO"), ("energy_scale2", "E Scale bisMSB"),
-            ("birks_constant", "Birk's PPO"), ("birks_constant2", "Birk's bisMSB"),
-            ("energy_conv", "E Conv PPO"), ("energy_conv2", "E Conv bisMSB"),
-            ("p_recoil_energy_scale", "E Scale PR PPO"), ("p_recoil_energy_scale2", "E Scale PR bisMSB"),
-            ("class_a_ppo", "Classifier A PPO"), ("class_a_bismsb", "Classifier A bisMSB"),
-            ("class_s_ppo", "Classifier S PPO"), ("class_s_bismsb", "Classifier S bisMSB")
-        ]
-
-    csv_path = os.path.join(outdir, "postfit_summary.csv")
-    with open(csv_path, "w", newline="") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["Label", "Parameter", "Central", "Uncertainty", "Rel. Uncertainty (%)"])
-        for key, label in ordered_labels:
-            if key in central:
-                c = central[key]
-                u = uncert.get(key, float("nan"))
-                rel = (abs(u / c) * 100) if (isinstance(c, (int, float)) and c != 0) else float("nan")
-                writer.writerow([label, key, f"{c:.6g}", f"{u:.6g}", f"{rel:.2f}"])
-    print(f"✅ CSV written to {csv_path}")
+from postfit_results import (
+    normalisation_rate_error, combine_results_normstyle, combine_results_directstyle,
+    add_geo_ratios, write_csv, read_minuit_result, write_minuit_summary,
+)
 
 
 # --------------------------------------------------------------
 # Main
 # --------------------------------------------------------------
 def main():
-    if len(sys.argv) != 3 and len(sys.argv) != 5:
+    if len(sys.argv) == 3 and sys.argv[1] == "--fit-dir":
+        write_minuit_summary(read_minuit_result(sys.argv[2]))
+        return
+    if len(sys.argv) != 5:
         print("Usage: python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool")
         sys.exit(1)
 
     postfit_dir, fit_result_tree, corr, alphan = sys.argv[1:5]
+    corr = corr.lower() in ("1", "true", "yes")
+    alphan = alphan.lower() in ("1", "true", "yes")
     print("Running get_integrals.py...")
     integrals = run_get_integrals(postfit_dir)
     print("Running plotFixedOscParams...")

@@ -218,41 +218,50 @@ def first_column(label, key):
     return f"\\multirow{{2}}{{*}}{{\\textbf{{{label}}}}}", ""
 
 
-def row_lines(key, label, table_type, nominal, original, reprocessed):
+def row_lines(key, label, table_type, nominal, fit1, fit2, fit3=None):
     nv, ne = lookup(nominal, key)
-    ov, oe = lookup(original, key)
-    rv, re = lookup(reprocessed, key)
+    value1, error1 = lookup(fit1, key)
+    value2, error2 = lookup(fit2, key)
 
     nom = fmt_value(key, nv, ne, table_type)
-    old = fmt_value(key, ov, oe, table_type)
-    new = fmt_value(key, rv, re, table_type)
+    formatted1 = fmt_value(key, value1, error1, table_type)
+    formatted2 = fmt_value(key, value2, error2, table_type)
 
     col1, col1b = first_column(label, key)
+    extra = ""
+    if fit3 is not None:
+        av, ae = lookup(fit3, key)
+        extra = f" & \\multirow{{2}}{{*}}{{{fmt_value(key, av, ae, table_type)}}}"
     lines = [
         f"\n        {col1} & \\multirow{{2}}{{*}}{{{nom}}} & "
-        f"\\multirow{{2}}{{*}}{{{old}}} & \\multirow{{2}}{{*}}{{{new}}} \\\\"
+        f"\\multirow{{2}}{{*}}{{{formatted1}}} & \\multirow{{2}}{{*}}{{{formatted2}}}{extra} \\\\"
     ]
 
+    empty_cells = " &" * (4 if fit3 is not None else 3)
     if col1b:
-        lines.append(f"        {col1b} & & & \\\\")
+        lines.append(f"        {col1b}{empty_cells} \\\\")
     else:
-        lines.append("        & & & \\\\")
+        lines.append(f"       {empty_cells} \\\\")
 
     lines.append("        \\hline")
     return lines
 
 
-def build_table(nominal, original, reprocessed, table_type, caption, label):
+def build_table(nominal, fit1, fit2, table_type, caption, label,
+                fit3=None, label1="Fit 1", label2="Fit 2",
+                label3="Fit 3", totals_only=False):
+    columns = "lcccc" if fit3 is not None else "lccc"
+    extra_header = f" & \\textbf{{{label3}}}" if fit3 is not None else ""
     header = (
         "\\begin{table}\n"
         "    \\small\n"
         "    \\centering\n"
         f"    \\caption{{{caption}}}\n"
         f"    \\label{{{label}}}\n"
-        "    \\begin{tabular}{lccc}\n"
+        f"    \\begin{{tabular}}{{{columns}}}\n"
         "        \\hline\\hline\n"
         "        \\textbf{Parameter Name} & \\textbf{Nominal Value} & "
-        "\\textbf{Original Fit} & \\textbf{Reprocessed Fit} \\\\\n"
+        f"\\textbf{{{label1}}} & \\textbf{{{label2}}}{extra_header} \\\\\n"
         "        \\hline"
     )
     lines = [header]
@@ -260,9 +269,11 @@ def build_table(nominal, original, reprocessed, table_type, caption, label):
     for key, latex_label, kind in ROWS:
         if kind != table_type:
             continue
-        if key not in nominal and key not in original and key not in reprocessed:
+        if totals_only and key not in ("deltam21", "sinsqtheta12") and not key.endswith("_total"):
             continue
-        lines.extend(row_lines(key, latex_label, table_type, nominal, original, reprocessed))
+        if key not in nominal and key not in fit1 and key not in fit2 and (fit3 is None or key not in fit3):
+            continue
+        lines.extend(row_lines(key, latex_label, table_type, nominal, fit1, fit2, fit3))
 
     lines.append("\n        \\hline\\hline\n    \\end{tabular}\n\\end{table}")
     return "\n".join(lines)
@@ -270,10 +281,16 @@ def build_table(nominal, original, reprocessed, table_type, caption, label):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build old-vs-reprocessed fit comparison LaTeX tables."
+        description="Build comparison LaTeX tables for two or three fits."
     )
-    parser.add_argument("original", help="Original fit dir or postfit_summary.csv")
-    parser.add_argument("reprocessed", help="Reprocessed fit dir or postfit_summary.csv")
+    parser.add_argument("fit1", help="First fit dir or postfit_summary.csv")
+    parser.add_argument("fit2", help="Second fit dir or postfit_summary.csv")
+    parser.add_argument("--fit3", help="Optional third fit dir or postfit_summary.csv")
+    parser.add_argument("--label1", default="Fit 1")
+    parser.add_argument("--label2", default="Fit 2")
+    parser.add_argument("--label3", default="Fit 3")
+    parser.add_argument("--totals-only", action="store_true", help="Show oscillation parameters and summed event rates")
+    parser.add_argument("--table-type", choices=("all", "osc", "syst"), default="all")
     parser.add_argument(
         "--nominal-dir",
         default=None,
@@ -297,31 +314,22 @@ def main():
         nominal = read_summary(args.nominal_dir)
     else:
         nominal = read_nominal_csv(default_nominal_csv(args.name))
-    original = read_summary(args.original)
-    reprocessed = read_summary(args.reprocessed)
+    fit1 = read_summary(args.fit1)
+    fit2 = read_summary(args.fit2)
+    fit3 = read_summary(args.fit3) if args.fit3 else None
 
     name = args.name.replace("_", " ")
     label_stub = args.name.replace(" ", "_").lower()
-    tex = "\n\n".join(
-        [
-            build_table(
-                nominal,
-                original,
-                reprocessed,
-                "osc",
-                f"Comparison of oscillation and normalisation parameter values for the {name} fit.",
-                f"tab:{label_stub}_osc_norm_old_new",
-            ),
-            build_table(
-                nominal,
-                original,
-                reprocessed,
-                "syst",
-                f"Comparison of systematic parameter values for the {name} fit.",
-                f"tab:{label_stub}_syst_old_new",
-            ),
-        ]
-    )
+    tables = []
+    for kind, description in (("osc", "oscillation and normalisation"), ("syst", "systematic")):
+        if args.table_type not in ("all", kind):
+            continue
+        caption = f"Comparison of {description} parameter values for the {name} fit."
+        label_kind = "osc_norm" if kind == "osc" else "syst"
+        tables.append(build_table(
+            nominal, fit1, fit2, kind, caption, f"tab:{label_stub}_{label_kind}_comparison",
+            fit3, args.label1, args.label2, args.label3, args.totals_only))
+    tex = "\n\n".join(tables)
 
     if args.output:
         Path(args.output).write_text(tex + "\n")

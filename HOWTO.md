@@ -320,6 +320,79 @@ A similar script, `util/submitFixedGeoJobs.py` runs jobs fits at 2D grid points 
  
 <h2>Postfit Analysis</h2>
 
+<h3>Floated Oscillation Minuit Fits</h3>
+
+After a floated Minuit fit has completed with `save_outputs = 1` run:
+
+```bash
+source /home/parkerw/Software/env-dev_cpp17.sh
+source env_my.sh
+./util/run_minuit_postfit.sh /path/to/output/dir
+```
+
+The fit directory must contain `fit_result.root`, `fit_result.txt`, the saved `cfg/fit_config.ini`, `cfg/event_config.ini` and `cfg/pdf_config.ini`, `postfit_dists/<component>_<dataset>.root`,
+`postfit_dists/postfitdist_<dataset>.root` and `data_<dataset>.root`.
+The saved configs must describe the fit that produced these files. The reader uses the supplied directory, ignoring any old `output_directory` in its config.
+The standard distribution plots currently support the PPO (`2p2ppo`) and bis-MSB (`bismsb`) energy spectra and component groups. Both oscillation parameters must be free, and reactor oscillation must be applied through the shape systematic rather than baked into the PDFs.
+
+The wrapper validates the saved fit status, parameter/error dimensions, covariance and spectra before preparing outputs. It does not rerun the fit or modify its configs, original result files or saved spectra. Rerunning the command replaces derived outputs and appends to `run_minuit_postfit.log`.
+
+All products are written alongside the fit on the data disk:
+
+| Output | Contents |
+| --- | --- |
+| `postfit.root` | Plotting metadata: fitted values, errors, covariance, nominals, constraints, labels and dataset/component names|
+| `plots/params.pdf`, `plots/params.root` | Prefit/postfit parameter plot; ROOT histograms named `nominal`, `constraints` and `postfit` |
+| `plots/correlations.pdf` | Parameter correlation plot; its histogram is also saved as `correlations` in `params.root` |
+| `plots/dist_all.pdf`, `plots/distgroup_all.pdf` | Combined component and grouped energy spectra, when both datasets are present |
+| `plots/dist_2p2ppo.pdf`, `plots/distgroup_2p2ppo.pdf` | PPO spectra |
+| `plots/dist_bismsb.pdf`, `plots/distgroup_bismsb.pdf` | bis-MSB spectra |
+| Corresponding distribution `.root` files | ROOT canvases for the energy plots |
+| `postfit_summary.csv` | Parameters, component event counts and U/Th ratios in a table |
+| `postfit_central.json`, `postfit_uncert.json` | Numerical summary at full saved precision |
+| `postfit_summary_metadata.json` | Fit source, NLLH, integration-bin convention and uncertainty method |
+| `run_minuit_postfit.log` | Output from preparation and plotting |
+
+The shared Python reader is `util/postfit_results.py`. It prepares metadata and calculates the summary independently of plotting. `plotting/plotMinuitParams.C` and the fixed oscillation grid macro `plotting/plotFixedOscParams.C` share their parameter and
+correlation drawing code in `plotting/PlotFitParams.hh`. The distribution macro `plotting/plotFixedOscDist.C` accepts the fit directory directly for this workflow. Observed data are rebinned from the saved data spectrum onto the 0.4 MeV display bins, whose edges must align with the saved bins. The MC is scaled to events per display-bin width. Asimov/fake-data plots retain the fine binning and MC/data ratio panel. Raw data ntuples are not reopened.
+
+For individual steps, use:
+
+```bash
+python3 util/combine_postfit_results.py --fit-dir /path/to/fit
+root -l -b -q 'plotting/plotMinuitParams.C("/path/to/fit/postfit.root")'
+root -l -b -q 'plotting/plotFixedOscDist.C("/path/to/fit/postfit.root",0,"","/path/to/fit",true)'
+```
+
+The plotting commands reuse `postfit.root`, which the wrapper prepares automatically in the fit directory. The last argument in the distribution command is `true` for data and `false` for Asimov/fake data. The dataset choice is `0` for combined, `1` for PPO and `2` for bis-MSB. The wrapper uses the fit directory for all derived outputs.
+
+Parameter errors and correlations use the joint Minuit Hessian covariance. Boundary parameters and multimodal oscillation likelihoods may need profile studies; Hessian errors do not describe disconnected allowed regions.
+Event counts are integrated over the energy likelihood bins specified by `llh_buffer_bin_low` and `llh_buffer_bin_high` (defaults: ROOT bin 8 through `number_of_bins - 20`, which is bin 150 for the standard 170-bin spectrum).
+
+Yield errors propagate the covariance of normalisation parameters, including shared factors between datasets and the U/Th covariance. Explicit yield changes from shape or oscillation variations are not included. These are not full uncertainties on the integrated prediction. The CSV retains the existing `Central`, `Uncertainty` and `Parameter` columns for the table tools.
+
+The existing comparison tools accept the new `plots/params.root` directly:
+
+```bash
+root -l -b -q 'plotting/compareFixedOscParams.C("/path/to/fixed/plots/params.root","Fixed","/path/to/floated/plots/params.root","Floated","/path/to/comparison")'
+```
+
+For three fits use `compare3FixedOscParams.C` with three filename/label pairs and an output basename. Choose a basename and create its parent directory first.
+
+Tables are a separate comparison step, for example:
+
+```bash
+python3 tables/make_old_new_fit_tables.py /path/to/fit1/postfit_summary.csv /path/to/fit2/postfit_summary.csv \
+    --fit3 /path/to/fit3/postfit_summary.csv \
+    --label1 "Label 1" --label2 "Label 2 fixed" \
+    --label3 "Floated" --name "data alphan" --totals-only --table-type osc \
+    -o /path/to/comparison.tex
+```
+
+The nominal column comes from the existing nominal table inputs; `--nominal-csv` can select another nominal input. Omit `--totals-only` to retain dataset-specific rows and omit `--table-type osc` to include the systematic table too.
+
+A single Minuit result does not provide a likelihood surface or profile curves. The wrapper therefore does not run `makeFixedOscTree`, `plotFixedOscLLH.C` or `plotFixedOscFullLLH.py`.
+
 <h3>Fixed Oscillation Fits</h3>
 
 A lot of the postfit analysis will be done using scripts that reside in `util` (not to be confused with `src/util`), and `plotting`.

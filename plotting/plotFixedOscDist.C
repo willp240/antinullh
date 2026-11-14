@@ -4,6 +4,9 @@
 #include <TH2D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
+#include <filesystem>
+#include <stdexcept>
+#include <algorithm>
 
 // c++ Headers
 #include <sys/stat.h>
@@ -167,7 +170,7 @@ std::string RemoveDSName(const std::string& input) {
     return result;
 }
 
-void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1, std::string dataDir = "")
+void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1, std::string dataDir = "", std::string fitDirectory = "", bool observedData = false)
 {
 
     gROOT->SetStyle("snoplus");
@@ -180,54 +183,60 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         return;
     }
 
-    // Get the TTree
-    TTree *tree = nullptr;
-    file->GetObject("fitResults", tree);
-    if (!tree)
-    {
-        std::cerr << "Error: Could not find TTree 'fitResults' in file " << filename << std::endl;
-        file->Close();
-        return;
-    }
-
-    // Get the list of branches
-    TObjArray *branches = tree->GetListOfBranches();
-    std::map<std::string, double> branchValues;
-
-    // Create a map of branch names to variables
-    std::map<std::string, double *> branchPointers;
-    for (int i = 0; i < branches->GetEntries(); ++i)
-    {
-        std::string branchName = branches->At(i)->GetName();
-        branchValues[branchName] = 0.0;
-        branchPointers[branchName] = &branchValues[branchName];
-        tree->SetBranchAddress(branchName.c_str(), branchPointers[branchName]);
-    }
-
-    // Check the form of theta 12
-    std::string theta12name;
-    if (tree->GetBranch("theta12"))
-        theta12name = "theta12";
-    else if (tree->GetBranch("sintheta12"))
-        theta12name = "sintheta12";
-    else if (tree->GetBranch("sinsqtheta12"))
-        theta12name = "sinsqtheta12";
-
-    double minLLH = 1e9;
+    const bool singleFit = !fitDirectory.empty();
+    const bool dataPlot = !dataDir.empty() || observedData;
     double bestTheta = 0;
     double bestDeltaM = 0;
-
-    // Loop over entries in the tree
-    Long64_t nEntries = tree->GetEntries();
-    for (Long64_t i = 0; i < nEntries; ++i)
+    if (!singleFit)
     {
-        tree->GetEntry(i);
-        if (branchValues["LLH"] < minLLH)
+        // Get the TTree
+        TTree *tree = nullptr;
+        file->GetObject("fitResults", tree);
+        if (!tree)
         {
-            minLLH = branchValues["LLH"];
-            bestTheta = branchValues[theta12name];
-            bestDeltaM = branchValues["deltam21"];
+            std::cerr << "Error: Could not find TTree 'fitResults' in file " << filename << std::endl;
+            file->Close();
+            return;
         }
+
+        // Get the list of branches
+        TObjArray *branches = tree->GetListOfBranches();
+        std::map<std::string, double> branchValues;
+
+        // Create a map of branch names to variables
+        std::map<std::string, double *> branchPointers;
+        for (int i = 0; i < branches->GetEntries(); ++i)
+        {
+            std::string branchName = branches->At(i)->GetName();
+            branchValues[branchName] = 0.0;
+            branchPointers[branchName] = &branchValues[branchName];
+            tree->SetBranchAddress(branchName.c_str(), branchPointers[branchName]);
+        }
+
+        // Check the form of theta 12
+        std::string theta12name;
+        if (tree->GetBranch("theta12"))
+            theta12name = "theta12";
+        else if (tree->GetBranch("sintheta12"))
+            theta12name = "sintheta12";
+        else if (tree->GetBranch("sinsqtheta12"))
+            theta12name = "sinsqtheta12";
+
+        double minLLH = 1e9;
+
+        // Loop over entries in the tree
+        Long64_t nEntries = tree->GetEntries();
+        for (Long64_t i = 0; i < nEntries; ++i)
+        {
+            tree->GetEntry(i);
+            if (branchValues["LLH"] < minLLH)
+            {
+                minLLH = branchValues["LLH"];
+                bestTheta = branchValues[theta12name];
+                bestDeltaM = branchValues["deltam21"];
+            }
+        }
+
     }
 
     // Build paramOrder based on datasetChoice
@@ -257,7 +266,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         atmosphericGrp = atmosphericGroup;
         atmosphericGrp.insert(atmosphericGrp.end(), atmosphericGroup2.begin(), atmosphericGroup2.end());
         outsuffix = "_all";
-        if(dataDir == "")
+        if (!dataPlot)
         {
             ymin = ymin0;
             ymax = ymax0;
@@ -277,7 +286,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         bipolikeGrp = bipolikeGroup;
         atmosphericGrp = atmosphericGroup;
         outsuffix = "_" + datasetname1;
-        if(dataDir == "")
+        if (!dataPlot)
         {
             ymin = ymin1;
             ymax = ymax1;
@@ -297,7 +306,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         bipolikeGrp = bipolikeGroup2;
         atmosphericGrp = atmosphericGroup2;
         outsuffix = "_" + datasetname2;
-        if(dataDir == "")
+        if (!dataPlot)
         {
             ymin = ymin2;
             ymax = ymax2;
@@ -327,6 +336,9 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     file->GetObject("all_param_names", paramNames);
     file->GetObject("all_tex_labels", labelsVec);
 
+    if (!paramNames || !labelsVec || paramNames->size() != labelsVec->size())
+        throw std::runtime_error("Missing component labels in postfit metadata");
+
     for (int iParam = 0; iParam < labelsVec->size(); iParam++)
     {
         labelMap[paramNames->at(iParam)] = labelsVec->at(iParam);
@@ -339,10 +351,16 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     std::filesystem::path dirPath(filename);
     dirPath.replace_filename("");
     std::ostringstream directory;
-    directory << dirPath.string() << "/th" << std::fixed << std::setprecision(3) << bestTheta
-              << "/th" << std::fixed << std::setprecision(3) << bestTheta
-              << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM
-              << "/postfit_dists/";
+    if (singleFit)
+        directory << fitDirectory << "/postfit_dists/";
+    else
+    {
+        directory << dirPath.string() << "/th" << std::fixed << std::setprecision(3) << bestTheta
+                  << "/th" << std::fixed << std::setprecision(3) << bestTheta
+                  << "_dm" << std::fixed << std::setprecision(8) << bestDeltaM
+                  << "/postfit_dists/";
+
+    }
 
     TLegend *t1 = new TLegend(0.5, 0.48, 0.85, 0.85);
     t1->SetLineWidth(2);
@@ -368,6 +386,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
             TFile *file = TFile::Open(filePath.c_str(), "READ");
             if (!file || file->IsZombie())
             {
+                if (singleFit)
+                    throw std::runtime_error("Missing saved spectrum: " + filePath);
                 std::cerr << "Error opening file: " << filePath << std::endl;
                 delete file;
                 continue;
@@ -384,6 +404,8 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
 
                 if (!h2)
                 {
+                    if (singleFit)
+                        throw std::runtime_error("Missing oxsx_saved histogram: " + filePath);
                     std::cerr << "No histogram 'oxsx_saved' found in file: " << filePath << std::endl;
                     file->Close();
                     delete file;
@@ -396,7 +418,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
             }
             h1->SetDirectory(nullptr);
 
-            if (paramOrders.at(iFile).at(iPar) != "data" && dataDir != "")
+            if (paramOrders.at(iFile).at(iPar) != "data" && dataPlot)
             {
 
                 for (int i = 1; i <= h1->GetNbinsX(); ++i)
@@ -431,8 +453,11 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
     hData = (TH1D *)histMap["data"]->Clone("hData");
     hData->Reset();
     hMC = (TH1D *)histMap["postfitdist"]->Clone("hMC");
-    double chi2 = histMap["data"]->Chi2Test(hMC, "CHI2/NDF W");
-    std::cout << "Chi Squared = " << chi2 << std::endl;
+    if (!singleFit || !observedData)
+    {
+        const double chi2 = histMap["data"]->Chi2Test(hMC, "CHI2/NDF W");
+        std::cout << "Chi Squared = " << chi2 << std::endl;
+    }
     hReactor = (TH1D *)histMap["data"]->Clone("hReactor");
     hReactor->Reset();
     hGeo = (TH1D *)histMap["data"]->Clone("hGeo");
@@ -474,10 +499,27 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         if (paramOrders.at(0).at(iPar) == "data")
         {
             hData->Add(histMap[paramOrders.at(0).at(iPar)]);
-            if (dataDir != "")
+            if (dataPlot)
             {
                 t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "lep");
-                histMap["data"] = rebinData(dataDir, datasetChoice);
+                if (!dataDir.empty())
+                    histMap["data"] = rebinData(dataDir, datasetChoice);
+                else
+                {
+                    // Rebin the saved data histogram on the existing display edges
+                    const int nBins = static_cast<int>(std::ceil((xmax - xmin) / databinwidth - 1e-12));
+                    std::vector<double> edges(nBins + 1);
+                    for (int i = 0; i <= nBins; ++i)
+                    {
+                        edges[i] = xmin + i * databinwidth;
+                        const int bin = histMap["data"]->GetXaxis()->FindBin(edges[i] + 1e-9);
+                        if (std::fabs(histMap["data"]->GetXaxis()->GetBinLowEdge(bin) - edges[i]) > 1e-7)
+                            throw std::runtime_error("Data display edges do not align with saved energy bins");
+                    }
+                    histMap["data"] = static_cast<TH1D *>(histMap["data"]->Rebin(nBins, "displayData", edges.data()));
+                    histMap["data"]->SetDirectory(nullptr);
+                    histMap["data"]->SetMarkerStyle(21);
+                }
             }
             else
                 t1->AddEntry(histMap[paramOrders.at(0).at(iPar)], labelMap[paramOrders.at(0).at(iPar)].c_str(), "l");
@@ -523,7 +565,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         colourIndex++;
     }
 
-    if (dataDir == "")
+    if (!dataPlot)
     {
         // Draw stack of all event types
         TCanvas *c1 = new TCanvas("c1", "Stacked", 1000, 600);
@@ -635,7 +677,7 @@ void plotFixedOscDist(const char *filename = "fit_results.root", const int datas
         t2->AddEntry(hAtmospheric, "Atmospheric", "f");
 
         upper2->cd();
-        TH1F *frame2 = upper->DrawFrame(xmin, ymin, xmax, ymax);
+        TH1F *frame2 = upper2->DrawFrame(xmin, ymin, xmax, ymax);
         frame2->SetTitle(";Reconstructed Energy, MeV;Events");
         frame2->GetXaxis()->SetLabelOffset(1.2);
         frame2->GetXaxis()->SetTitleFont(42);
