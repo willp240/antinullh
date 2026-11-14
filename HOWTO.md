@@ -389,7 +389,7 @@ python3 tables/make_old_new_fit_tables.py /path/to/fit1/postfit_summary.csv /pat
     -o /path/to/comparison.tex
 ```
 
-The nominal column comes from the existing nominal table inputs; `--nominal-csv` can select another nominal input. Omit `--totals-only` to retain dataset-specific rows and omit `--table-type osc` to include the systematic table too.
+Use `--no-nominal` for a table containing only the parameter name and the compared fits. The nominal column otherwise comes from the existing nominal table inputs; `--nominal-csv` can select another nominal input. Omit `--totals-only` to retain dataset-specific rows and omit `--table-type osc` to include the systematic table too.
 
 A single Minuit result does not provide a likelihood surface or profile curves. The wrapper therefore does not run `makeFixedOscTree`, `plotFixedOscLLH.C` or `plotFixedOscFullLLH.py`.
 

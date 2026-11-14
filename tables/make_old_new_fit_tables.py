@@ -218,7 +218,7 @@ def first_column(label, key):
     return f"\\multirow{{2}}{{*}}{{\\textbf{{{label}}}}}", ""
 
 
-def row_lines(key, label, table_type, nominal, fit1, fit2, fit3=None):
+def row_lines(key, label, table_type, nominal, fit1, fit2, fit3=None, include_nominal=True):
     nv, ne = lookup(nominal, key)
     value1, error1 = lookup(fit1, key)
     value2, error2 = lookup(fit2, key)
@@ -232,12 +232,13 @@ def row_lines(key, label, table_type, nominal, fit1, fit2, fit3=None):
     if fit3 is not None:
         av, ae = lookup(fit3, key)
         extra = f" & \\multirow{{2}}{{*}}{{{fmt_value(key, av, ae, table_type)}}}"
+    nominal_cell = f" & \\multirow{{2}}{{*}}{{{nom}}}" if include_nominal else ""
     lines = [
-        f"\n        {col1} & \\multirow{{2}}{{*}}{{{nom}}} & "
-        f"\\multirow{{2}}{{*}}{{{formatted1}}} & \\multirow{{2}}{{*}}{{{formatted2}}}{extra} \\\\"
+        f"\n        {col1}{nominal_cell} & "
+        f"\\multirow{{2}}{{*}}{{{formatted1}}} & \\multirow{{2}}{{*}}{{{formatted2}}}{extra} " + r"\\"
     ]
 
-    empty_cells = " &" * (4 if fit3 is not None else 3)
+    empty_cells = " &" * (2 + int(include_nominal) + int(fit3 is not None))
     if col1b:
         lines.append(f"        {col1b}{empty_cells} \\\\")
     else:
@@ -249,8 +250,9 @@ def row_lines(key, label, table_type, nominal, fit1, fit2, fit3=None):
 
 def build_table(nominal, fit1, fit2, table_type, caption, label,
                 fit3=None, label1="Fit 1", label2="Fit 2",
-                label3="Fit 3", totals_only=False):
-    columns = "lcccc" if fit3 is not None else "lccc"
+                label3="Fit 3", totals_only=False, include_nominal=True):
+    columns = "l" + "c" * (2 + int(include_nominal) + int(fit3 is not None))
+    nominal_header = r" & \textbf{Nominal Value}" if include_nominal else ""
     extra_header = f" & \\textbf{{{label3}}}" if fit3 is not None else ""
     header = (
         "\\begin{table}\n"
@@ -260,7 +262,7 @@ def build_table(nominal, fit1, fit2, table_type, caption, label,
         f"    \\label{{{label}}}\n"
         f"    \\begin{{tabular}}{{{columns}}}\n"
         "        \\hline\\hline\n"
-        "        \\textbf{Parameter Name} & \\textbf{Nominal Value} & "
+        f"        \\textbf{{Parameter Name}}{nominal_header} & "
         f"\\textbf{{{label1}}} & \\textbf{{{label2}}}{extra_header} \\\\\n"
         "        \\hline"
     )
@@ -273,7 +275,7 @@ def build_table(nominal, fit1, fit2, table_type, caption, label,
             continue
         if key not in nominal and key not in fit1 and key not in fit2 and (fit3 is None or key not in fit3):
             continue
-        lines.extend(row_lines(key, latex_label, table_type, nominal, fit1, fit2, fit3))
+        lines.extend(row_lines(key, latex_label, table_type, nominal, fit1, fit2, fit3, include_nominal))
 
     lines.append("\n        \\hline\\hline\n    \\end{tabular}\n\\end{table}")
     return "\n".join(lines)
@@ -289,6 +291,7 @@ def main():
     parser.add_argument("--label1", default="Fit 1")
     parser.add_argument("--label2", default="Fit 2")
     parser.add_argument("--label3", default="Fit 3")
+    parser.add_argument("--no-nominal", action="store_true", help="Omit the nominal-value column")
     parser.add_argument("--totals-only", action="store_true", help="Show oscillation parameters and summed event rates")
     parser.add_argument("--table-type", choices=("all", "osc", "syst"), default="all")
     parser.add_argument(
@@ -308,7 +311,9 @@ def main():
     parser.add_argument("-o", "--output", default=None, help="Write LaTeX to this file")
     args = parser.parse_args()
 
-    if args.nominal_csv:
+    if args.no_nominal:
+        nominal = {}
+    elif args.nominal_csv:
         nominal = read_nominal_csv(args.nominal_csv)
     elif args.nominal_dir:
         nominal = read_summary(args.nominal_dir)
@@ -328,7 +333,7 @@ def main():
         label_kind = "osc_norm" if kind == "osc" else "syst"
         tables.append(build_table(
             nominal, fit1, fit2, kind, caption, f"tab:{label_stub}_{label_kind}_comparison",
-            fit3, args.label1, args.label2, args.label3, args.totals_only))
+            fit3, args.label1, args.label2, args.label3, args.totals_only, not args.no_nominal))
     tex = "\n\n".join(tables)
 
     if args.output:
