@@ -65,15 +65,21 @@ namespace antinufit
   }
 
   BinnedED
-  BuildDist::BuildOscillatedDist(const std::string &name_, const int numDimensions_, const PDFConfig &pdfConfig_, DataSet *data_, double deltam21_, double sinsqth12_, const std::unordered_map<int, double> &indexDistance_, double &ratio)
+  BuildDist::BuildOscillatedDist(
+      const std::string &name_, const int numDimensions_, const PDFConfig &pdfConfig_,
+      DataSet *data_, double deltam21_, double sinsqth12_,
+      const std::unordered_map<int, double> &indexDistance_, double &ratio, unsigned seed)
   {
+    if (seed == 0)
+      throw std::invalid_argument("Oscillated PDF seed must be positive");
     // Create the axes
     AxisCollection axes = BuildAxes(pdfConfig_, numDimensions_);
     // Put it all together
     BinnedED dist(name_, axes);
     const std::vector<std::string> p = pdfConfig_.GetBranchNames(numDimensions_);
     dist.SetObservables(p);
-    TRandom3 rndm;
+    // Restart the same event-wise random sequence at every oscillation point
+    TRandom3 rndm(seed);
 
     // Fill it up
     for (int i = 0; i < data_->GetNEntries(); i++)

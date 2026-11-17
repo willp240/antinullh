@@ -30,7 +30,9 @@ namespace antinufit
     static BinnedED Build(const std::string &name, const int, const PDFConfig &, DataSet *data_);
     static BinnedED Build(const std::string &name, const PDFConfig &, DataSet *data_);
     static BinnedED BuildFlatDist(const std::string &name, const int numDimensions_, const PDFConfig &);
-    static BinnedED BuildOscillatedDist(const std::string &, const int, const PDFConfig &, DataSet *, double, double, const std::unordered_map<int, double> &, double &);
+    static BinnedED BuildOscillatedDist(
+        const std::string &, const int, const PDFConfig &, DataSet *, double, double,
+        const std::unordered_map<int, double> &, double &, unsigned seed);
     static AxisCollection BuildAxes(const PDFConfig &, const int);
     static AxisCollection BuildAxes(const PDFConfig &);
   };

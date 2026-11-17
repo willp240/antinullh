@@ -46,7 +46,7 @@ namespace antinufit
         const SystConfig &systConfig,
         const OscParams &osc,
         const std::unordered_map<int, double> &indexDistance,
-        const DatasetParameterMap &datasetPars)
+        const DatasetParameterMap &datasetPars, unsigned randomSeed)
     {
         PreparedDatasetMap out;
 
@@ -83,7 +83,8 @@ namespace antinufit
                     const double theta12SinSq = osc.theta12_sinsq();
                     componentDist = BuildDist::BuildOscillatedDist(
                         pdfName, numDimensions, setup.pdfConfig, dataSet.get(),
-                        osc.deltam21, theta12SinSq, indexDistance, reactorRatio);
+                        osc.deltam21, theta12SinSq, indexDistance, reactorRatio,
+                        randomSeed);
 
                     if (fitConfig.GetFakeData())
                     {
@@ -92,7 +93,8 @@ namespace antinufit
                         fakeComponentDist = BuildDist::BuildOscillatedDist(
                             pdfName, numDimensions, setup.pdfConfig, dataSet.get(),
                             p.fdValues.at("deltam21"), fakeTheta12SinSq,
-                            indexDistance, reactorFakeRatio);
+                            indexDistance, reactorFakeRatio,
+                            randomSeed);
                     }
 
                 }

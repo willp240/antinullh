@@ -66,6 +66,6 @@ namespace antinufit
         const SystConfig &systConfig,
         const OscParams &osc,
         const std::unordered_map<int, double> &indexDistance,
-        const DatasetParameterMap &datasetPars);
+        const DatasetParameterMap &datasetPars, unsigned randomSeed);
 
 } // namespace antinufit
