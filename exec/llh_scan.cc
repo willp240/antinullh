@@ -11,7 +11,6 @@
 #include <BuildLikelihood.hh>
 #include <WriteDists.hh>
 
-#include <Rand.h>
 #include <TH1D.h>
 #include <TFile.h>
 
@@ -27,8 +26,6 @@ void llh_scan(const std::string &fitConfigFile,
               const std::string &pdfConfigFile,
               const std::string &systConfigFile)
 {
-  Rand::SetSeed(0);
-
   // Use the same floating-oscillation model and likelihood setup as mcmc
   AnalysisConfig config = LoadAnalysisConfig(fitConfigFile, eventConfigFile,
                                              pdfConfigFile, systConfigFile);
@@ -55,7 +52,7 @@ void llh_scan(const std::string &fitConfigFile,
 
   // Build component PDFs, the Asimov distribution, and the data distribution for each dataset
   PreparedDatasetMap datasets = BuildDatasets(fitConfig, fitParameters, setup, syst, config.systematics, osc,
-                                       baselines, datasetPars);
+                                       baselines, datasetPars, config.randomSeed);
   // Use the calculated reactor ratios to scale fit rates, bounds, priors, and fake-data rates
   ApplyReactorRateScales(fitParameters, datasets);
 
