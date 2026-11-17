@@ -100,6 +100,10 @@ namespace antinufit
 
     bool GetSaveOutputs() const;
     void SetSaveOutputs(bool);
+    int GetRandomSeed() const { return fRandomSeed; }
+    void SetRandomSeed(int value) { fRandomSeed = value; }
+    bool GetSaveProjections() const { return fSaveProjections; }
+    void SetSaveProjections(bool value) { fSaveProjections = value; }
     int GetLLHScanPoints() const;
     void SetLLHScanPoints(int);
 
@@ -139,6 +143,8 @@ namespace antinufit
     bool fFakeData;
     double fLivetime;
     bool fSaveOutputs;
+    int fRandomSeed = 0;
+    bool fSaveProjections = true;
     int fLLHScanPoints = 150;
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrFracParName;

@@ -159,6 +159,16 @@ namespace antinufit
     ret.SetFakeData(fakeDataFlag);
     ret.SetLivetime(livetime);
     ret.SetSaveOutputs(saveOutputs);
+    int randomSeed = 0;
+    bool saveProjections = true;
+    try { ConfigLoader::Load("summary", "random_seed", randomSeed); }
+    catch (const ConfigFieldMissing &) {}
+    try { ConfigLoader::Load("summary", "save_projections", saveProjections); }
+    catch (const ConfigFieldMissing &) {}
+    if (randomSeed < 0)
+      throw std::runtime_error("random_seed must be non-negative");
+    ret.SetRandomSeed(randomSeed);
+    ret.SetSaveProjections(saveProjections);
     ret.SetMinuitTolerance(minuitTolerance);
     ret.SetMinuitStrategy(minuitStrategy);
     ret.SetMinuitMethod(minuitMethod);
