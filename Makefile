@@ -32,6 +32,14 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
+# Record software versions when compiling, with fallbacks for source archives
+ANTINU_GIT_REV := $(or $(shell git rev-parse --verify HEAD 2>/dev/null),unknown)
+OXO_GIT_REV := $(or $(shell git -C "$(OXSX_ROOT)" rev-parse --verify HEAD 2>/dev/null),unknown)
+ANTINU_DIFF_HASH := $(or $(shell git rev-parse --verify HEAD >/dev/null 2>&1 && git diff --no-ext-diff HEAD 2>/dev/null | sha256sum | cut -d" " -f1),unknown)
+VERSION_FLAGS := -DANTINU_GIT_REV='"$(ANTINU_GIT_REV)"' \
+                 -DOXO_GIT_REV='"$(OXO_GIT_REV)"' \
+                 -DANTINU_DIFF_HASH='"$(ANTINU_DIFF_HASH)"'
+
 all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/llh_scan bin/auto_corrs bin/reconstruct_mcmc_fit
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
@@ -56,7 +64,7 @@ bin/fixedosc_fit: exec/fixedosc_fit.cc $(LIB)
 
 bin/mcmc: exec/mcmc.cc Makefile $(LIB)
 	mkdir -p bin
-	$(CXX) exec/mcmc.cc -DANTINU_GIT_REV='"$(shell git rev-parse HEAD)"' -DOXO_GIT_REV='"$(shell git -C $(OXSX_ROOT) rev-parse HEAD)"' -DANTINU_DIFF_HASH='"$(shell git diff --no-ext-diff | sha256sum | cut -d" " -f1)"' $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX) exec/mcmc.cc $(VERSION_FLAGS) $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
 bin/reconstruct_mcmc_fit: exec/reconstruct_mcmc_fit.cc Makefile $(LIB)
 	mkdir -p bin
