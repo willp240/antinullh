@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import json
+import sys
 import re
 from pathlib import Path
 
@@ -136,7 +138,9 @@ def read_summary(path):
             key = row["Parameter"].strip()
             data[key] = (
                 float(row["Central"]),
-                float(row["Uncertainty"]),
+                ((float(row["ErrorLow"]), float(row["ErrorHigh"]))
+                 if row.get("ErrorLow") and row.get("ErrorHigh")
+                 else float(row["Uncertainty"])),
             )
     return data
 
@@ -162,11 +166,62 @@ def read_nominal_csv(path):
     return data
 
 
-def default_nominal_csv(name):
-    clean_name = name.lower()
-    if "alphan" in clean_name and "noalphan" not in clean_name:
-        return Path("tables/asimov_alphan_priors.csv")
-    return Path("tables/asimov_priors.csv")
+def read_fit_nominals(path):
+    """Read parameter nominals and non-buffer counts from the supplied fit outputs"""
+    path = Path(path).resolve()
+    directory = path.parent if path.is_file() else path
+    if not (directory / 'cfg/fit_config.ini').is_file():
+        summary_directory = find_summary(path).resolve().parent
+        directory = next((candidate for candidate in (summary_directory, *summary_directory.parents)
+                          if (candidate / 'cfg/fit_config.ini').is_file()), None)
+    if directory is None:
+        raise ValueError('Cannot locate saved cfg/fit_config.ini; supply --nominal-dir or --nominal-csv, or use --no-nominal')
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'util'))
+    from postfit_results import load_config, read_histogram, split_names
+    fit = load_config(directory / 'cfg/fit_config.ini')
+    nominal = {name: (fit.getfloat(name, 'nom'), None)
+               for name in fit.sections() if name != 'summary' and fit.has_option(name, 'nom')}
+    rate_summary = directory / 'rates/rate_summary.json'
+    if rate_summary.is_file():
+        saved = json.loads(rate_summary.read_text())
+        nominal.update({name: (float(value), None) for name, value in saved['nominal'].items()})
+        return nominal
+    spectra = directory / 'asimov_dists'
+    if not spectra.is_dir():
+        return nominal
+    pdf = load_config(directory / 'cfg/pdf_config.ini')
+    events = load_config(directory / 'cfg/event_config.ini')
+    # Match the existing saved-energy-spectrum reader and fitter buffer convention
+    if split_names(pdf.get('summary', 'data_axes')) != ['energy']:
+        raise ValueError('Nominal spectrum reading currently requires the energy data axis; supply --nominal-csv')
+    low = max(1, pdf.getint('energy', 'llh_buffer_bin_low', fallback=8))
+    upper_buffer = pdf.getint('energy', 'llh_buffer_bin_high', fallback=20)
+    if upper_buffer < 0:
+        raise ValueError('Upper buffer bin count must be non-negative')
+    totals = {}
+    datasets = split_names(events.get('summary', 'datasets'))
+    for dataset in datasets:
+        active = split_names(events.get(dataset, 'active'))
+        if active == ['all']:
+            inactive = split_names(events.get(dataset, 'inactive', fallback=''))
+            active = [name for name in events.sections()
+                      if events.has_option(name, 'ntup_files') and name not in inactive]
+        for component in active:
+            key = component + '_' + dataset
+            hist = read_histogram(spectra / (key + '.root'), component)
+            high = hist.GetNbinsX() - upper_buffer
+            if high < low:
+                raise ValueError(f'Invalid nominal integration bins for {key}: {low}..{high}')
+            count = float(hist.Integral(low, high))
+            nominal[key] = (count, None)
+            base = component[:-1] if component.endswith('2') and events.has_section(component[:-1]) else component
+            totals.setdefault(base, []).append(count)
+    nominal.update({base + '_total': (sum(values), None) for base, values in totals.items()})
+    for suffix, label in [('_2p2ppo', 'ppo'), ('2_bismsb', 'bismsb'), ('_total', 'total')]:
+        uranium, thorium = 'geonu_U' + suffix, 'geonu_Th' + suffix
+        if uranium in nominal and thorium in nominal and nominal[thorium][0] > 0:
+            nominal['geo_ratio_' + label] = (nominal[uranium][0] / nominal[thorium][0], None)
+    return nominal
 
 
 def decimals(key, table_type):
@@ -180,6 +235,14 @@ def decimals(key, table_type):
 def fmt_value(key, value, err, table_type, include_error=True):
     if value is None:
         return ""
+
+    if include_error and isinstance(err, tuple):
+        scale = 1e5 if key == "deltam21" else 1
+        ndp = decimals(key, table_type)
+        cell = f"{value * scale:.{ndp}f}^{{+{err[1] * scale:.{ndp}f}}}_{{-{err[0] * scale:.{ndp}f}}}"
+        return (f"$({cell})\\times10^{{-5}}$" if key == "deltam21" else f"${cell}$")
+    if isinstance(err, tuple):
+        err = None
 
     ndp = decimals(key, table_type)
     if key == "deltam21":
@@ -294,34 +357,51 @@ def main():
     parser.add_argument("--no-nominal", action="store_true", help="Omit the nominal-value column")
     parser.add_argument("--totals-only", action="store_true", help="Show oscillation parameters and summed event rates")
     parser.add_argument("--table-type", choices=("all", "osc", "syst"), default="all")
-    parser.add_argument(
+    nominal_source = parser.add_mutually_exclusive_group()
+    nominal_source.add_argument(
         "--nominal-dir",
         default=None,
-        help="Nominal/asimov dir or postfit_summary.csv. Kept for fallback/debug use.",
+        help="Fit outputs providing nominal values; defaults to the first fit. Reads saved configs and nominal spectra, not postfit central values.",
     )
-    parser.add_argument(
+    nominal_source.add_argument(
         "--nominal-csv",
         default=None,
         help=(
-            "Existing nominal TSV/CSV in the tables/*.csv style. Defaults to "
-            "tables/asimov_priors.csv, or tables/asimov_alphan_priors.csv for alphan fits."
+            "Explicit historical nominal table in the tab-separated format, using its nominal-value and uncertainty columns. No analysis-specific default."
         ),
     )
     parser.add_argument("--name", default="fit", help="Short name for captions/labels")
     parser.add_argument("-o", "--output", default=None, help="Write LaTeX to this file")
     args = parser.parse_args()
 
-    if args.no_nominal:
-        nominal = {}
-    elif args.nominal_csv:
-        nominal = read_nominal_csv(args.nominal_csv)
-    elif args.nominal_dir:
-        nominal = read_summary(args.nominal_dir)
-    else:
-        nominal = read_nominal_csv(default_nominal_csv(args.name))
-    fit1 = read_summary(args.fit1)
-    fit2 = read_summary(args.fit2)
-    fit3 = read_summary(args.fit3) if args.fit3 else None
+    if args.no_nominal and (args.nominal_csv or args.nominal_dir):
+        parser.error("--no-nominal cannot be combined with a nominal input")
+    try:
+        if args.no_nominal:
+            nominal = {}
+        elif args.nominal_csv:
+            nominal = read_nominal_csv(args.nominal_csv)
+        elif args.nominal_dir:
+            nominal = read_fit_nominals(args.nominal_dir)
+        else:
+            nominal = read_fit_nominals(args.fit1)
+        fit1 = read_summary(args.fit1)
+        fit2 = read_summary(args.fit2)
+        fit3 = read_summary(args.fit3) if args.fit3 else None
+
+    except (OSError, ValueError, RuntimeError) as error:
+        parser.error(str(error))
+
+    if not args.no_nominal:
+        compared = set(fit1) | set(fit2) | (set(fit3) if fit3 is not None else set())
+        displayed = {key for key, label, kind in ROWS if key in compared
+                     and (args.table_type == 'all' or kind == args.table_type)
+                     and (not args.totals_only or key in ('deltam21', 'sinsqtheta12') or key.endswith('_total'))}
+        missing = displayed - set(nominal)
+        if missing:
+            parser.error('Missing nominal values for ' + ', '.join(sorted(missing))
+                         + '; supply --nominal-dir or --nominal-csv, or use --no-nominal')
+        nominal = {key: value for key, value in nominal.items() if key in compared}
 
     name = args.name.replace("_", " ")
     label_stub = args.name.replace(" ", "_").lower()
