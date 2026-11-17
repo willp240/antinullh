@@ -32,7 +32,7 @@ LIBRARYDIRS := $(addprefix -L,$(LIB_DIRS))
 LIB_NAMES := $(LIB_NAME) $(OXSX_LIB_NAME) $(RAT_LIB_NAME) $(H5_LIBS)
 LIBRARYNAMES := $(addprefix -l,$(LIB_NAMES))
 
-all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/llh_scan #bin/auto_corrs bin/make_plots
+all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/llh_scan bin/auto_corrs bin/reconstruct_mcmc_fit
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
@@ -54,17 +54,17 @@ bin/fixedosc_fit: exec/fixedosc_fit.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/fixedosc_fit.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -lMinuit2 -o $@
 
-bin/mcmc: exec/mcmc.cc $(LIB)
+bin/mcmc: exec/mcmc.cc src/output/RunMetadata.hh Makefile $(LIB)
 	mkdir -p bin
-	$(CXX)  exec/mcmc.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX) exec/mcmc.cc -DANTINU_GIT_REV='"$(shell git rev-parse HEAD)"' -DOXO_GIT_REV='"$(shell git -C $(OXSX_ROOT) rev-parse HEAD)"' -DANTINU_DIFF_HASH='"$(shell git diff --no-ext-diff | sha256sum | cut -d" " -f1)"' $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
-bin/auto_corrs: exec/auto_corrs.cc $(LIB)
+bin/reconstruct_mcmc_fit: exec/reconstruct_mcmc_fit.cc src/output/RunMetadata.hh Makefile $(LIB)
 	mkdir -p bin
-	$(CXX)  exec/auto_corrs.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX) exec/reconstruct_mcmc_fit.cc $(INCLUDES) $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
-bin/make_plots: exec/make_plots.cc $(LIB)
+bin/auto_corrs: exec/auto_corrs.cc
 	mkdir -p bin
-	$(CXX)  exec/make_plots.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
+	$(CXX) -O2 -Wall -Wextra exec/auto_corrs.cc $(ROOT_FLAGS) -o $@
 
 bin/makeFixedOscTree: exec/makeFixedOscTree.cc $(LIB)
 	mkdir -p bin
@@ -89,7 +89,7 @@ clean:
 	rm -f bin/fixedosc_llhscan
 	rm -f bin/mcmc
 	rm -f bin/auto_corrs
-	rm -f bin/make_plots
+	rm -f bin/reconstruct_mcmc_fit
 	rm -f bin/makeFixedOscTree
 	rm -rf build
 	rm -f lib/libantinullh.a
