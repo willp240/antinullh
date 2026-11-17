@@ -19,11 +19,14 @@
 #include <MCMC.h>
 #include <MetropolisSampler.h>
 #include <Rand.h>
-#include <IO.h>
 
 // ROOT headers
 #include <TFile.h>
 #include <TStopwatch.h>
+#include <TROOT.h>
+#include <TObjString.h>
+#include <nlohmann/json.hpp>
+#include <filesystem>
 #include <fstream>
 
 using namespace antinufit;
@@ -33,8 +36,6 @@ void mcmc(const std::string &fitConfigFile_,
           const std::string &pdfConfigFile_,
           const std::string &systConfigFile_)
 {
-  Rand::SetSeed(0);
-
   // Load up the fit configuration information
   AnalysisConfig config = LoadAnalysisConfig(fitConfigFile_, evConfigFile_,
                                              pdfConfigFile_, systConfigFile_);
@@ -46,14 +47,8 @@ void mcmc(const std::string &fitConfigFile_,
 
   // Make sure output dirs exist
   OutputDirs dirs = MakeOutputDirs(fitConfig.GetOutDir());
-  const std::string projDir1D = dirs.outDir + "/1dlhproj";
-  const std::string projDir2D = dirs.outDir + "/2dlhproj";
   if (fitConfig.GetSaveOutputs())
-  {
     EnsureDirs(dirs);
-    EnsureDir(projDir1D);
-    EnsureDir(projDir2D);
-  }
 
   // Build systematics
   SystsByDataset syst = BuildSysts(config.systematics,
@@ -71,7 +66,7 @@ void mcmc(const std::string &fitConfigFile_,
   PrintFitSummary(fitParameters, datasetPars, osc, setup.pdfConfig);
 
   // Build component PDFs, the Asimov distribution, and the data distribution for each dataset
-  PreparedDatasetMap datasets = BuildDatasets(fitConfig, fitParameters, setup, syst, config.systematics, osc, indexDistance, datasetPars);
+  PreparedDatasetMap datasets = BuildDatasets(fitConfig, fitParameters, setup, syst, config.systematics, osc, indexDistance, datasetPars, config.randomSeed);
   // Use the calculated reactor ratios to scale fit rates, bounds, priors, and fake-data rates
   ApplyReactorRateScales(fitParameters, datasets);
   // Write input PDFs, Asimov distributions, and fake-data distributions if enabled
@@ -89,15 +84,12 @@ void mcmc(const std::string &fitConfigFile_,
 
   // Sampling settings remain specific to MCMC
   const int nsteps = fitConfig.GetIterations();
-  const int burnin = fitConfig.GetBurnIn();
   const double sigmaScale = fitConfig.GetSigmaScale();
   const std::string &outDir = dirs.outDir;
-  const std::string &postfitDistDir = dirs.postfitDistDir;
   ParameterDict &mins = fitParameters.mins;
   ParameterDict &maxs = fitParameters.maxs;
   ParameterDict &noms = fitParameters.noms;
   ParameterDict sigmas = fitParameters.sigmas;
-  const ParameterDict &nbins = fitParameters.nbins;
   const ParameterDict &constrSigmas = fitParameters.constraintSigmas;
   std::map<std::string, bool> &fixedPars = fitParameters.fixedPars;
 
@@ -157,7 +149,10 @@ void mcmc(const std::string &fitConfigFile_,
   MCMC mh(sampler);
   mh.SetSaveChain(fitConfig.GetSaveOutputs());
   mh.SetMaxIter(nsteps);
-  mh.SetBurnIn(burnin);
+  // Skip OXO histogram and autocorrelation filling for the entire run
+  // These get filled by oxo for every step after the burn-in, but we never look at those
+  // (we build are own) so setting 'burn-in' to nsteps avoids the overhead of filling them for every step
+  mh.SetBurnIn(nsteps);
   mh.SetMinima(mins);
   mh.SetMaxima(maxs);
   mh.SetInitialTrial(startVals);
@@ -167,12 +162,6 @@ void mcmc(const std::string &fitConfigFile_,
   // otherwise it will give us the distribution of the log(lh) not the lh
   mh.SetTestStatLogged(true);
   mh.SetFlipSign(true);
-
-  // Use configured bounds and bin counts for posterior histograms and projections
-  AxisCollection lhAxes;
-  for (ParameterDict::iterator it = mins.begin(); it != mins.end(); ++it)
-    lhAxes.AddAxis(BinAxis(it->first, it->second, maxs.at(it->first), nbins.at(it->first)));
-  mh.SetHistogramAxes(lhAxes);
 
   TStopwatch mcmcTimer;
   mcmcTimer.Start(true);
@@ -196,8 +185,6 @@ void mcmc(const std::string &fitConfigFile_,
     std::cout << "Saved fit result to " << outDir + "/fit_result.txt" << std::endl;
   }
 
-  MCMCSamples samples = mh.GetSamples();
-
   // Save the output tree
   if (fitConfig.GetSaveOutputs())
   {
@@ -216,41 +203,34 @@ void mcmc(const std::string &fitConfigFile_,
     }
     chainFileName = outDir + tempString1 + "_" + tempString2 + ".root";
     TFile *f = new TFile(chainFileName.c_str(), "recreate");
-    TTree *outchain = samples.GetChain();
+    TTree *outchain = mh.GetSamples().GetChain();
     outchain->Write();
+    nlohmann::json metadata = {
+        {"schema_version", 1}, {"chain_id", std::filesystem::path(outDir).filename().string()},
+        {"random_seed", config.randomSeed}, {"requested_seed", fitConfig.GetRandomSeed()},
+        {"antinu_revision", ANTINU_GIT_REV}, {"oxo_revision", OXO_GIT_REV},
+        {"antinu_diff_hash", ANTINU_DIFF_HASH}, {"compiled", __DATE__ " " __TIME__},
+        {"root_version", gROOT->GetVersion()}, {"iterations", nsteps},
+        {"score", "LogL = -NLL including constraints; larger is better"},
+        {"all_steps_saved", true}};
+    metadata["free_parameters"] = nlohmann::json::array();
+    for (ParameterDict::const_iterator parameter = fitParameters.noms.begin(); parameter != fitParameters.noms.end(); ++parameter)
+      if (!fixedPars.at(parameter->first))
+        metadata["free_parameters"].push_back(parameter->first);
+    const std::vector<std::string> configPaths = {fitConfigFile_, evConfigFile_, pdfConfigFile_, systConfigFile_};
+    for (const std::string &path : configPaths)
+    {
+      std::ifstream configInput(path);
+      if (!configInput)
+        throw std::runtime_error("Cannot read saved config " + path);
+      metadata["configs"][std::filesystem::path(path).filename().string()] =
+          std::string(std::istreambuf_iterator<char>(configInput), std::istreambuf_iterator<char>());
+    }
+    TObjString(metadata.dump(2).c_str()).Write("mcmc_metadata");
+    std::ofstream metadataFile(outDir + "/mcmc_metadata.json");
+    metadataFile << metadata.dump(2) << std::endl;
     delete f;
   }
-
-  // Save the histograms, and print the posterior mean and standard deviation of each free parameter
-  typedef std::map<std::string, Histogram> HistMap;
-  const HistMap &proj1D = samples.Get1DProjections();
-  const HistMap &proj2D = samples.Get2DProjections();
-
-  if (fitConfig.GetSaveOutputs())
-    std::cout << "Saving LH projections to \n\t" << projDir1D << "\n\t" << projDir2D << std::endl;
-  std::cout << "Posterior (after burn-in, from the 1D projections): mean +- std" << std::endl;
-  for (HistMap::const_iterator it = proj1D.begin(); it != proj1D.end(); ++it)
-  {
-    if (fitConfig.GetSaveOutputs())
-      IO::SaveHistogram(it->second, projDir1D + "/" + it->first + ".root");
-    if (fixedPars[it->first])
-      continue;
-    const BinAxis &axis = it->second.GetAxes().GetAxis(0);
-    double sum = 0, sumX = 0, sumXX = 0;
-    for (size_t iBin = 0; iBin < axis.GetNBins(); iBin++)
-    {
-      const double w = it->second.GetBinContent(iBin);
-      sum += w;
-      sumX += w * axis.GetBinCentre(iBin);
-      sumXX += w * axis.GetBinCentre(iBin) * axis.GetBinCentre(iBin);
-    }
-    if (sum > 0)
-      std::cout << "  " << it->first << ": " << sumX / sum << " +- " << sqrt(std::max(0.0, sumXX / sum - sumX * sumX / sum / sum))
-                << "   (nominal " << noms[it->first] << ")" << std::endl;
-  }
-  if (fitConfig.GetSaveOutputs())
-    for (HistMap::const_iterator it = proj2D.begin(); it != proj2D.end(); ++it)
-      IO::SaveHistogram(it->second, projDir2D + "/" + it->first + ".root");
 
   // Rebuild each dataset's predicted distribution using the fitted values
   ComponentRates bestFitRates;
@@ -277,16 +257,6 @@ void mcmc(const std::string &fitConfigFile_,
   for (PreparedDatasetMap::const_iterator dataset = datasets.begin(); dataset != datasets.end(); ++dataset)
     nominalRates[dataset->first] = dataset->second.nominalNonBufferRates;
   PrintNominalBestFitSummary(fitParameters, bestFit, nominalRates, bestFitRates);
-
-  if (fitConfig.GetSaveOutputs())
-  {
-    // Save autocorrelations
-    std::ofstream cofs((outDir + "/auto_correlations.txt").c_str());
-    std::vector<double> autocors = samples.GetAutoCorrelations();
-    for (size_t i = 0; i < autocors.size(); i++)
-      cofs << i << "\t" << autocors.at(i) << "\n";
-    cofs.close();
-  }
 
   std::cout << "Fit complete" << std::endl;
 }

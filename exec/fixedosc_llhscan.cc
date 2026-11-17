@@ -16,7 +16,6 @@
 
 // OXO headers
 #include <IO.h>
-#include <Rand.h>
 
 // ROOT headers
 #include <TH1D.h>
@@ -138,8 +137,6 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
                       const std::string &pdfConfigFile_,
                       const std::string &systConfigFile_)
 {
-  Rand::SetSeed(0);
-
   // Load up the fit configuration information
   AnalysisConfig config = LoadAnalysisConfig(fitConfigFile_, evConfigFile_,
                                              pdfConfigFile_, systConfigFile_);
@@ -229,7 +226,7 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
 
   // Build component PDFs, the Asimov distribution, and the data distribution for each dataset
   PreparedDatasetMap datasets = BuildDatasets(
-      fitConfig, fitParameters, setup, syst, config.systematics, osc, indexDistance, datasetPars);
+      fitConfig, fitParameters, setup, syst, config.systematics, osc, indexDistance, datasetPars, config.randomSeed);
   // Use the calculated reactor ratios to scale fit rates, bounds, priors, and fake-data rates
   ApplyReactorRateScales(fitParameters, datasets);
   // Write input PDFs, Asimov distributions, and fake-data distributions if enabled
@@ -386,7 +383,8 @@ void fixedosc_llhscan(const std::string &fitConfigFile_,
           component.pdf = BuildDist::BuildOscillatedDist(
               pdfName, event->second.GetNumDimensions(), setup.pdfConfig,
               events.get(), point.deltam21, point.theta12SinSq,
-              indexDistance, component.reactorRatio);
+              indexDistance, component.reactorRatio,
+              config.randomSeed);
           // Keep the generated count before normalising the likelihood PDF
           component.pdf.AddPadding();
           component.generatedRate = static_cast<int>(component.pdf.Integral());
