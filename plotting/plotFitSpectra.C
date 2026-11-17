@@ -13,20 +13,12 @@
 
 /* ///////////////////////////////////////////////////////////////////
 ///
-/// Script for plotting the postfit energy distributions after fixed
-/// oscillation fits.
-/// First open the root file (made by makeFixedOscTree) and find the
-/// minimum LLH entry.
-/// Then go into the corresponding fit directory and load up the
-/// histograms from postfit_dists
-/// Loop through these and plot, and also add to groups for a separate
-/// groups plot.
-///
-/// User decides to use first dataset (second argument = 1), second
-/// dataset (2), or sum of both (0). Parameter and dataset names can
-/// be edited in hard-coded global variables. Not elegant but ok.
-///
-/// Canvases are saved to .pdf and .root
+/// Draw spectra and component groups for fixed-oscillation, floated Minuit or MCMC fits
+/// Read postfit.root and an explicit fit directory, or locate the best fit in a grid tree
+/// MCMC spectra use the reconstructed bestfit directory
+/// Select both datasets with 0, PPO with 1, or bis-MSB with 2
+/// Component names, groups and display ranges are configured below
+/// Save canvases as PDF and ROOT files
 ///
 /////////////////////////////////////////////////////////////////// */
 
@@ -170,7 +162,7 @@ std::string RemoveDSName(const std::string& input) {
     return result;
 }
 
-void plotFixedOscDist(const char *filename = "fit_results.root", const int datasetChoice = 1, std::string dataDir = "", std::string fitDirectory = "", bool observedData = false)
+void plotFitSpectra(const char *filename = "fit_results.root", const int datasetChoice = 1, std::string dataDir = "", std::string fitDirectory = "", bool observedData = false)
 {
 
     gROOT->SetStyle("snoplus");

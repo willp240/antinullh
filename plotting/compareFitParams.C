@@ -6,24 +6,14 @@
 
 /* ///////////////////////////////////////////////////////////////////
 ///
-/// Script for comparing post fit parameter values and prefit
-/// constraints relative to nominal values for two different sets of
-/// fixed oscillation fits.
-///
-/// The user inputs the root files made by plotFixedOscParams for
-/// both fits, along with labels to be printed in the legend for
-/// each, and an output filename.
-///
-/// The nominal and constraint histograms are got from the first fit
-/// params file, and postfit histograms are taken from both fit
-/// param files.
-///
-/// The plot is drawn and the canvas is saved as a pdf and a root
-/// file, along with each of the histograms.
+/// Compare parameter values from two fixed-oscillation, floated Minuit or MCMC fits
+/// Read params.root files produced by plotFitParams or plotFixedOscParams
+/// Use nominal values and constraints from the first fit
+/// Save the comparison canvas and histograms as PDF and ROOT files
 ///
 /////////////////////////////////////////////////////////////////// */
 
-void compareFixedOscParams(std::string filename1, std::string label1, std::string filename2, std::string label2, std::string outfilename)
+void compareFitParams(std::string filename1, std::string label1, std::string filename2, std::string label2, std::string outfilename)
 {
 
     // Open the ROOT file

@@ -1,4 +1,4 @@
-"""Read single-fit products and share postfit summary calculations"""
+"""Read floated Minuit fits and share numerical helpers with fixed-oscillation fits"""
 
 import configparser
 import csv
@@ -325,7 +325,7 @@ def read_minuit_result(fit_dir):
     return result
 
 
-def read_histogram(path):
+def read_histogram(path, name='oxsx_saved'):
     import ROOT
     try:
         source = ROOT.TFile.Open(str(path))
@@ -334,9 +334,9 @@ def read_histogram(path):
     if not source or source.IsZombie():
         raise ValueError(f'Cannot open saved spectrum {path}')
     try:
-        hist = source.Get('oxsx_saved')
+        hist = source.Get(name)
         if not hist or not hist.InheritsFrom('TH1'):
-            raise ValueError(f'Missing oxsx_saved histogram in {path}')
+            raise ValueError(f'Missing {name} histogram in {path}')
         if hist.GetDimension() == 2:
             hist = hist.ProjectionX()
         if hist.GetDimension() != 1:

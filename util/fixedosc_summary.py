@@ -1,3 +1,5 @@
+"""Summarise the best fit from a fixed-oscillation grid"""
+
 import os
 import re
 import json
@@ -87,9 +89,9 @@ def parse_plot_params(lines):
 # --------------------------------------------------------------
 # Combine results (norm-style)
 # --------------------------------------------------------------
-from postfit_results import (
+from minuit_results import (
     normalisation_rate_error, combine_results_normstyle, combine_results_directstyle,
-    add_geo_ratios, write_csv, read_minuit_result, write_minuit_summary,
+    add_geo_ratios, write_csv,
 )
 
 
@@ -97,11 +99,8 @@ from postfit_results import (
 # Main
 # --------------------------------------------------------------
 def main():
-    if len(sys.argv) == 3 and sys.argv[1] == "--fit-dir":
-        write_minuit_summary(read_minuit_result(sys.argv[2]))
-        return
     if len(sys.argv) != 5:
-        print("Usage: python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool")
+        print("Usage: python util/fixedosc_summary.py /path/to/postfit_dists /path/to/fit_result_tree.root correlated-fit-bool (alpha,n)-classifier-bool")
         sys.exit(1)
 
     postfit_dir, fit_result_tree, corr, alphan = sys.argv[1:5]

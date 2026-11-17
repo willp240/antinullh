@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import csv
-import json
 import sys
 import re
 from pathlib import Path
@@ -105,25 +104,34 @@ def find_summary(path):
     if path.is_file():
         return path
 
+    root = path / 'postfit.root'
+    if root.is_file():
+        import uproot
+        with uproot.open(root.open('rb'), decompression_executor=uproot.TrivialExecutor(),
+                         interpretation_executor=uproot.TrivialExecutor()) as source:
+            if 'parameter_summary' in source:
+                return root
     direct = path / "postfit_summary.csv"
     if direct.exists():
         return direct
 
-    log_path = path / "run_postfit_scripts.log"
-    if log_path.exists():
-        for line in log_path.read_text(errors="ignore").splitlines():
-            marker = "CSV written to "
-            if marker not in line:
-                continue
-            candidate = Path(line.split(marker, 1)[1].strip())
-            if candidate.exists():
-                return candidate
+    # Existing fixed-grid outputs may still use the original log filename
+    for log_name in ['fixedosc_postfit.log', 'run_postfit_scripts.log']:
+        log_path = path / log_name
+        if log_path.exists():
+            for line in log_path.read_text(errors="ignore").splitlines():
+                marker = "CSV written to "
+                if marker not in line:
+                    continue
+                candidate = Path(line.split(marker, 1)[1].strip())
+                if candidate.exists():
+                    return candidate
 
     matches = sorted(path.glob("th*/th*_dm*/postfit_summary.csv"))
     if len(matches) == 1:
         return matches[0]
     if not matches:
-        raise FileNotFoundError(f"No postfit_summary.csv found under {path}")
+        raise FileNotFoundError(f"No postfit.root or postfit_summary.csv found under {path}")
     raise RuntimeError(
         "Multiple postfit_summary.csv files found under "
         f"{path}. Pass the exact CSV path instead."
@@ -131,8 +139,17 @@ def find_summary(path):
 
 
 def read_summary(path):
+    path = find_summary(path)
+    if path.suffix == '.root':
+        import uproot
+        with uproot.open(path.open('rb'), decompression_executor=uproot.TrivialExecutor(),
+                         interpretation_executor=uproot.TrivialExecutor()) as source:
+            rows = source['parameter_summary'].arrays(library='np')
+        return {str(name): (float(central), (float(low), float(high)))
+                for name, central, low, high in zip(rows['name'], rows['median'],
+                                                    rows['error_low'], rows['error_high'])}
     data = {}
-    with open(find_summary(path), newline="") as f:
+    with open(path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             key = row["Parameter"].strip()
@@ -170,6 +187,15 @@ def read_fit_nominals(path):
     """Read parameter nominals and non-buffer counts from the supplied fit outputs"""
     path = Path(path).resolve()
     directory = path.parent if path.is_file() else path
+    root = path if path.suffix == '.root' else directory / 'postfit.root'
+    if root.is_file():
+        import uproot
+        with uproot.open(root.open('rb'), decompression_executor=uproot.TrivialExecutor(),
+                         interpretation_executor=uproot.TrivialExecutor()) as source:
+            if 'nominal' in source:
+                rows = source['nominal'].arrays(library='np')
+                return {str(name): (float(value), None)
+                        for name, value in zip(rows['name'], rows['value'])}
     if not (directory / 'cfg/fit_config.ini').is_file():
         summary_directory = find_summary(path).resolve().parent
         directory = next((candidate for candidate in (summary_directory, *summary_directory.parents)
@@ -177,15 +203,10 @@ def read_fit_nominals(path):
     if directory is None:
         raise ValueError('Cannot locate saved cfg/fit_config.ini; supply --nominal-dir or --nominal-csv, or use --no-nominal')
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'util'))
-    from postfit_results import load_config, read_histogram, split_names
+    from minuit_results import load_config, read_histogram, split_names
     fit = load_config(directory / 'cfg/fit_config.ini')
     nominal = {name: (fit.getfloat(name, 'nom'), None)
                for name in fit.sections() if name != 'summary' and fit.has_option(name, 'nom')}
-    rate_summary = directory / 'rates/rate_summary.json'
-    if rate_summary.is_file():
-        saved = json.loads(rate_summary.read_text())
-        nominal.update({name: (float(value), None) for name, value in saved['nominal'].items()})
-        return nominal
     spectra = directory / 'asimov_dists'
     if not spectra.is_dir():
         return nominal
@@ -348,9 +369,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Build comparison LaTeX tables for two or three fits."
     )
-    parser.add_argument("fit1", help="First fit dir or postfit_summary.csv")
-    parser.add_argument("fit2", help="Second fit dir or postfit_summary.csv")
-    parser.add_argument("--fit3", help="Optional third fit dir or postfit_summary.csv")
+    parser.add_argument("fit1", help="First fit dir, MCMC postfit.root or postfit_summary.csv")
+    parser.add_argument("fit2", help="Second fit dir, MCMC postfit.root or postfit_summary.csv")
+    parser.add_argument("--fit3", help="Optional third fit dir, MCMC postfit.root or postfit_summary.csv")
     parser.add_argument("--label1", default="Fit 1")
     parser.add_argument("--label2", default="Fit 2")
     parser.add_argument("--label3", default="Fit 3")

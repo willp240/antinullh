@@ -1,11 +1,11 @@
-#include "PlotFitParams.hh"
+#include "FitParamDrawing.hh"
 #include <stdexcept>
 
-void plotMinuitParams(const char *filename)
+void plotFitParams(const char *filename, bool posterior = false)
 {
     TFile file(filename, "READ");
     if (file.IsZombie())
-        throw std::runtime_error("Cannot open Minuit postfit metadata");
+        throw std::runtime_error("Cannot open postfit summary metadata");
     std::vector<std::string> *names = nullptr;
     std::vector<std::string> *labels = nullptr;
     std::vector<double> *values = nullptr;
@@ -23,12 +23,24 @@ void plotMinuitParams(const char *filename)
     file.GetObject("constr_sigma_values", sigmas);
     file.GetObject("covMatrix", covariance);
     if (!names || !labels || !values || !errors || !nominals || !means || !sigmas || !covariance)
-        throw std::runtime_error("Incomplete Minuit postfit metadata");
+        throw std::runtime_error("Incomplete postfit summary metadata");
     const size_t n = names->size();
     if (!n || values->size() != n || errors->size() != n || nominals->size() != n ||
         means->size() != n || sigmas->size() != n || labels->size() != n ||
         covariance->GetNrows() != n || covariance->GetNcols() != n)
-        throw std::runtime_error("Inconsistent Minuit postfit metadata dimensions");
+        throw std::runtime_error("Inconsistent postfit summary metadata dimensions");
+    std::map<std::string, std::pair<double, double>> intervals;
+    if (posterior)
+    {
+        std::vector<double> *low = nullptr;
+        std::vector<double> *high = nullptr;
+        file.GetObject("posterior_error_low", low);
+        file.GetObject("posterior_error_high", high);
+        if (!low || !high || low->size() != n || high->size() != n)
+            throw std::runtime_error("Missing posterior interval metadata");
+        for (size_t i = 0; i < n; ++i)
+            intervals[(*names)[i]] = std::make_pair((*low)[i], (*high)[i]);
+    }
     std::map<std::string, double> parameters;
     bool correlated = false;
     bool classifier = false;
@@ -47,5 +59,5 @@ void plotMinuitParams(const char *filename)
     parameters["reactor_nubar_ratio"] = 1;
     parameters["reactor_nubar2_ratio"] = 1;
     antinupostfit::DrawFitParams(filename, parameters, names, errors, labels, nominals,
-                               means, sigmas, covariance, theta, correlated, classifier);
+                               means, sigmas, covariance, theta, correlated, classifier, posterior ? &intervals : nullptr);
 }

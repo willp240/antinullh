@@ -9,7 +9,7 @@ fit_dir=$(realpath "$1")
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 python_bin=${PYTHON:-python3}
-exec > >(tee -a "$fit_dir/run_minuit_postfit.log") 2>&1
+exec > >(tee -a "$fit_dir/minuit_postfit.log") 2>&1
 echo "Post-processing Minuit fit: $fit_dir"
 # Quote paths as C++ string literals, then run the existing ROOT drawing tools
 "$python_bin" - "$fit_dir" <<'PY'
@@ -18,7 +18,7 @@ from pathlib import Path
 import subprocess
 import sys
 sys.path.insert(0, 'util')
-from postfit_results import read_minuit_result, write_minuit_metadata, write_minuit_summary
+from minuit_results import read_minuit_result, write_minuit_metadata, write_minuit_summary
 result = read_minuit_result(sys.argv[1])
 metadata = str(write_minuit_metadata(result))
 write_minuit_summary(result)
@@ -26,11 +26,11 @@ write_minuit_summary(result)
 def root_call(expression):
     subprocess.run(['root', '-l', '-b', '-q', expression], check=True)
 
-root_call('plotting/plotMinuitParams.C(' + json.dumps(metadata) + ')')
+root_call('plotting/plotFitParams.C(' + json.dumps(metadata) + ')')
 choices = ([0] if len(result['datasets']) == 2 else [])
 choices += [1 if dataset == '2p2ppo' else 2 for dataset in result['datasets']]
 for choice in choices:
-    root_call('plotting/plotFixedOscDist.C(' + json.dumps(metadata) + ',' + str(choice) +
+    root_call('plotting/plotFitSpectra.C(' + json.dumps(metadata) + ',' + str(choice) +
               ',"",' + json.dumps(str(result['directory'])) + ',' +
               ('true' if result['observed_data'] else 'false') + ')')
 plots = result['directory'] / 'plots'

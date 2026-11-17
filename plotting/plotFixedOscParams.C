@@ -6,7 +6,7 @@
 #include <TStyle.h>
 #include <TMatrixT.h>
 #include <TParameter.h>
-#include "PlotFitParams.hh"
+#include "FitParamDrawing.hh"
 
 // c++ Headers
 #include <sys/stat.h>

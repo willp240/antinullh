@@ -8,6 +8,8 @@
 #include <TStyle.h>
 #include <TColor.h>
 #include <TMatrixT.h>
+#include <TGraphAsymmErrors.h>
+#include <TNamed.h>
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -218,7 +220,8 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
                          std::vector<std::string> *labelsVec, std::vector<double> *nomVals,
                          std::vector<double> *constrMeans, std::vector<double> *constrErr,
                          TMatrixT<double> *fullCovMatrix, const std::string &theta12name,
-                         bool corr, bool alphanclass)
+                         bool corr, bool alphanclass,
+                         const std::map<std::string, std::pair<double, double>> *intervalErrors = nullptr)
 {
     // Reorder vectors to the order we want to plot them
     sortVectors(paramNames, paramErr, labelsVec, nomVals, constrMeans, constrErr, fullCovMatrix, theta12name, corr, alphanclass);
@@ -226,6 +229,7 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     TH1D *hNom = new TH1D("hNominal", "Relative Nominal Values", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hPostFit = new TH1D("hPostFit", "Postfit Values Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
+    TGraphAsymmErrors *posterior = intervalErrors ? new TGraphAsymmErrors(paramNames->size()) : nullptr;
 
     for (int iParam = 0; iParam < paramNames->size(); iParam++)
     {
@@ -266,6 +270,12 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
         hConstr->SetBinError(iParam + 1, constrErr->at(iParam) / nom);
         hPostFit->SetBinContent(iParam + 1, postfit / nom);
         hPostFit->SetBinError(iParam + 1, paramErr->at(iParam) / nom);
+        if (posterior)
+        {
+            const std::pair<double, double> errors = intervalErrors->at(paramNames->at(iParam));
+            posterior->SetPoint(iParam, hPostFit->GetBinCenter(iParam + 1), postfit / nom);
+            posterior->SetPointError(iParam, 0, 0, errors.first / std::abs(nom), errors.second / std::abs(nom));
+        }
         std::cout << "Par: " << paramNames->at(iParam) << std::endl;
         std::cout << "Nom Mean: " << nomVals->at(iParam) << std::endl;
         std::cout << "Constr: " << constrMeans->at(iParam) << " " << constrErr->at(iParam) << std::endl;
@@ -300,6 +310,18 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     hPostFit->SetLineWidth(2);
 
     hConstr->GetYaxis()->SetRangeUser(0, 2);
+    if (posterior)
+    {
+        double lower = 0;
+        double upper = 2;
+        for (int i = 0; i < posterior->GetN(); ++i)
+        {
+            const double value = posterior->GetY()[i];
+            lower = std::min(lower, value - posterior->GetErrorYlow(i));
+            upper = std::max(upper, value + posterior->GetErrorYhigh(i));
+        }
+        hConstr->GetYaxis()->SetRangeUser(lower, upper + 0.05 * (upper - lower));
+    }
     hConstr->GetYaxis()->SetTitle("Relative to Nominal");
     hConstr->GetYaxis()->SetTitleOffset(1.2);
     hConstr->GetXaxis()->SetLabelOffset(0.007);
@@ -315,11 +337,23 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     hConstr->SetTitleFont(42);
 
     hConstr->Draw("E1");
-    hPostFit->Draw("E1same");
+    if (posterior)
+    {
+        posterior->SetLineColor(kRed);
+        posterior->SetLineWidth(2);
+        posterior->SetMarkerStyle(20);
+        posterior->SetMarkerColor(kRed);
+        posterior->Draw("PZ SAME");
+    }
+    else
+        hPostFit->Draw("E1same");
 
     TLegend *t1 = new TLegend(0.65, 0.73, 0.85, 0.88);
     t1->AddEntry(hConstr, "Prefit", "l");
-    t1->AddEntry(hPostFit, "Postfit", "l");
+    if (posterior)
+        t1->AddEntry(posterior, "MCMC median, 68% interval", "lp");
+    else
+        t1->AddEntry(hPostFit, "Postfit", "l");
     t1->SetLineWidth(2);
     t1->SetTextFont(42);
     t1->Draw();
@@ -338,6 +372,11 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     hNom->Write("nominal");
     hConstr->Write("constraints");
     hPostFit->Write("postfit");
+    if (posterior)
+    {
+        posterior->Write("posterior_intervals");
+        TNamed("uncertainty_method", "posterior_intervals: median and equal-tailed 68% interval; postfit histogram errors: posterior standard deviation").Write();
+    }
     c1->Write("c1");
 
     // Now plot the correlation matrix

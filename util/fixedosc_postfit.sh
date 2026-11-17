@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Usage: ./util/run_postfit_scripts.sh <cfgdirname> <corr> <alphan> <data>
-# Example: ./util/run_postfit_scripts.sh /home/parkerw/Software/antinu_llh2/cfg/reacAnalysis2025/asmv_correlated_noprior_noalphan true false false
+# Usage: ./util/fixedosc_postfit.sh <cfgdirname> <corr> <alphan> <data>
+# Example: ./util/fixedosc_postfit.sh /home/parkerw/Software/antinu_llh2/cfg/reacAnalysis2025/asmv_correlated_noprior_noalphan true false false
 
 # Normalise boolean-like values (accept true/false or 1/0)
 normalise_bool() {
@@ -46,12 +46,12 @@ fit_config="$cfg_dir/fit_config.ini"
 dirname=$(get_output_directory "$fit_config")
 
 # Output log file
-logfile="${dirname}/run_postfit_scripts.log"
+logfile="${dirname}/fixedosc_postfit.log"
 mkdir -p "$dirname"
 exec > >(tee -a "$logfile") 2>&1
 
 echo "---------------------------------------"
-echo "Starting run_fixed_osc.sh"
+echo "Starting fixedosc_postfit.sh"
 echo "Directory: $dirname"
 echo "corr=$corr, alphan=$alphan, data=$data"
 echo "Log file: $logfile"
@@ -91,17 +91,17 @@ root -l -b -q "plotting/plotFixedOscParams.C(\"${ttree_path}\", ${corr}, ${alpha
 
 if [ "$data" -eq 0 ]; then
     for i in 0 1 2; do
-        root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i})"
+        root -l -b -q "plotting/plotFitSpectra.C(\"${ttree_path}\", ${i})"
     done
 elif [ "$data" -eq 1 ] && [ "$alphan" -eq 0 ]; then
     pdfpath="/data/snoplus/weiiiiiii/antinuFit/all/prunepdfs"
     for i in 0 1 2; do
-        root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
+        root -l -b -q "plotting/plotFitSpectra.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
     done
 elif [ "$data" -eq 1 ] && [ "$alphan" -eq 1 ]; then
     pdfpath="/data/snoplus/weiiiiiii/antinuFit/all_withANClassifer/prunepdfs"
     for i in 0 1 2; do
-        root -l -b -q "plotting/plotFixedOscDist.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
+        root -l -b -q "plotting/plotFitSpectra.C(\"${ttree_path}\", ${i}, \"${pdfpath}\")"
     done
 fi
 
@@ -109,7 +109,7 @@ echo "---------------------------------------"
 echo "Running Python post-processing"
 echo "---------------------------------------"
 
-python util/combine_postfit_results.py "${outputfitdir}/postfit_dists" "${ttree_path}" "${corr}" "${alphan}"
+python util/fixedosc_summary.py "${outputfitdir}/postfit_dists" "${ttree_path}" "${corr}" "${alphan}"
 python plotting/plotFixedOscFullLLH.py -i "${ttree_path}"
 
 echo "---------------------------------------"
