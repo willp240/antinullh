@@ -48,8 +48,6 @@ namespace antinufit
     int GetHMCIterations() const;
     void SetHMCIterations(int);
 
-    int GetBurnIn() const;
-    void SetBurnIn(int);
     int GetHMCBurnIn() const;
     void SetHMCBurnIn(int);
 
@@ -102,8 +100,6 @@ namespace antinufit
     void SetSaveOutputs(bool);
     int GetRandomSeed() const { return fRandomSeed; }
     void SetRandomSeed(int value) { fRandomSeed = value; }
-    bool GetSaveProjections() const { return fSaveProjections; }
-    void SetSaveProjections(bool value) { fSaveProjections = value; }
     int GetLLHScanPoints() const;
     void SetLLHScanPoints(int);
 
@@ -129,7 +125,6 @@ namespace antinufit
     ParameterDict fNbins;
     std::map<std::string, std::string> fTexLabels;
     int fIterations;
-    int fBurnIn;
     int fHMCIterations;
     int fHMCBurnIn;
     int fMinuitStrategy;
@@ -143,8 +138,7 @@ namespace antinufit
     bool fFakeData;
     double fLivetime;
     bool fSaveOutputs;
-    int fRandomSeed = 0;
-    bool fSaveProjections = true;
+    int fRandomSeed = 4357;
     int fLLHScanPoints = 150;
     std::map<std::string, std::string> fConstrRatioParName;
     std::map<std::string, std::string> fConstrFracParName;

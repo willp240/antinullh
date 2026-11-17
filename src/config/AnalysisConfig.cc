@@ -3,9 +3,12 @@
 #include <FitConfigLoader.hh>
 #include <SystConfigLoader.hh>
 #include <ReactorBaselines.hh>
+#include <Rand.h>
 
 #include <algorithm>
 #include <set>
+#include <iostream>
+#include <random>
 #include <stdexcept>
 
 namespace antinufit
@@ -66,6 +69,16 @@ namespace antinufit
           throw std::runtime_error("Systematic " + entry->first +
                                    " refers to unknown parameter " + parameter);
 
+    // Resolve zero once so every stage of this run uses the same seed
+    result.randomSeed = static_cast<unsigned>(result.fit.GetRandomSeed());
+    if (result.randomSeed == 0)
+    {
+      std::random_device entropy;
+      std::uniform_int_distribution<unsigned> distribution(1, 2147483647);
+      result.randomSeed = distribution(entropy);
+    }
+    Rand::SetSeed(result.randomSeed);
+    std::cout << "Random seed: " << result.randomSeed << std::endl;
     return result;
   }
 }

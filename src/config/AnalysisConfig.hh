@@ -13,6 +13,7 @@ namespace antinufit
   struct AnalysisConfig
   {
     FitConfig fit;
+    unsigned randomSeed = 4357;
     DatasetSetup datasets;
     SystConfig systematics;
     std::unordered_map<int, double> reactorBaselines;

@@ -56,17 +56,6 @@ namespace antinufit
     fIterations = it_;
   }
 
-  int FitConfig::GetBurnIn() const
-  {
-    return fBurnIn;
-  }
-
-  void
-  FitConfig::SetBurnIn(int b_)
-  {
-    fBurnIn = b_;
-  }
-
   int FitConfig::GetHMCIterations() const
   {
     return fHMCIterations;

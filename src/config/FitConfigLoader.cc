@@ -36,7 +36,6 @@ namespace antinufit
       throw std::runtime_error("Fit config " + fPath + ": fixed-oscillation scan counts must be positive");
     ret.SetFixedOscPoints(dmPoints, thetaPoints);
     int it;
-    int burnIn;
     int HMCit;
     int HMCburnIn;
     int nSteps;
@@ -79,14 +78,6 @@ namespace antinufit
     catch (const std::exception &e)
     {
       epsilon = 0;
-    }
-    try
-    {
-      ConfigLoader::Load("summary", "burn_in", burnIn);
-    }
-    catch (const std::exception &e)
-    {
-      burnIn = 0;
     }
     try
     {
@@ -150,7 +141,6 @@ namespace antinufit
     ret.SetNSteps(nSteps);
     ret.SetEpsilon(epsilon);
     ret.SetIterations(it);
-    ret.SetBurnIn(burnIn);
     ret.SetHMCIterations(HMCit);
     ret.SetHMCBurnIn(HMCburnIn);
     ret.SetSigmaScale(sigmaScale);
@@ -159,16 +149,12 @@ namespace antinufit
     ret.SetFakeData(fakeDataFlag);
     ret.SetLivetime(livetime);
     ret.SetSaveOutputs(saveOutputs);
-    int randomSeed = 0;
-    bool saveProjections = true;
+    int randomSeed = 4357;
     try { ConfigLoader::Load("summary", "random_seed", randomSeed); }
-    catch (const ConfigFieldMissing &) {}
-    try { ConfigLoader::Load("summary", "save_projections", saveProjections); }
     catch (const ConfigFieldMissing &) {}
     if (randomSeed < 0)
       throw std::runtime_error("random_seed must be non-negative");
     ret.SetRandomSeed(randomSeed);
-    ret.SetSaveProjections(saveProjections);
     ret.SetMinuitTolerance(minuitTolerance);
     ret.SetMinuitStrategy(minuitStrategy);
     ret.SetMinuitMethod(minuitMethod);
