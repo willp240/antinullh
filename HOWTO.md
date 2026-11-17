@@ -55,7 +55,6 @@ This file should contain information on the parameters of the fit, and the fit i
 - `minuit_tolerance` = The Minuit tolerance level
 - `minuit_method` = The Minuit method used (`Migrad`, `Simplex` or `Minimize`)
 - `iterations`: The number of steps in the Markov Chain/fit
-- `burn_in`: The number of steps rejected at the start of the Markov Chain. This can be changed post analysis for most purposes
 - `fit_dists`: Which PDFs should be fit. Can use `all`
 - `output_directory`: Where to write output files to
 - `n_steps`: Number of steps per iteration for Hamiltonian MCMC
@@ -224,6 +223,8 @@ To run the fixedosc LLH scan:
 
 > ./bin/fixedosc_llhscan cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini
 
+`random_seed` in `[summary]` controls random-number generation for all fitting and scanning executables. It defaults to 4357. A positive value gives repeatable results; zero chooses a positive seed once during shared analysis setup and prints it. Each oscillated PDF construction restarts a local generator with that resolved seed, so each input event receives the same random number across scan points. MCMC uses a separate generator initialised with the same seed and advances it throughout sampling. Use the same positive `random_seed` for fixed fits and scans you want to compare. The floated-oscillation shape calculation itself does not use random event selection.
+
 You will need to have a `deltam21` parameter, and exactly one `theta12`, `sintheta12`, or `sinsqtheta12` parameter specified in the fit config. A root file `llh_scan.root` will be saved in the output directory specified in the fit config. In the file will be a plot of LLH vs parameter value for each parameter.
 
 The other version of the likelihood scan, `llh_scan`, hands all the parameters, including the oscillation parameters, to the `BinnedNLLH`. It scans through all parameters in the same way, setting the values in the `BinnedNLLH` and evaluating the likelihood. This version of the likelihood scan is designed to be used for validating the full fits where every parameter floats at once (see below).
@@ -248,13 +249,11 @@ There will also be several subdirectories produced inside the `output_directory`
 
 `postfit_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain, with each systematic’s value at the maximum LLH step applied. Also saved is the sum of these.
 
-In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case, all other parameters are marginalised over.
-
 If you want to run a full fit where everything is floated at once, there is an app to run some Markov Chain Monte Carlo. First you want to make sure everything in your fit config is looking sensible. The min and max values, and sigmas for each event type are fairly well tuned, so it's advised you leave these alone unless you know what you're doing. Certainly, for your first fit testing out the code I would leave it as is. If you have good reason to change them, you probably don't need to be reading this guide! You can run a full fit by running:
 
 > ./bin/mcmc cfg/fit_config.ini cfg/event_config.ini cfg/pdf_config.ini cfg/syst_config.ini
 
-Set `save_outputs = 1` in the fit config to save the chain, posterior histograms, fit result and spectra. With `save_outputs = 0`, only console summaries are produced.
+Set `save_outputs = 1` in the fit config to save the raw chain, fit result and spectra. With `save_outputs = 0`, only console summaries are produced.
 
 In practice, run many chains in parallel on Condor with `util/submitCondor.py` (see Submitting Batch Jobs below). For example, 50 chains with the default config set in `cfg/mcmcDefault/`:
 
@@ -274,17 +273,15 @@ python util/submitCondor.py mcmc /path/to/output/mcmcDefault_run \
 
 Each job writes to its own subdirectory, `mcmcDefault_run1/mcmcDefault_<i>/`, and the script sets `output_directory` in the copied fit config for you. `-w` is the wall time in seconds and `-m` the memory in MB; 1.2M steps take about 5–11 hours depending on the node.
 
-This will load up all the pdfs, systematics, data etc. and creates the likelihood object in the same way the `llh_scan` app does, and then runs the MCMC. For each individual chain, you’ll have a number of files and subdirectories, some of which are the same as for `fixedosc_fit`.
+For reactor-analysis runs, use the data and Asimov configs in `cfg/reacAnalysis2025_mcmc_validation/` as templates. Proposal widths are stored directly in each free parameter's `sig`; the actual Gaussian proposal width is `sig * sigma_scale`, with `sigma_scale` set in `[summary]`. The current global scale is 0.42 and both recoil energy scales have `sig = 0.05`. To prepare another run, copy the config directory and adjust `iterations` and `output_directory` as needed; Condor submission sets the output directory in each job's copied config.
 
-`auto_correlations.txt` contains how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few thousand steps (there is a separate `autocorrelations` app you can use to run over the outputted tree and get more information). `fit_results.txt` contains each parameter value for the maximum LLH step.
+Each chain saves a ROOT `posteriors` tree containing every step, including burn-in and repeated states after rejected proposals. There is no `burn_in` setting in the fit config; select the cut afterwards with `util/mcmc_postfit.py --burn-in N`. This tree is the primary input to posterior analysis. `Step` counts proposals within the original chain; `Accepted` records whether each proposal was accepted; `LogL` is minus the NLL including constraints, so larger is better.
 
-There will also be several subdirectories produced inside the `output_directory` set in the `fit_config`. `unscaled_pdfs` will contain each of the unscaled (normalised) PDFs without any systematics applied. `asimov_dists` will contain each of the PDFs scaled to their nominal rates with nominal systematics applied. If you're running with `fake_data = 1` in the `fit_config`, `fakedata_dists` will contain each of the PDFs scaled to their fake data value rate with systematics applied at their fake data values.
+`random_seed` in `[summary]` is shared by fitting and scanning; the MCMC templates set it to zero to request automatic selection. If omitted it defaults to 4357. `submitCondor.py` writes a positive seed into each copied MCMC config. With an explicit nonzero seed, job `i` uses that seed plus `i` (wrapping within the positive 32-bit range). Seeds and chain identities are saved in `mcmc_metadata.json` and a `mcmc_metadata` object inside the chain file, together with ROOT and source versions, and the four configs.
 
-`postfit_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain, with each systematic’s value at the maximum LLH step applied. Also saved is the sum of these.
+MCMC saves the complete raw chain and does not retrieve or write the legacy posterior projections or likelihood autocorrelation text file. There is no projection config option. Posterior summaries, distribution plots and autocorrelations are calculated from the raw chains by the postfit tools.
 
-In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps are automatically not included.
-
-There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.
+The fitter still saves input and best-sample spectra: `unscaled_pdfs`, `asimov_dists`, optional `fakedata_dists`, and `postfit_dists`. For posterior analysis use the selected retained sample rebuilt by the postfit driver, rather than assuming a chain's saved best-fit spectrum corresponds to the best retained entry.
 
 <h2>Submitting Batch Jobs</h2>
 
@@ -320,6 +317,16 @@ A similar script, `util/submitFixedGeoJobs.py` runs jobs fits at 2D grid points 
  
 <h2>Postfit Analysis</h2>
 
+Choose the command for the type of fit:
+
+| Fit type | Command |
+| --- | --- |
+| Floated oscillation Minuit | `util/minuit_postfit.sh FIT_DIRECTORY` |
+| MCMC | `python3 util/mcmc_postfit.py CHAIN_DIRECTORY --burn-in N` |
+| Fixed-oscillation grid | `util/fixedosc_postfit.sh CONFIG_DIRECTORY CORRELATED ALPHAN DATA` |
+
+The Minuit and MCMC paths share `plotFitParams.C` for parameters/correlations and `plotFitSpectra.C` for energy spectra. `FitParamDrawing.hh` supplies drawing code shared with the fixed-grid parameter macro. Numerical helpers for Minuit fits are in `util/minuit_results.py`; MCMC calculations are in `util/mcmc_results.py` and its plotting functions are in `util/mcmc_plots.py`.
+
 <h3>Floated Oscillation Minuit Fits</h3>
 
 After a floated Minuit fit has completed with `save_outputs = 1` run:
@@ -327,7 +334,7 @@ After a floated Minuit fit has completed with `save_outputs = 1` run:
 ```bash
 source /home/parkerw/Software/env-dev_cpp17.sh
 source env_my.sh
-./util/run_minuit_postfit.sh /path/to/output/dir
+./util/minuit_postfit.sh /path/to/output/dir
 ```
 
 The fit directory must contain `fit_result.root`, `fit_result.txt`, the saved `cfg/fit_config.ini`, `cfg/event_config.ini` and `cfg/pdf_config.ini`, `postfit_dists/<component>_<dataset>.root`,
@@ -335,7 +342,7 @@ The fit directory must contain `fit_result.root`, `fit_result.txt`, the saved `c
 The saved configs must describe the fit that produced these files. The reader uses the supplied directory, ignoring any old `output_directory` in its config.
 The standard distribution plots currently support the PPO (`2p2ppo`) and bis-MSB (`bismsb`) energy spectra and component groups. Both oscillation parameters must be free, and reactor oscillation must be applied through the shape systematic rather than baked into the PDFs.
 
-The wrapper validates the saved fit status, parameter/error dimensions, covariance and spectra before preparing outputs. It does not rerun the fit or modify its configs, original result files or saved spectra. Rerunning the command replaces derived outputs and appends to `run_minuit_postfit.log`.
+The wrapper validates the saved fit status, parameter/error dimensions, covariance and spectra before preparing outputs. It does not rerun the fit or modify its configs, original result files or saved spectra. Rerunning the command replaces derived outputs and appends to `minuit_postfit.log`.
 
 All products are written alongside the fit on the data disk:
 
@@ -351,20 +358,19 @@ All products are written alongside the fit on the data disk:
 | `postfit_summary.csv` | Parameters, component event counts and U/Th ratios in a table |
 | `postfit_central.json`, `postfit_uncert.json` | Numerical summary at full saved precision |
 | `postfit_summary_metadata.json` | Fit source, NLLH, integration-bin convention and uncertainty method |
-| `run_minuit_postfit.log` | Output from preparation and plotting |
+| `minuit_postfit.log` | Output from preparation and plotting |
 
-The shared Python reader is `util/postfit_results.py`. It prepares metadata and calculates the summary independently of plotting. `plotting/plotMinuitParams.C` and the fixed oscillation grid macro `plotting/plotFixedOscParams.C` share their parameter and
-correlation drawing code in `plotting/PlotFitParams.hh`. The distribution macro `plotting/plotFixedOscDist.C` accepts the fit directory directly for this workflow. Observed data are rebinned from the saved data spectrum onto the 0.4 MeV display bins, whose edges must align with the saved bins. The MC is scaled to events per display-bin width. Asimov/fake-data plots retain the fine binning and MC/data ratio panel. Raw data ntuples are not reopened.
+The numerical helpers for floated Minuit and fixed-oscillation fits are in `util/minuit_results.py`. It prepares metadata and calculates the summary independently of plotting. `plotting/plotFitParams.C` and the fixed oscillation grid macro `plotting/plotFixedOscParams.C` share their parameter and
+correlation drawing code in `plotting/FitParamDrawing.hh`. The distribution macro `plotting/plotFitSpectra.C` accepts the fit directory directly for this workflow. Observed data are rebinned from the saved data spectrum onto the 0.4 MeV display bins, whose edges must align with the saved bins. The MC is scaled to events per display-bin width. Asimov/fake-data plots retain the fine binning and MC/data ratio panel. Raw data ntuples are not reopened.
 
-For individual steps, use:
+To redraw plots after running `minuit_postfit.sh`, use:
 
 ```bash
-python3 util/combine_postfit_results.py --fit-dir /path/to/fit
-root -l -b -q 'plotting/plotMinuitParams.C("/path/to/fit/postfit.root")'
-root -l -b -q 'plotting/plotFixedOscDist.C("/path/to/fit/postfit.root",0,"","/path/to/fit",true)'
+root -l -b -q 'plotting/plotFitParams.C("/path/to/fit/postfit.root")'
+root -l -b -q 'plotting/plotFitSpectra.C("/path/to/fit/postfit.root",0,"","/path/to/fit",true)'
 ```
 
-The plotting commands reuse `postfit.root`, which the wrapper prepares automatically in the fit directory. The last argument in the distribution command is `true` for data and `false` for Asimov/fake data. The dataset choice is `0` for combined, `1` for PPO and `2` for bis-MSB. The wrapper uses the fit directory for all derived outputs.
+The plotting commands reuse `postfit.root`, which `minuit_postfit.sh` prepares automatically in the fit directory. `plotFitParams.C` is the shared parameter and correlation plotting macro for Minuit and MCMC. Its second argument defaults to `false` for Minuit errors; MCMC passes `true` for asymmetric posterior intervals. The last argument in the distribution command is `true` for data and `false` for Asimov/fake data. The dataset choice is `0` for combined, `1` for PPO and `2` for bis-MSB. The wrapper uses the fit directory for all derived outputs.
 
 Parameter errors and correlations use the joint Minuit Hessian covariance. Boundary parameters and multimodal oscillation likelihoods may need profile studies; Hessian errors do not describe disconnected allowed regions.
 Event counts are integrated over the energy likelihood bins specified by `llh_buffer_bin_low` and `llh_buffer_bin_high` (defaults: ROOT bin 8 through `number_of_bins - 20`, which is bin 150 for the standard 170-bin spectrum).
@@ -374,10 +380,10 @@ Yield errors propagate the covariance of normalisation parameters, including sha
 The existing comparison tools accept the new `plots/params.root` directly:
 
 ```bash
-root -l -b -q 'plotting/compareFixedOscParams.C("/path/to/fixed/plots/params.root","Fixed","/path/to/floated/plots/params.root","Floated","/path/to/comparison")'
+root -l -b -q 'plotting/compareFitParams.C("/path/to/fixed/plots/params.root","Fixed","/path/to/floated/plots/params.root","Floated","/path/to/comparison")'
 ```
 
-For three fits use `compare3FixedOscParams.C` with three filename/label pairs and an output basename. Choose a basename and create its parent directory first.
+For three fits use `compare3FitParams.C` with three filename/label pairs and an output basename. Choose a basename and create its parent directory first.
 
 Tables are a separate comparison step, for example:
 
@@ -389,7 +395,7 @@ python3 tables/make_old_new_fit_tables.py /path/to/fit1/postfit_summary.csv /pat
     -o /path/to/comparison.tex
 ```
 
-Use `--no-nominal` for a table containing only the parameter name and the compared fits. The nominal column otherwise comes from the existing nominal table inputs; `--nominal-csv` can select another nominal input. Omit `--totals-only` to retain dataset-specific rows and omit `--table-type osc` to include the systematic table too.
+Use `--no-nominal` for a table containing only the parameter name and the compared fits. By default the nominal column comes from the first fit: parameter `nom` values in its saved config and physical counts from its nominal spectra, integrated outside the configured buffer bins. MCMC postfit outputs supply nominal counts through `postfit.root`. The comparison script accepts MCMC output directories or their `postfit.root` files directly; existing CSV inputs remain supported. These values are shown without an uncertainty; proposal widths and postfit errors are not nominal uncertainties. Use `--nominal-dir /path/to/fit` to select another fit as the nominal source, or `--nominal-csv /path/to/table.csv` to explicitly use a historical nominal table and its quoted uncertainties. CSV-only comparisons need a nominal source or `--no-nominal`. No historical analysis CSV is selected automatically; the caption `--name` never selects numerical inputs. Omit `--totals-only` to retain dataset-specific rows and omit `--table-type osc` to include the systematic table too.
 
 A single Minuit result does not provide a likelihood surface or profile curves. The wrapper therefore does not run `makeFixedOscTree`, `plotFixedOscLLH.C` or `plotFixedOscFullLLH.py`.
 
@@ -425,7 +431,9 @@ This python script makes a plot similar to `plotFixedOscLLH` but with the 1D pro
 
 > python plotting/plotFixedOscFullLLH.py -i /path/to/makeFixedOscTree/output.root
 
-<h4>plotFixedOscDist</h4>
+<h4>plotFitSpectra</h4>
+
+This is the shared spectrum plotter for fixed-oscillation grids, floated Minuit fits and reconstructed MCMC fits. For a single fit, pass its `postfit.root`, dataset choice, an empty data-directory argument, the fit directory, and whether it is observed data, as shown in the Minuit commands above. For MCMC the fit directory is the postfit output’s `bestfit/` directory. The grid workflow is described below.
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
 
@@ -435,7 +443,7 @@ The user can also choose to supply a data directory. It will then look for files
 
 Canvases are saved in both `.root` and `.pdf` files, in the top level output directory of the set of fits. You can run it with:
 
-> root -l 'plotting/plotFixedOscDist.C("/path/to/makeFixedOscTree/output", dataset_option, data_directory)'
+> root -l 'plotting/plotFitSpectra.C("/path/to/makeFixedOscTree/output", dataset_option, data_directory)'
 
 with the last two arguments being optional, defaulting to `1` and `""`.
 
@@ -511,21 +519,21 @@ This script loops through all the 2D unscaled PDF files in a directory, and plot
 
 <h3>Fit Comparisons</h3>
 
-<h4>compareFixedOscParams</h4>
+<h4>compareFitParams</h4>
 
-This script opens the outputted root file from `plotFixedOscParams` for two different fits, and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
+This script opens `plots/params.root` from `plotFitParams` or `plotFixedOscParams` for two fits (fixed oscillation, floated Minuit or MCMC), and plots the postfit parameters for each and the prefit nominals and constraints from the first. The user also inputs labels for each fit to be printed into the legend, along with the name (without file type suffix) of the outputted files. You can run it with:
 
-> root -l 'plotting/compareFixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
+> root -l 'plotting/compareFitParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/output/file")'
 
-<h4>compare3FixedOscParams</h4>
+<h4>compare3FitParams</h4>
 
-This is just like `compareFixedOscParams` but it runs over 3 fits:
+This is just like `compareFitParams` but it runs over 3 fits:
 
-> root -l 'plotting/compare3FixedOscParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'.
+> root -l 'plotting/compare3FitParams.C("/path/to/fit1/params.root", "fit 1 label", "/path/to/fit2/params.root", "fit 2 label", "/path/to/fit3/params.root", "fit 3 label", "/path/to/output/file")'.
 
 <h4>compare3FixedOscDists</h4>
 
-This script is similar to `plotFixedOscDist`, but plots the total postfit scaled MC for 3 fits (without each scaled component PDF). It loops through the entries in the output `TTrees` from `makeFixedOscTree`, and finds the fit with the minimum best LLH for each. The distributions plotted are the data for the first fit, and the total MC (sum of all scaled PDFs with systematics applied) for each of the three fits, and a panel showing the ratio of each total MC postfit prediction to the data for the first fit.
+This script is similar to `plotFitSpectra`, but plots the total postfit scaled MC for 3 fits (without each scaled component PDF). It loops through the entries in the output `TTrees` from `makeFixedOscTree`, and finds the fit with the minimum best LLH for each. The distributions plotted are the data for the first fit, and the total MC (sum of all scaled PDFs with systematics applied) for each of the three fits, and a panel showing the ratio of each total MC postfit prediction to the data for the first fit.
 
 > root -l 'plotting/compare3FixedOscDists.C("/path/to/fit1/params.root", "/path/to/fit2/params.root", "/path/to/fit3/params.root", "fit 1 label", "fit 2 label", "fit 3 label")'
 
@@ -560,22 +568,22 @@ They are with:
 > python get_integrals.py /path/to/postfit_dists
 > python get_asimov_integrals.py /path/to/asimov_dists
 
-<h4>Combine Fit Results</h4>
+<h4>Fixed-oscillation fit summary</h4>
 
 This script uses the above 'get integral' scripts to get the postfit parameter event rates and proportional uncertainties, along with the postfit values and uncertainties for all other parameters, including the geoneutrino ratio. It also sums event rates over datasets to get the total number of each event rate. This is very hard coded for the parameters for the current analysis, but is useful for what it does. It outputs a CSV file of all parameter values and uncertainties. It runs `plotFixedOscParams`, so make sure `plotFixedOscLLH` has been run to get the correct oscillation parameter uncertainties. You can run it with:
 
-> python util/combine_postfit_results.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated_fit_bool> <(alpha,n)_classifier_bool>
+> python util/fixedosc_summary.py /path/to/postfit_dists /path/to/fit_result_tree.root <correlated_fit_bool> <(alpha,n)_classifier_bool>
 
-where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `correlated-fit-bool` and `(alpha,n)-classifier-bool` are whether the fit used correlated normalisations and the (alpha,n) classifier. It would be nice if it automatically could determine the two bools but this is how it is for now. Also note the parameters are hard-coded inside `combine_postfit_results`. This really is meant as a handy helper for the specific current analysis than a general tool.
+where the `fit_result_tree.root` was outputted by `makeFixedOscTree` and the `correlated-fit-bool` and `(alpha,n)-classifier-bool` are whether the fit used correlated normalisations and the (alpha,n) classifier. It would be nice if it automatically could determine the two bools but this is how it is for now. Also note the parameters are hard-coded inside `fixedosc_summary`. This really is meant as a handy helper for the specific current analysis than a general tool.
 
 <h4>Run Postfit Scripts</h4>
 
-This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `combine_postfit_results` to make the post-fit parameter value CSV file. You need to supply it with a directory that contains a `fit_config.ini` containing `reactorsjson` and the fixed-oscillation scan counts. This should be identical to one of the ones you used to run these fits, but with the `output_directory` field in the `fit_config` set to the top level output directory for the set of fits. It is run with:
+This is a 'master script' to run nearly all of the postfit analysis steps. Because of this, there are large elements of hard-coding (including filepaths which maybe could be better read from configs), but it is very handy and worth committing. It runs `makeFixedOscTree` to combine all the 500 fixed oscillation fits, and then runs `plotFixedOscLLH`, `plotFixedOscParams`, `plotFixedOscLLH` and `plotFixedOscFullLLH` with the appropriate options to make all postfit plots. It then also runs `fixedosc_summary` to make the post-fit parameter value CSV file. You need to supply it with a directory that contains a `fit_config.ini` containing `reactorsjson` and the fixed-oscillation scan counts. This should be identical to one of the ones you used to run these fits, but with the `output_directory` field in the `fit_config` set to the top level output directory for the set of fits. It is run with:
 
-> ./util/run_postfit_scripts.sh /path/to/config/dir <correlated_fit_bool> <(alpha,n)_classifier_bool> <datafit_bool>
+> ./util/fixedosc_postfit.sh /path/to/config/dir <correlated_fit_bool> <(alpha,n)_classifier_bool> <datafit_bool>
 
 <h4>Make Latex Tables</h4>
-There are two scripts for making the style of tables in the latex report. The first has three fit results (one for each oscillation parameter prior case), along with the nominal values. The second has two fit results (one for correlated normalisations, one for uncorrelated normalisations), along with the nominal values. The inputs are CSV files, which you make by combining the outputs of `combine_postfit_results`. They are run with:
+There are two scripts for making the style of tables in the latex report. The first has three fit results (one for each oscillation parameter prior case), along with the nominal values. The second has two fit results (one for correlated normalisations, one for uncorrelated normalisations), along with the nominal values. The inputs are CSV files, which you make by combining the outputs of `fixedosc_summary`. They are run with:
 
 >python make_prior_table.py combined_input.csv
 
@@ -592,32 +600,77 @@ There's also a script that just compares datafits with the parameter values in t
 
 <h3>MCMC</h3>
 
-NOTE: This section is a bit out of date because the code hasn't been brought in line with the rest of the antinullh repo yet. It will be updated when the code is! The non-fixed osc fits and llh scans are deprecated for now, and are not compiled by default.
+Build the tools and run one driver:
 
-Now you’re fit has run, the real fun starts! For each individual chain, you’ll have a number of files and subdirectories. In `1dlhproj` and `2dlhproj`, you have projections of the LLH for each parameter, and each combination of two parameters. In each case all other parameters are marginalised over. The burn-in steps, as set in the fit config, are automatically not included.  
+```bash
+source /path/to/env/file
+source env_my.sh
+make OXSX_LIB_DIR=/path/to/oxo/cmake-build/src all
 
-`config_log.txt` and `config_log_hmc.txt` save the configs used (these are almost certainly the same as each other). These are also saved in the `cfg` directory if running the python submission script in `util` (see below). `auto_correlations.txt` calculates how correlated the LLH is to the LLH at a step a different number of steps previous. This should hopefully be close to 0 after a few hundred. `fit_results.txt` contains each parameter value for the maximum LLH step. `postfit_dists` contains the PDFs for each event type, scaled by the event type parameter value at the maximum LLH step in this chain. Also saved is the sum of these, with each systematic’s value at the maximum LLH step applied.  
+python3 util/mcmc_postfit.py \
+    /path/to/output/chains/directory \
+    --burn-in 2000
+```
 
-There will also be a root file (`fit_name_i.root`) which contains a tree. Each entry in the tree represents a step in the Markov Chain, and the leaves are the values of each parameter, as well as the LLH, step time, and acceptance rate. This is more for MCMC chain diagnostics and debugging than obtaining physics results but is useful for checking the fit has worked as expected.  
+`--output-dir` is optional: by default results go in `<input directory>/output/`. For a ROOT-file input, they go in `output/` beside that file. With multiple inputs, the first input determines the default location. Use `--output-dir /path/to/output/` to override it.
 
-To combine multiple parallel chains, `hadd` these root files. When plotting from the `hadded` file, you can cut off the burn-in using the `Step` branch (as entry will now run from 0 to total number of combined steps, not 0 to number of steps in each file).  
+Choose the burn-in from the traces and between-chain comparisons; 2000 above is an example for short tuning chains. `Step >= burn_in` is applied separately in each chain. Accepted and rejected steps both contribute with their original multiplicity. The driver checks step continuity, expected entry counts, successful job logs when present, free branches, and likelihood config compatibility. Duplicate inputs and merged trees with resetting steps are rejected. Multiple input directories or explicit original ROOT files may be supplied.
 
-There’s an app for making useful plots from the combined tree. This can be run as:  
+The output includes:
 
-> ./bin/make_plots output_tree.root asimov_dataset.root scaled_postfit_dist.root fit_config_file.cfg correlations traces
+- `report.txt`: included samples, selected best sample, and diagnostic findings
+- `postfit.root`: parameter summaries and diagnostics, covariance and correlation matrices, best-step values and source location, nominal and reconstructed yields, and analysis settings. Optional transformed posterior draws and numerical plot histograms are stored here too
+- `parameter_table_osc.tex`, `parameter_table_syst.tex`, and `tables.pdf` when `pdflatex` is available: the established parameter names and table labels with asymmetric credible intervals
+- `plots/posteriors.pdf`, `traces.pdf`, `autocorrelations.pdf`, `acceptance.pdf`: parameter distributions and per-chain diagnostics; traces include a reduced drawing of the pre-cut samples
+- `plots/params.pdf`, `params.root`, `correlations.pdf`: the shared ROOT parameter and correlation plots; the posterior graph uses medians and asymmetric 68% intervals, while the compatibility histogram stores medians with posterior standard deviations
+- `plots/oscillation_posterior.pdf`: binned joint posterior and 68%/95% credible-density contours, distinct from fixed-grid likelihood confidence contours; binning detail follows the effective sample size
+- With `--rate-samples N`, `plots/yield_posteriors.pdf`: derived non-buffer yield and U/Th distributions from the selected draws
+- `plots/dist*` and `distgroup*`: the existing spectrum plots for PPO, bis-MSB and their sum, rebuilt at the selected best retained sample
+- `cfg/`: copies of the input configs; input paths, analysis versions and settings are recorded inside `postfit.root`
 
-`output_tree.root` is either a single outputted file or the `hadded` combination. `asimov_dataset.root` is the ‘true’ Asimov dataset to get the Asimov rates to compare to. `scaled_postfit_dist.root` is the sum of the PDFs scaled by the maximum LLH step values. If you’ve `hadded` chains, you can find the chain with the highest LLH step (so you know which `postfit_dists` to use) using `util/findMaxStep.C`:  
+The driver calls `plotting/plotFitParams.C` directly for the parameter and correlation plots. To redraw just those plots from an existing MCMC result:
 
-> root -l -b -q 'findMaxStep.C("dataset_directory_name", "fit_name", number_of_chains )'
+```bash
+root -l -b -q 'plotting/plotFitParams.C("/path/to/chains/output/postfit.root",true)'
+```
 
-`correlations` and `traces` determine if you draw the correlations between all combinations of two parameters (parameter 1 vs parameter 2 for all steps) and the trace of each parameter (parameter vs Step). These are both very time consuming. Leaving them empty means neither will run (note that the code just looks for a non-NULL string, so setting them to ‘0’ means they will be run!).  
+It also runs `bin/auto_corrs` separately on each original chain, using the requested `--burn-in` and `--max-lag`. Results are combined in `plots/autocorrelations.pdf`, with the histograms stored inside `postfit.root`; per-chain exchange files are temporary. With `--no-plots`, `auto_corrs` is skipped, while the Python R-hat and effective sample size calculations still run.
 
-The `make_plots` code is pretty messy, with features having been tacked on as time has gone on. But it does a job. The outputs are a root file of histograms, and a PDF with a bunch of histograms drawn to separate pages. For each parameter, you’ll get a LLH distribution marginalised over all other parameters. This is essentially a frequency histogram of parameter value for all steps. The central postfit value is calculated from this histogram in four different ways: the arithmetic mean of the histogram, the mean of a Gaussian fitted to it, the highest posterior density (mode), and the value at the maximum LLH step. These central values (and associated uncertainties) are combined into a single plot after the individual parameter plots. Prefit and postfit (using the maximum LLH step values) distributions are plotted and compared in one and two dimensions. If `traces` was set, a plot of parameter value vs `Step` is also drawn. If `correlations` are a run, a `colz` plot of parameter values at all steps are drawn.  
+`mcmc_postfit.py` also reports mcmc diagnostic information. It reports R-hat above 1.01 and low effective sample sizes, indicating chians haven't yet converged. Diagnostics split each chain and use equal-length prefixes if retained chain lengths differ. Posterior summaries use all retained draws. The diagnostics follow the [Stan posterior-analysis definitions](https://mc-stan.org/docs/reference-manual/analysis.html), using rank normalisation, folded split R-hat and Geyer's positive monotone sequence for ESS. Reported ESS is conservatively capped at the number of draws. Quantiles and moments use the actual samples, not smoothed or Gaussian-fitted histograms.
 
-If you really want to dig into the chain and be sure it has fully converged, you can run the `auto_corrs` app over the MCMC chain:  
+<h4>Rates outside the buffer regions</h4>
 
-> ./bin/auto_corrs output_tree.root
+`util/mcmc_postfit.py` directly selects reconstruction points, invokes `bin/reconstruct_mcmc_fit`, summarises yields and writes tables. The C++ helper reconstructs spectra and physical yields, and shares `BuildComponents` and `GetComponentRates` with the fitter. It applies all sampled shapes and oscillation parameters before integrating outside the configured buffer bins. The output quantities are expected event counts for the configured exposure. Per-dataset counts, totals, and U/Th ratios are calculated sample by sample before their posterior summaries.
 
-This will produce a root file, `output_tree_autoCorr.root` (if running over `output_tree.root`) containing a plot for each parameter of autocorrelation of parameter value at different lag (from 0 to 1000 steps).  
+By default, only the highest-score retained step is reconstructed. This produces the best-fit spectra under `bestfit/` and physical component yields, totals and U/Th ratios in the `best_fit` tree in `postfit.root`. These best-step yields have no posterior uncertainty attached. Parameter posterior summaries and tables always use all retained draws; physical-yield rows enter the posterior tables only when yield uncertainties are explicitly requested.
 
-This can be useful step-size tuning and debugging.
+Add `--rate-samples N` to calculate physical-yield posterior uncertainties using a stratified random subset of N retained draws, with selection seed 1729. Repeated states retain their correct multiplicities; duplicate parameter points are evaluated once and expanded back into the selected draws. Use `--rate-samples 0` to evaluate every retained draw. Check that intervals are stable as N increases: additional evaluations reduce subsampling error but cannot repair poor chain mixing.
+
+`postfit.root` contains `parameter_summary` (medians, intervals, moments and diagnostics), `nominal` and `best_fit` trees, `covMatrix` and `corrMatrix`, and an `analysis` text object recording settings, best-step location, per-chain results and reconstruction timings. The optional `derived_samples` tree contains physical yields and ratios alongside the pooled sample index, chain index and original step. Posterior, autocorrelation and joint-density histograms are added to directories inside the same ROOT file when plotting. ROOT parameter and spectrum renderers are also stored under `plots/`.
+
+Useful options:
+
+```bash
+# Fast parameter-only analysis and diagnostics
+python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT --skip-rates
+
+# Numerical summaries and tables without plotting
+python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT --no-plots
+
+# Optional physical-yield posterior uncertainties
+python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT --rate-samples 2000
+
+# Additional joint posterior plots, without repeated ROOT tree scans
+python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT \
+    --pairs geonu_U_norm:geonu_Th_norm p_recoil_energy_scale:class_a_ppo
+```
+
+`--pairs all` requests every free-parameter pair and can be expensive. `--max-lag` controls the diagnostic plot range, defaulting to 10000. Fixed parameters are excluded from posterior summaries and correlations.
+
+<h4>Standalone autocorrelations</h4>
+
+```bash
+./bin/auto_corrs original_chain.root --burn-in 10000 --max-lag 10000
+```
+
+This writes `original_chain_autoCorr.root` with per-parameter histograms in `Auto_Corrs`. Use `--output path.root` to choose another destination. Lag zero is the first visible bin and equals one. The maximum lag is inclusive and is capped at the number of retained entries minus one. Constant parameters are skipped. With no options, all steps are retained and lags zero through 1000 are calculated. The zero-padded FFT uses the full zero-lag sum of squared deviations for normalisation, matching the original direct calculation. Run it before combining chains: autocorrelations must not cross chain boundaries.
