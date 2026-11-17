@@ -4,6 +4,8 @@ import re
 import shlex
 import shutil
 import subprocess
+import configparser
+import secrets
 
 def check_dir(dname):
     """Check if directory exists, create it if it doesn't"""
@@ -38,7 +40,26 @@ def update_output_directory(fit_config, out_dir):
         file.writelines(lines)
 
 
-def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = ""):
+def assign_mcmc_seed(fit_config, job_index):
+    config = configparser.ConfigParser()
+    config.read(fit_config)
+    seed = config.getint("summary", "random_seed", fallback=0)
+    if not 0 <= seed <= 2147483647:
+        raise ValueError("random_seed must be between 0 and 2147483647")
+    seed = ((seed - 1 + job_index) % 2147483647 + 1
+            if seed else secrets.randbelow(2147483647) + 1)
+    with open(fit_config) as source:
+        text = source.read()
+    if re.search(r"(?m)^random_seed\s*=", text):
+        text = re.sub(r"(?m)^random_seed\s*=.*$", f"random_seed = {seed}", text)
+    else:
+        text = re.sub(r"(?m)^\[summary\]\s*$", f"[summary]\nrandom_seed = {seed}", text, count=1)
+    with open(fit_config, "w") as destination:
+        destination.write(text)
+    return seed
+
+
+def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = "", job_index = 0):
     '''
     submit a job to condor, write a sh file to source environment and execute command
     then write a submit file to be run by condor_submit
@@ -70,6 +91,8 @@ def pycondor_submit(job_name, exec_name, out_dir, run_dir, env_file, fit_config,
     # Update output_directory in the fit config, if there is one
     if fit_config != "":
         update_output_directory(fit_config, out_dir)
+        if exec_name == "mcmc":
+            print("MCMC seed:", assign_mcmc_seed(fit_config, job_index))
 
     if exec_name == "makeFixedOscTree":
         exec_args = [fit_config]
@@ -195,4 +218,4 @@ if __name__ == "__main__":
         submit_dir = check_dir("{0}/submit/".format(this_out_dir))
         output_dir = check_dir("{0}/output/".format(this_out_dir))
 
-        pycondor_submit(this_job_name, exec_name, this_out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = job_name)
+        pycondor_submit(this_job_name, exec_name, this_out_dir, run_dir, env_file, fit_config, event_config, pdf_config, syst_config, walltime, mem, sleep_time = 1, priority = 5, batch_name = job_name, job_index = i)
