@@ -15,7 +15,7 @@
 ///
 /// Draw spectra and component groups for fixed-oscillation, floated Minuit or MCMC fits
 /// Read postfit.root and an explicit fit directory, or locate the best fit in a grid tree
-/// MCMC spectra use the reconstructed bestfit directory
+/// MCMC spectra use the reconstructed dists directory
 /// Select both datasets with 0, PPO with 1, or bis-MSB with 2
 /// Component names, groups and display ranges are configured below
 /// Save canvases as PDF and ROOT files

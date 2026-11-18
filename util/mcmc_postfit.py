@@ -62,14 +62,14 @@ def reconstruct_fit(repo, output, arrays, manifest, result, count=None):
         command = [str(repo / 'bin/reconstruct_mcmc_fit'), str(fit_path)]
         command += [str(cfg / name) for name in ('event_config.ini', 'pdf_config.ini', 'syst_config.ini')]
         command += [str(work / 'requests.root'), str(work)]
-        with (output / 'reconstruct.log').open('w') as log:
+        with (output / 'logs/reconstruct.log').open('w') as log:
             subprocess.run(command, check=True, cwd=repo, stdout=log, stderr=subprocess.STDOUT)
         metadata = json.loads((work / 'rate_metadata.json').read_text())
         with root_open(work / 'rates.root') as source:
             raw = source['rates'].arrays(library='np')
         if not np.array_equal(raw['sample_id'], np.r_[-1, np.arange(len(unique))]):
             raise ValueError('Rate reconstruction returned unexpected sample IDs')
-        shutil.copytree(work / 'bestfit', output / 'bestfit', dirs_exist_ok=True)
+        shutil.copytree(work / 'bestfit', output / 'dists', dirs_exist_ok=True)
     derived = {}
     nominal = {}
     best_yields = {}
@@ -165,6 +165,12 @@ def main():
     files = discover(inputs)
     names, records, warnings = describe_chains(files, args.burn_in)
     output.mkdir(parents=True, exist_ok=True)
+    (output / 'logs').mkdir(exist_ok=True)
+    for filename in ['reconstruct.log', 'autocorrelations.log', 'root_plots.log']:
+        if (output / filename).is_file():
+            shutil.move(str(output / filename), str(output / 'logs' / filename))
+    if (output / 'bestfit').is_dir() and not (output / 'dists').exists():
+        (output / 'bestfit').rename(output / 'dists')
     for warning in warnings:
         print('Warning: ' + warning, file=sys.stderr, flush=True)
     (output / 'cfg').mkdir(exist_ok=True)

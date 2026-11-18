@@ -433,7 +433,7 @@ This python script makes a plot similar to `plotFixedOscLLH` but with the 1D pro
 
 <h4>plotFitSpectra</h4>
 
-This is the shared spectrum plotter for fixed-oscillation grids, floated Minuit fits and reconstructed MCMC fits. For a single fit, pass its `postfit.root`, dataset choice, an empty data-directory argument, the fit directory, and whether it is observed data, as shown in the Minuit commands above. For MCMC the fit directory is the postfit output’s `bestfit/` directory. The grid workflow is described below.
+This is the shared spectrum plotter for fixed-oscillation grids, floated Minuit fits and reconstructed MCMC fits. For a single fit, pass its `postfit.root`, dataset choice, an empty data-directory argument, the fit directory, and whether it is observed data, as shown in the Minuit commands above. For MCMC the fit directory is the postfit output’s `dists/` directory. The grid workflow is described below.
 
 This script will loop over all entries in the output `TTree` from `makeFixedOscTree`, and find the fit with the minimum best LLH. It then goes to the directory of that fit, and plots the distributions saved in the `postfit_dists` directory. The distributions plotted are the data, the total MC (sum of all scaled PDFs with systematics applied), and each individual PDF scaled (without systematics applied). Also saved is a similar plot but with PDFs grouped together. For both plots, a panel showing the ratio of the total MC postfit prediction to the data is plotted below the main histogram.
 
@@ -618,7 +618,9 @@ Choose the burn-in from the traces and between-chain comparisons; 2000 above is 
 
 The output includes:
 
-- `report.txt`: included samples, selected best sample, and diagnostic findings
+- `report.txt`: a quick run summary: chains and retained steps used, the maximum-LLH step selected, convergence warnings and reconstruction timing. R-hat above 1.01 flags disagreement between chains; low effective sample size means the correlated steps contain little independent information
+- `logs/`: reconstruction, autocorrelation and ROOT plotting logs (`reconstruct.log`, `autocorrelations.log`, `root_plots.log`)
+- `dists/`: reconstructed nominal and best-fit spectra used by the existing distribution plotter
 - `postfit.root`: parameter summaries and diagnostics, covariance and correlation matrices, best-step values and source location, nominal and reconstructed yields, and analysis settings. Optional transformed posterior draws and numerical plot histograms are stored here too
 - `parameter_table.csv`: one numerical table of parameter names, medians, asymmetric uncertainties (`error_low`, `error_high`) and 16th/84th percentile bounds (`interval_low`, `interval_high`). Includes all fitted parameters except `LogL`, plus physical rates and ratios when their posterior uncertainties were calculated. Raw fitted normalisations include buffer regions; physical-rate rows use non-buffer counts. No LaTeX tables or table PDF are generated; bespoke comparison tables can read `postfit.root` directly
 - `plots/posteriors.pdf`, `traces.pdf`, `autocorrelations.pdf`, `acceptance.pdf`: parameter distributions and per-chain diagnostics; traces include a reduced drawing of the pre-cut samples. Acceptance is shown separately for each chain in 40 approximately equal blocks after burn-in (or one block per step if fewer than 40 steps remain), at the mean step of each block
@@ -650,7 +652,7 @@ It also runs `bin/auto_corrs` separately on each original chain, using the reque
 
 `util/mcmc_postfit.py` directly selects reconstruction points, invokes `bin/reconstruct_mcmc_fit`, summarises yields and writes tables. The C++ helper reconstructs spectra and physical yields, and shares `BuildComponents` and `GetComponentRates` with the fitter. It applies all sampled shapes and oscillation parameters before integrating outside the configured buffer bins. The output quantities are expected event counts for the configured exposure. Per-dataset counts, totals, and U/Th ratios are calculated sample by sample before their posterior summaries.
 
-By default, only the highest-score retained step is reconstructed. This produces the best-fit spectra under `bestfit/` and physical component yields, totals and U/Th ratios in the `best_fit` tree in `postfit.root`. These best-step yields have no posterior uncertainty attached. Parameter posterior summaries and tables always use all retained draws; physical-yield rows enter the posterior tables only when yield uncertainties are explicitly requested.
+By default, only the highest-score retained step is reconstructed. This produces the best-fit spectra under `dists/` and physical component yields, totals and U/Th ratios in the `best_fit` tree in `postfit.root`. These best-step yields have no posterior uncertainty attached. Parameter posterior summaries and tables always use all retained draws; physical-yield rows enter the posterior tables only when yield uncertainties are explicitly requested.
 
 Add `--rate-samples N` to calculate physical-yield posterior uncertainties using a stratified random subset of N retained draws, with selection seed 1729. Repeated states retain their correct multiplicities; duplicate parameter points are evaluated once and expanded back into the selected draws. Use `--rate-samples 0` to evaluate every retained draw. Check that intervals are stable as N increases: additional evaluations reduce subsampling error but cannot repair poor chain mixing.
 

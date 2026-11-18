@@ -114,7 +114,7 @@ def plot_diagnostics(repo, output, arrays, manifest, result, slices, max_lag):
     plots.mkdir(exist_ok=True)
     acfs = []
     with tempfile.TemporaryDirectory(prefix='antinu-acf-') as temporary:
-        with (output / 'autocorrelations.log').open('w') as log:
+        with (output / 'logs/autocorrelations.log').open('w') as log:
             for i, record in enumerate(manifest['chains']):
                 path = Path(temporary) / f'chain_{i}.root'
                 subprocess.run([str(repo / 'bin/auto_corrs'), record['file'], '--burn-in', str(manifest['burn_in']),
@@ -193,7 +193,7 @@ def render(repo, output, arrays, manifest, result, slices, rates, derived, max_l
     (output / 'plots').mkdir(exist_ok=True)
     plot_diagnostics(repo, output, arrays, manifest, result, slices, max_lag)
     metadata = output / 'postfit.root'
-    log = output / 'root_plots.log'
+    log = output / 'logs/root_plots.log'
     root_call(repo, 'plotting/plotFitParams.C(' + json.dumps(str(metadata)) + ',true)', log)
     names = manifest['names']
     config = load_config(Path(manifest['chains'][0]['file']).parent / 'cfg/fit_config.ini')
@@ -230,12 +230,12 @@ def render(repo, output, arrays, manifest, result, slices, rates, derived, max_l
         if not supported:
             raise ValueError('Spectrum renderer currently supports 2p2ppo and bismsb datasets')
         choices = ([0] if len(datasets) == 2 else []) + [1 if name == '2p2ppo' else 2 for name in datasets]
-        bestfit = output / 'bestfit'
+        dists = output / 'dists'
         for choice in choices:
             root_call(repo, 'plotting/plotFitSpectra.C(' + json.dumps(str(metadata)) + ',' + str(choice)
-                      + ',"",' + json.dumps(str(bestfit)) + ',' + ('true' if data else 'false') + ')', log)
+                      + ',"",' + json.dumps(str(dists)) + ',' + ('true' if data else 'false') + ')', log)
         # The existing renderer puts spectra beside its reconstructed fit directory
-        for path in (bestfit / 'plots').glob('*'):
+        for path in (dists / 'plots').glob('*'):
             shutil.copy2(path, output / 'plots' / path.name)
     required = ['params.pdf', 'params.root', 'correlations.pdf', 'posteriors.pdf',
                 'traces.pdf', 'autocorrelations.pdf', 'acceptance.pdf']
