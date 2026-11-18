@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 from scipy.stats import norm, rankdata
+from scipy.optimize import curve_fit, OptimizeWarning
+import warnings
 import uproot
 
 
@@ -56,7 +58,7 @@ def discover(inputs):
             for config in sorted(path.rglob('cfg/fit_config.ini')):
                 for candidate in sorted(config.parent.parent.glob('*.root')):
                     with root_open(candidate) as source:
-                        if 'posteriors' in source:
+                        if 'posteriors' in source and hasattr(source['posteriors'], 'num_entries'):
                             files.append(candidate)
         else:
             raise ValueError(f'Input does not exist: {path}')
@@ -82,7 +84,7 @@ def describe_chains(files, burn_in):
         reference = signature
         fit = configs['fit_config.ini']
         with root_open(path) as source:
-            if 'posteriors' not in source:
+            if 'posteriors' not in source or not hasattr(source['posteriors'], 'num_entries'):
                 raise ValueError(f'No posteriors tree in {path}')
             tree = source['posteriors']
             metadata = json.loads(str(source['mcmc_metadata'])) if 'mcmc_metadata' in source else None
@@ -237,6 +239,53 @@ def posterior_summary(values):
             'mean': float(np.mean(values)), 'sd': float(np.std(values, ddof=1))}
 
 
+
+
+def highest_density_regions(counts, edges, probability=.68):
+    """Select the densest equal-width histogram bins covering at least the requested mass"""
+    order = np.argsort(-counts, kind='stable')
+    stop = np.searchsorted(np.cumsum(counts[order]), probability * counts.sum()) + 1
+    selected = np.zeros(len(counts), dtype=bool)
+    selected[order[:stop]] = True
+    transitions = np.diff(np.r_[False, selected, False].astype(int))
+    starts, stops = np.flatnonzero(transitions == 1), np.flatnonzero(transitions == -1)
+    regions = [[float(edges[start]), float(edges[end])] for start, end in zip(starts, stops)]
+    return regions, float(counts[selected].sum() / counts.sum())
+
+def posterior_estimates(values):
+    """Additional histogram-based estimates for comparison with sample summaries"""
+    counts, edges = np.histogram(values, bins=80)
+    peak = int(np.argmax(counts))
+    mode = float((edges[peak] + edges[peak + 1]) / 2)
+    mean, sd = float(np.mean(values)), float(np.std(values, ddof=1))
+    regions, mass = highest_density_regions(counts, edges)
+    result = {'mode': mode, 'hpd_regions': regions, 'hpd_mass': mass,
+              'gaussian_mean': None, 'gaussian_sigma': None, 'gaussian_amplitude': None}
+    if not np.isfinite(sd) or sd == 0:
+        result['mode'] = mean
+        result['hpd_regions'] = [[mean, mean]]
+        result['hpd_mass'] = 1.0
+        return result
+    # Standardise the fit coordinates so very small oscillation parameters are well conditioned
+    centres = ((edges[:-1] + edges[1:]) / 2 - mean) / sd
+    def gaussian(x, amplitude, centre, width):
+        return amplitude * np.exp(-0.5 * ((x - centre) / width) ** 2)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', OptimizeWarning)
+            fitted, unused = curve_fit(gaussian, centres, counts,
+                p0=[float(counts.max()), 0, 1], sigma=np.sqrt(np.maximum(counts, 1)),
+                bounds=([0, centres[0], 0.02], [np.inf, centres[-1], 2 * (centres[-1] - centres[0])]),
+                absolute_sigma=True, maxfev=10000)
+        if np.all(np.isfinite(fitted)):
+            result['gaussian_mean'] = float(mean + fitted[1] * sd)
+            result['gaussian_sigma'] = float(fitted[2] * sd)
+            result['gaussian_amplitude'] = float(fitted[0])
+    except (RuntimeError, ValueError, OptimizeWarning):
+        pass
+    return result
+
+
 def summarise(arrays, manifest):
     names = manifest['names']
     samples = arrays['samples']
@@ -256,6 +305,7 @@ def summarise(arrays, manifest):
     for j, name in enumerate(names):
         values = samples[:, j]
         summary = posterior_summary(values)
+        summary.update(posterior_estimates(values))
         summary.update(diagnostics([samples[s, j] for s in slices]))
         summary['per_chain'] = [posterior_summary(samples[s, j]) for s in slices]
         summaries[name] = summary
@@ -264,6 +314,7 @@ def summarise(arrays, manifest):
         if summary['ess_bulk'] is None or summary['ess_bulk'] < 100 * len(records):
             warnings.append(f'{name}: low bulk effective sample size {summary["ess_bulk"]}')
     summaries['LogL'] = posterior_summary(arrays['log_score'])
+    summaries['LogL'].update(posterior_estimates(arrays['log_score']))
     summaries['LogL'].update(diagnostics([arrays['log_score'][s] for s in slices]))
     if summaries['LogL']['rhat'] is None or summaries['LogL']['rhat'] > 1.01:
         warnings.append(f'LogL: R-hat is {summaries["LogL"]["rhat"]}')
@@ -312,12 +363,31 @@ def write_root_summary(output, manifest, result, rates, derived, settings):
         ('tex_labels', [config.get(name, 'tex_label', fallback=name).strip('"') for name in names], 'string'),
         ('param_fit_values', [result['parameters'][name]['median'] for name in names], 'double'),
         ('param_fit_err', [result['parameters'][name]['sd'] for name in names], 'double'),
+        ('posterior_mean', [result['parameters'][name]['mean'] for name in names], 'double'),
+        ('posterior_sd', [result['parameters'][name]['sd'] for name in names], 'double'),
+        ('posterior_gaussian_mean', [result['parameters'][name].get('gaussian_mean') if result['parameters'][name].get('gaussian_mean') is not None else np.nan for name in names], 'double'),
+        ('posterior_gaussian_sigma', [result['parameters'][name].get('gaussian_sigma') if result['parameters'][name].get('gaussian_sigma') is not None else np.nan for name in names], 'double'),
+        ('posterior_mode', [result['parameters'][name].get('mode', np.nan) for name in names], 'double'),
+        ('posterior_best', [result['best_sample']['parameters'][name] for name in names], 'double'),
         ('posterior_error_low', [result['parameters'][name]['error_low'] for name in names], 'double'),
         ('posterior_error_high', [result['parameters'][name]['error_high'] for name in names], 'double'),
         ('param_nom_values', [config.getfloat(name, 'nom') for name in names], 'double'),
         ('constr_mean_values', [config.getfloat(name, 'constraint_mean', fallback=config.getfloat(name, 'nom')) for name in names], 'double'),
         ('constr_sigma_values', [config.getfloat(name, 'constraint_sigma', fallback=0) for name in names], 'double'),
     ]:
+        vector = ROOT.std.vector(type_name)()
+        for value in values:
+            vector.push_back(value)
+        source.WriteObject(vector, key)
+    region_names, region_low, region_high = [], [], []
+    for name in names:
+        for low, high in result['parameters'][name].get('hpd_regions', []):
+            region_names.append(name)
+            region_low.append(low)
+            region_high.append(high)
+    for key, values, type_name in [('posterior_mode_hpd_names', region_names, 'string'),
+                                    ('posterior_mode_hpd_low', region_low, 'double'),
+                                    ('posterior_mode_hpd_high', region_high, 'double')]:
         vector = ROOT.std.vector(type_name)()
         for value in values:
             vector.push_back(value)
@@ -336,11 +406,18 @@ def write_root_summary(output, manifest, result, rates, derived, settings):
         parameters.update(rates['parameters'])
     with uproot.update(path) as handle:
         columns = ['median', 'interval_low', 'interval_high', 'error_low', 'error_high',
-                   'mean', 'sd', 'rhat', 'ess_bulk', 'ess_tail']
+                   'mean', 'sd', 'rhat', 'ess_bulk', 'ess_tail', 'mode', 'gaussian_mean', 'gaussian_sigma', 'gaussian_amplitude', 'hpd_mass']
         table = handle.mktree('parameter_summary', {'name': 'string', **{key: 'float64' for key in columns}})
         table.extend({'name': list(parameters), **{
             key: np.array([values.get(key) if values.get(key) is not None else np.nan
                            for values in parameters.values()]) for key in columns}})
+        region_rows = [(name, low, high) for name, values in parameters.items()
+                       for low, high in values.get('hpd_regions', [])]
+        if region_rows:
+            regions = handle.mktree('highest_density_regions', {'name': 'string', 'low': 'float64', 'high': 'float64'})
+            regions.extend({'name': [row[0] for row in region_rows],
+                            'low': np.array([row[1] for row in region_rows]),
+                            'high': np.array([row[2] for row in region_rows])})
         nominal = {name: config.getfloat(name, 'nom') for name in config.sections()
                    if name != 'summary' and config.has_option(name, 'nom')}
         if rates:

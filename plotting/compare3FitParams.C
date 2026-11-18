@@ -1,8 +1,4 @@
-#include <TFile.h>
-#include <TTree.h>
-#include <TH2D.h>
-#include <TCanvas.h>
-#include <TStyle.h>
+#include "FitParamDrawing.hh"
 
 /* ///////////////////////////////////////////////////////////////////
 ///
@@ -60,6 +56,7 @@ void compare3FitParams(std::string filename1, std::string label1, std::string fi
     // Draw the histograms
     TCanvas *c1 = new TCanvas("c1", "Params", 800, 600);
     c1->SetBottomMargin(0.18);
+    c1->SetTopMargin(0.22);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -84,7 +81,13 @@ void compare3FitParams(std::string filename1, std::string label1, std::string fi
     hPostFit3->SetLineWidth(1);
     hPostFit3->SetLineStyle(1);
 
-    hConstr1->GetYaxis()->SetRangeUser(0, 2);
+    TGraphAsymmErrors *intervals1 = antinupostfit::ReadFitIntervals(*file1, hPostFit1, hConstr1, "postfit1");
+    intervals1->SetMarkerStyle(20);
+    TGraphAsymmErrors *intervals2 = antinupostfit::ReadFitIntervals(*file2, hPostFit2, hConstr1, "postfit2");
+    intervals2->SetMarkerStyle(21);
+    TGraphAsymmErrors *intervals3 = antinupostfit::ReadFitIntervals(*file3, hPostFit3, hConstr1, "postfit3");
+    intervals3->SetMarkerStyle(22);
+    antinupostfit::SetFitComparisonRange(*hConstr1, {intervals1, intervals2, intervals3});
     hConstr1->GetYaxis()->SetTitle("Relative to Nominal");
     hConstr1->GetYaxis()->SetTitleOffset(1.2);
     hConstr1->GetXaxis()->SetLabelOffset(0.007);
@@ -99,15 +102,18 @@ void compare3FitParams(std::string filename1, std::string label1, std::string fi
     hConstr1->SetTitleFont(42);
 
     hConstr1->Draw("E1");
-    hPostFit1->Draw("E1same");
-    hPostFit2->Draw("E1same");
-    hPostFit3->Draw("E1same");
+    intervals1->Draw("PZ SAME");
+    intervals2->Draw("PZ SAME");
+    intervals3->Draw("PZ SAME");
 
-    TLegend *t1 = new TLegend(0.55, 0.63, 0.88, 0.88);
+    TLegend *t1 = new TLegend(0.12, 0.80, 0.88, 0.97);
     t1->AddEntry(hConstr1, "Prefit", "lep");
-    t1->AddEntry(hPostFit1, ("Postfit " + label1).c_str(), "lep");
-    t1->AddEntry(hPostFit2, ("Postfit " + label2).c_str(), "lep");
-    t1->AddEntry(hPostFit3, ("Postfit " + label3).c_str(), "lep");
+    t1->AddEntry(intervals1, ("Postfit " + label1 + (file1->Get("posterior_intervals") ? " (Median, 68% ET)" : "")).c_str(), "lep");
+    t1->AddEntry(intervals2, ("Postfit " + label2 + (file2->Get("posterior_intervals") ? " (Median, 68% ET)" : "")).c_str(), "lep");
+    t1->AddEntry(intervals3, ("Postfit " + label3 + (file3->Get("posterior_intervals") ? " (Median, 68% ET)" : "")).c_str(), "lep");
+    t1->SetBorderSize(0);
+    t1->SetFillStyle(0);
+    t1->SetTextSize(0.025);
     t1->SetLineWidth(2);
     t1->SetTextFont(42);
     t1->Draw();

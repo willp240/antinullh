@@ -2,6 +2,7 @@
 
 import itertools
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -11,10 +12,11 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.legend_handler import HandlerTuple
 import numpy as np
 import uproot
 
-from mcmc_results import load_config, root_open
+from mcmc_results import load_config, root_open, posterior_estimates
 
 
 def root_call(repo, expression, log):
@@ -22,6 +24,90 @@ def root_call(repo, expression, log):
         subprocess.run(['root', '-l', '-b', '-q', expression], cwd=repo, check=True,
                        stdout=handle, stderr=subprocess.STDOUT)
 
+
+
+def parameter_label(config, name):
+    """Use config labels for parameters and the corresponding physical event counts"""
+    if name == 'LogL':
+        label = 'Log Likelihood'
+    elif config.has_section(name):
+        label = config.get(name, 'tex_label', fallback=name).strip('" ')
+    elif name.startswith('geo_ratio_'):
+        dataset = {'ppo': 'PPO', 'bismsb': 'bis-MSB', 'total': 'Total'}[name.removeprefix('geo_ratio_')]
+        label = 'U/Th Ratio (' + dataset + ')'
+    elif name.endswith('_total'):
+        base = name.removesuffix('_total')
+        if config.has_section(base + '_norm'):
+            label = config.get(base + '_norm', 'tex_label', fallback=base + ' Total').strip('" ')
+        else:
+            label = config.get(base, 'tex_label', fallback=base).strip('" ')
+            label = re.sub(r'\s+(?:PPO|bis-MSB)$', '', label) + ' Total'
+    else:
+        component = name.rsplit('_', 1)[0]
+        label = config.get(component, 'tex_label', fallback=name.replace('_', ' ')).strip('" ')
+    # Protect mathematical expressions while capitalising the surrounding words
+    pattern = r"#[A-Za-z]+(?:\{(?:[^{}]|\{[^{}]*\})*\})*(?:[_^]\{[^{}]*\})*|[A-Za-z]+(?:[_^]\{[^{}]*\})+"
+    pieces = []
+    start = 0
+    for match in re.finditer(pattern, label):
+        pieces.append(re.sub(r"\b[a-z][A-Za-z]+", lambda word: word[0][0].upper() + word[0][1:], label[start:match.start()]))
+        math = match[0].replace('#', chr(92))
+        if math.startswith('sin^'):
+            math = chr(92) + math
+        pieces.append('$' + math + '$')
+        start = match.end()
+    pieces.append(re.sub(r"\b[a-z][A-Za-z]+", lambda word: word[0][0].upper() + word[0][1:], label[start:]))
+    return ''.join(pieces)
+
+
+def posterior_plot(values, summary, label, nominal=None, best=None, constraint=None):
+    """Draw one pooled distribution with the estimation methods and numerical values"""
+    if 'hpd_regions' not in summary:
+        summary = {**summary, **posterior_estimates(values)}
+    def number(value):
+        return format(value, '.2e' if 0 < abs(value) < .01 else '.2f')
+    fig, ax = plt.subplots(figsize=(12, 5.5), layout='constrained')
+    histogram, edges = np.histogram(values, bins=80)
+    ax.stairs(histogram, edges, fill=True, color='steelblue', alpha=.35,
+              label='Posterior')
+    median_band = ax.axvspan(summary['interval_low'], summary['interval_high'], color='firebrick', alpha=.10)
+    median_line = ax.axvline(summary['median'], color='firebrick', ls='--', lw=1.5,
+               label=f"Median = {number(summary['median'])} (-{number(summary['error_low'])}, +{number(summary['error_high'])})\n68% Equal-Tailed")
+    ax.axvline(summary['mean'], color='darkorange', ls='-.', lw=1.5,
+               label=f"Mean = {number(summary['mean'])}; SD = {number(summary['sd'])}")
+    regions = summary['hpd_regions']
+    mode_region = next(((low, high) for low, high in regions if low <= summary['mode'] <= high), None)
+    if mode_region is not None:
+        low, high = mode_region
+        mode_label = f"Mode = {number(summary['mode'])} (-{number(summary['mode'] - low)}, +{number(high - summary['mode'])})"
+    else:
+        mode_label = f"Mode = {number(summary['mode'])}"
+    mode_label += '\n68% Highest Density'
+    if len(regions) > 1:
+        mode_label += f' ({len(regions)} Regions)'
+    ax.axvline(summary['mode'], color='teal', ls=':', lw=1.5, label=mode_label)
+    x = np.linspace(edges[0], edges[-1], 400)
+    if summary.get('gaussian_mean') is not None:
+        mean, sigma = summary['gaussian_mean'], summary['gaussian_sigma']
+        ax.plot(x, summary['gaussian_amplitude'] * np.exp(-.5 * ((x - mean) / sigma) ** 2),
+                color='forestgreen', lw=1.5,
+                label=f'Gaussian Fit: Mean = {number(mean)}; Sigma = {number(sigma)}')
+    else:
+        ax.plot([], [], color='forestgreen', label='Gaussian Fit: Not Available')
+    if best is not None:
+        ax.axvline(best, color='darkmagenta', ls='--', lw=1.5, label=f'Maximum LLH = {number(best)}')
+    if nominal is not None:
+        ax.axvline(nominal, color='black', ls=':', lw=1.5, label=f'Nominal = {number(nominal)}')
+    if constraint is not None and constraint[1] > 0:
+        from scipy.stats import norm
+        ax.plot(x, norm.pdf(x, *constraint) * len(values) * (edges[1] - edges[0]),
+                color='grey', ls='--', label='Gaussian Constraint')
+    ax.set(xlabel=label, ylabel='Steps', title=label)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend([(median_band, handle) if handle is median_line else handle for handle in handles], labels,
+              handler_map={tuple: HandlerTuple(ndivide=1)},
+              loc='upper left', bbox_to_anchor=(1.01, 1), fontsize=9)
+    return fig, (histogram, edges)
 
 def plot_diagnostics(repo, output, arrays, manifest, result, slices, max_lag):
     plots = output / 'plots'
@@ -45,31 +131,21 @@ def plot_diagnostics(repo, output, arrays, manifest, result, slices, max_lag):
         for j, name in enumerate(manifest['names'] + ['LogL']):
             summary = result['parameters'][name]
             values = arrays['samples'][:, j] if name != 'LogL' else arrays['log_score']
-            fig, ax = plt.subplots(figsize=(9, 5), layout='constrained')
-            edges = np.histogram_bin_edges(values, bins=80)
-            histograms['posteriors/' + name] = np.histogram(values, bins=edges)
-            ax.hist(values, bins=edges, density=True, color='steelblue', alpha=.35, label='Pooled retained draws')
-            for i, selected in enumerate(slices):
-                ax.hist(values[selected], bins=edges, density=True, histtype='step', lw=.8, label=f'Chain {i}')
-            ax.axvspan(summary['interval_low'], summary['interval_high'], color='steelblue', alpha=.15, label='68% equal-tailed interval')
-            ax.axvline(summary['median'], color='navy', ls='--', label='Posterior median')
-            if name != 'LogL':
-                ax.axvline(config.getfloat(name, 'nom'), color='black', ls=':', label='Nominal')
-                if config.has_option(name, 'constraint_sigma'):
-                    sigma = config.getfloat(name, 'constraint_sigma')
-                    if sigma > 0:
-                        from scipy.stats import norm
-                        x = np.linspace(edges[0], edges[-1], 300)
-                        ax.plot(x, norm.pdf(x, config.getfloat(name, 'constraint_mean'), sigma), c='grey', ls='--', label='Gaussian constraint')
-            ax.set(xlabel=name, ylabel='Posterior density', title=name)
-            ax.legend(fontsize=8)
+            label = parameter_label(config, name)
+            nominal = config.getfloat(name, 'nom') if name != 'LogL' else None
+            best = result['best_sample']['parameters'][name] if name != 'LogL' else result['best_sample']['log_score']
+            constraint = None
+            if name != 'LogL' and config.has_option(name, 'constraint_sigma'):
+                constraint = (config.getfloat(name, 'constraint_mean'), config.getfloat(name, 'constraint_sigma'))
+            fig, histogram = posterior_plot(values, summary, label, nominal, best, constraint=constraint)
+            histograms['posteriors/' + name] = histogram
             pdf.savefig(fig); plt.close(fig)
             fig, ax = plt.subplots(figsize=(10, 4), layout='constrained')
             for i, record in enumerate(manifest['chains']):
                 preview = arrays['traces'][i]
                 ax.plot(preview['Step'], preview[name], lw=.6, label=f'Chain {i}')
-            ax.axvline(manifest['burn_in'], color='black', ls='--', label='Burn-in cut')
-            ax.set(xlabel='Step within chain', ylabel=name, title=name)
+            ax.axvline(manifest['burn_in'], color='black', ls='--', label='Burn-In Cut')
+            ax.set(xlabel='Step Within Chain', ylabel=label, title=label)
             ax.legend(fontsize=8)
             traces.savefig(fig); plt.close(fig)
             if name == 'LogL':
@@ -79,7 +155,7 @@ def plot_diagnostics(repo, output, arrays, manifest, result, slices, max_lag):
                 if name in chain:
                     ax.plot(np.arange(len(chain[name])), chain[name], label=f'Chain {i}', lw=1)
             ax.axhline(0, c='black', lw=.5)
-            ax.set(xlabel='Lag (steps)', ylabel='Autocorrelation', title=name, ylim=(-.3, 1.02))
+            ax.set(xlabel='Lag (Steps)', ylabel='Autocorrelation', title=label, ylim=(-.3, 1.02))
             ax.legend(fontsize=8)
             correlations.savefig(fig); plt.close(fig)
     fig, ax = plt.subplots(figsize=(9, 4), layout='constrained')
@@ -88,7 +164,7 @@ def plot_diagnostics(repo, output, arrays, manifest, result, slices, max_lag):
         for_plot = np.array([chunk.mean() for chunk in np.array_split(accepted, min(40, len(accepted)))])
         steps = np.array([chunk.mean() for chunk in np.array_split(arrays['steps'][selected], len(for_plot))])
         ax.plot(steps, for_plot, label=f'Chain {i}')
-    ax.set(xlabel='Step', ylabel='Acceptance fraction in blocks', title='Acceptance after burn-in')
+    ax.set(xlabel='Step', ylabel='Acceptance Fraction In Blocks', title='Acceptance After Burn-In')
     ax.legend(); fig.savefig(plots / 'acceptance.pdf'); plt.close(fig)
 
 
@@ -134,18 +210,15 @@ def render(repo, output, arrays, manifest, result, slices, rates, derived, max_l
                      pair[0], pair[1], 'pair_' + pair[0] + '_' + pair[1] + '.pdf',
                      min(result['parameters'][name]['ess_bulk'] or 1 for name in pair))
     if rates and rates['selected_draws']:
-        with PdfPages(output / 'plots' / 'yield_posteriors.pdf') as pdf, uproot.update(output / 'postfit.root') as histograms:
+        config = load_config(Path(manifest['chains'][0]['file']).parent / 'cfg/fit_config.ini')
+        with PdfPages(output / 'plots' / 'rate_posteriors.pdf') as pdf, uproot.update(output / 'postfit.root') as histograms:
             for name, summary in rates['parameters'].items():
-                values = derived[name]
-                fig, ax = plt.subplots(figsize=(8, 5), layout='constrained')
-                edges = np.histogram_bin_edges(values, bins=50)
-                histograms['yield_posteriors/' + name] = np.histogram(values, bins=edges)
-                ax.hist(values, bins=edges, density=True, histtype='step', lw=1.5)
-                ax.axvspan(summary['interval_low'], summary['interval_high'], color='steelblue', alpha=.2, label='68% interval')
-                ax.axvline(summary['median'], c='navy', ls='--', label='Median')
-                ax.axvline(rates['nominal'][name], c='black', ls=':', label='Nominal')
-                ax.set(xlabel=name, ylabel='Posterior density', title=f'{name}: {rates["selected_draws"]} selected draws')
-                ax.legend(); pdf.savefig(fig); plt.close(fig)
+                fig, histogram = posterior_plot(derived[name], summary, parameter_label(config, name),
+                    rates['nominal'].get(name), rates['best_fit'].get(name))
+                histograms['rate_posteriors/' + name] = histogram
+                pdf.savefig(fig); plt.close(fig)
+        for previous in ['yield_posteriors.pdf', 'event_count_posteriors.pdf']:
+            (output / 'plots' / previous).unlink(missing_ok=True)
     if rates:
         fit = load_config(Path(manifest['chains'][0]['file']).parent / 'cfg/fit_config.ini')
         events = load_config(Path(manifest['chains'][0]['file']).parent / 'cfg/event_config.ini')
@@ -168,7 +241,7 @@ def render(repo, output, arrays, manifest, result, slices, rates, derived, max_l
         required += ['dist_' + suffix + '.pdf' for suffix in
                      (['all'] if len(datasets) == 2 else []) + datasets]
         if rates['selected_draws']:
-            required += ['yield_posteriors.pdf']
+            required += ['rate_posteriors.pdf']
     for filename in required:
         path = output / 'plots' / filename
         if not path.is_file() or path.stat().st_size == 0:

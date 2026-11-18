@@ -41,6 +41,51 @@ void plotFitParams(const char *filename, bool posterior = false)
         for (size_t i = 0; i < n; ++i)
             intervals[(*names)[i]] = std::make_pair((*low)[i], (*high)[i]);
     }
+    std::vector<antinupostfit::ParameterEstimate> estimates;
+    if (posterior)
+    {
+        std::map<std::string, std::vector<std::pair<double, double>>> modeRegions;
+        std::vector<std::string> *regionNames = nullptr;
+        std::vector<double> *regionLow = nullptr;
+        std::vector<double> *regionHigh = nullptr;
+        file.GetObject("posterior_mode_hpd_names", regionNames);
+        file.GetObject("posterior_mode_hpd_low", regionLow);
+        file.GetObject("posterior_mode_hpd_high", regionHigh);
+        if (regionNames)
+        {
+            if (!regionLow || !regionHigh || regionLow->size() != regionNames->size() || regionHigh->size() != regionNames->size())
+                throw std::runtime_error("Inconsistent mode highest-density region dimensions");
+            for (size_t i = 0; i < regionNames->size(); ++i)
+                modeRegions[(*regionNames)[i]].push_back(std::make_pair((*regionLow)[i], (*regionHigh)[i]));
+        }
+        const std::vector<std::string> keys = {"posterior_mean", "posterior_gaussian_mean", "posterior_mode", "posterior_best"};
+        const std::vector<std::string> errorKeys = {"posterior_sd", "posterior_gaussian_sigma", "", ""};
+        const std::vector<std::string> plotKeys = {"posterior_mean", "posterior_gaussian", "posterior_mode", "posterior_best"};
+        const std::vector<std::string> descriptions = {"Mean, Standard Deviation", "Gaussian Mean, Fitted Width", "Mode, 68% Highest Density", "Maximum LLH"};
+        const std::vector<int> colors = {kOrange + 7, kGreen + 2, kCyan + 2, kMagenta + 1};
+        const std::vector<int> markers = {21, 22, 23, 33};
+        for (size_t j = 0; j < keys.size(); ++j)
+        {
+            std::vector<double> *central = nullptr;
+            std::vector<double> *width = nullptr;
+            file.GetObject(keys[j].c_str(), central);
+            if (!errorKeys[j].empty())
+                file.GetObject(errorKeys[j].c_str(), width);
+            // Older postfit files can still draw their saved median intervals
+            if (!central)
+                continue;
+            if (central->size() != n || (!errorKeys[j].empty() && (!width || width->size() != n)))
+                throw std::runtime_error("Inconsistent posterior estimate dimensions");
+            antinupostfit::ParameterEstimate estimate = {plotKeys[j], descriptions[j], colors[j], markers[j], {}, {}};
+            if (plotKeys[j] == "posterior_mode" && !modeRegions.empty())
+            {
+                estimate.regions = modeRegions;
+            }
+            for (size_t i = 0; i < n; ++i)
+                estimate.values[(*names)[i]] = std::make_pair((*central)[i], width ? (*width)[i] : 0.0);
+            estimates.push_back(estimate);
+        }
+    }
     std::map<std::string, double> parameters;
     bool correlated = false;
     bool classifier = false;
@@ -59,5 +104,6 @@ void plotFitParams(const char *filename, bool posterior = false)
     parameters["reactor_nubar_ratio"] = 1;
     parameters["reactor_nubar2_ratio"] = 1;
     antinupostfit::DrawFitParams(filename, parameters, names, errors, labels, nominals,
-                               means, sigmas, covariance, theta, correlated, classifier, posterior ? &intervals : nullptr);
+                               means, sigmas, covariance, theta, correlated, classifier, posterior ? &intervals : nullptr,
+                               estimates.empty() ? nullptr : &estimates);
 }

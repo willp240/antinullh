@@ -19,7 +19,7 @@ import numpy as np
 import uproot
 
 from mcmc_results import (read_draws, describe_chains, discover,
-                          load_config, posterior_summary, root_open, summarise, write_root_summary)
+                          load_config, posterior_summary, posterior_estimates, root_open, summarise, write_root_summary)
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -30,7 +30,7 @@ def reconstruct_fit(repo, output, arrays, manifest, result, count=None):
     total = len(arrays['samples'])
     count = 0 if count is None else total if count == 0 else min(count, total)
     if not count:
-        (output / 'plots/yield_posteriors.pdf').unlink(missing_ok=True)
+        (output / 'plots/rate_posteriors.pdf').unlink(missing_ok=True)
     rng = np.random.default_rng(1729)
     # One random draw per equal-sized stratum, preserving posterior dwell-time weights
     indices = (np.floor((np.arange(count) + rng.random(count)) * total / count).astype(np.int64)
@@ -105,7 +105,8 @@ def reconstruct_fit(repo, output, arrays, manifest, result, count=None):
             else:
                 derived['geo_ratio_' + suffix] = derived[uranium] / derived[thorium]
                 nominal['geo_ratio_' + suffix] = nominal[uranium] / nominal[thorium]
-    summaries = {name: posterior_summary(values) for name, values in derived.items()} if count else {}
+    summaries = {name: {**posterior_summary(values), **posterior_estimates(values)}
+                 for name, values in derived.items()} if count else {}
     rate_result = {'method': 'Full model evaluation, including shapes and oscillation',
                    'selection': 'Stratified random subsample with original multiplicities' if count else 'Best retained sample only',
                    'selected_draws': count, 'retained_draws': total, 'all_draws_evaluated': count == total,

@@ -16,12 +16,81 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <stdexcept>
 #include <vector>
 #include <unordered_map>
 #include <sys/stat.h>
 
 namespace antinupostfit
 {
+struct ParameterEstimate
+{
+    std::string key;
+    std::string label;
+    int color;
+    int marker;
+    std::map<std::string, std::pair<double, double>> values;
+    std::map<std::string, std::vector<std::pair<double, double>>> regions;
+};
+
+// Read asymmetric MCMC intervals, or preserve the saved symmetric errors for other fits
+inline TGraphAsymmErrors *ReadFitIntervals(TFile &source, const TH1D *values,
+                                          const TH1D *axis, const char *name)
+{
+    TH1D *constraints = nullptr;
+    source.GetObject("constraints", constraints);
+    if (!values || !axis || !constraints || values->GetNbinsX() != axis->GetNbinsX() ||
+        constraints->GetNbinsX() != axis->GetNbinsX())
+        throw std::runtime_error("Cannot compare parameter plots with different dimensions");
+    for (int i = 1; i <= axis->GetNbinsX(); ++i)
+        if (std::string(constraints->GetXaxis()->GetBinLabel(i)) != axis->GetXaxis()->GetBinLabel(i))
+            throw std::runtime_error("Parameter labels or ordering differ between fits");
+    TGraphAsymmErrors *saved = nullptr;
+    source.GetObject("posterior_intervals", saved);
+    if (saved && saved->GetN() != values->GetNbinsX())
+        throw std::runtime_error("Posterior interval dimensions do not match the parameter histogram");
+    TNamed *method = nullptr;
+    source.GetObject("uncertainty_method", method);
+    if (!saved && method && std::string(method->GetTitle()).find("posterior_intervals") != std::string::npos)
+        throw std::runtime_error("MCMC parameter plot is missing its asymmetric intervals");
+    TGraphAsymmErrors *graph = new TGraphAsymmErrors(values->GetNbinsX());
+    graph->SetName(name);
+    for (int i = 0; i < graph->GetN(); ++i)
+    {
+        const double central = saved ? saved->GetY()[i] : values->GetBinContent(i + 1);
+        const double low = saved ? saved->GetErrorYlow(i) : values->GetBinError(i + 1);
+        const double high = saved ? saved->GetErrorYhigh(i) : values->GetBinError(i + 1);
+        if (!std::isfinite(central) || !std::isfinite(low) || !std::isfinite(high) || low < 0 || high < 0)
+            throw std::runtime_error("Invalid parameter value or interval in comparison input");
+        graph->SetPoint(i, axis->GetBinCenter(i + 1), central);
+        graph->SetPointError(i, 0, 0, low, high);
+    }
+    graph->SetLineColor(values->GetLineColor());
+    graph->SetMarkerColor(values->GetLineColor());
+    graph->SetLineWidth(values->GetLineWidth());
+    graph->SetLineStyle(values->GetLineStyle());
+    graph->SetMarkerStyle(20);
+    return graph;
+}
+
+inline void SetFitComparisonRange(TH1D &axis, const std::vector<TGraphAsymmErrors *> &graphs)
+{
+    double low = 0;
+    double high = 2;
+    for (int i = 1; i <= axis.GetNbinsX(); ++i)
+    {
+        low = std::min(low, axis.GetBinContent(i) - axis.GetBinError(i));
+        high = std::max(high, axis.GetBinContent(i) + axis.GetBinError(i));
+    }
+    for (size_t j = 0; j < graphs.size(); ++j)
+        for (int i = 0; i < graphs[j]->GetN(); ++i)
+        {
+            low = std::min(low, graphs[j]->GetY()[i] - graphs[j]->GetErrorYlow(i));
+            high = std::max(high, graphs[j]->GetY()[i] + graphs[j]->GetErrorYhigh(i));
+        }
+    axis.GetYaxis()->SetRangeUser(low, high + 0.05 * (high - low));
+}
+
 // Hard code reactor parameter names to make sure we use the right ratio for each
 // Inelegant, but we hard code the parameter order anyway
 const std::string reactorpar1 = "reactor_nubar";
@@ -221,7 +290,8 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
                          std::vector<double> *constrMeans, std::vector<double> *constrErr,
                          TMatrixT<double> *fullCovMatrix, const std::string &theta12name,
                          bool corr, bool alphanclass,
-                         const std::map<std::string, std::pair<double, double>> *intervalErrors = nullptr)
+                         const std::map<std::string, std::pair<double, double>> *intervalErrors = nullptr,
+                         const std::vector<ParameterEstimate> *estimates = nullptr)
 {
     // Reorder vectors to the order we want to plot them
     sortVectors(paramNames, paramErr, labelsVec, nomVals, constrMeans, constrErr, fullCovMatrix, theta12name, corr, alphanclass);
@@ -230,6 +300,12 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     TH1D *hConstr = new TH1D("hConstr", "Constraints Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
     TH1D *hPostFit = new TH1D("hPostFit", "Postfit Values Relative to Nominals", paramNames->size(), 0, paramNames->size() - 1);
     TGraphAsymmErrors *posterior = intervalErrors ? new TGraphAsymmErrors(paramNames->size()) : nullptr;
+
+    TGraphAsymmErrors *modeRegions = new TGraphAsymmErrors();
+    std::vector<TGraphAsymmErrors *> estimateGraphs;
+    if (estimates)
+        for (size_t i = 0; i < estimates->size(); ++i)
+            estimateGraphs.push_back(new TGraphAsymmErrors());
 
     for (int iParam = 0; iParam < paramNames->size(); iParam++)
     {
@@ -274,7 +350,38 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
         {
             const std::pair<double, double> errors = intervalErrors->at(paramNames->at(iParam));
             posterior->SetPoint(iParam, hPostFit->GetBinCenter(iParam + 1), postfit / nom);
-            posterior->SetPointError(iParam, 0, 0, errors.first / std::abs(nom), errors.second / std::abs(nom));
+            posterior->SetPointError(iParam, estimates ? 0.42 * hPostFit->GetBinWidth(iParam + 1) : 0,
+                                     estimates ? 0.42 * hPostFit->GetBinWidth(iParam + 1) : 0,
+                                     errors.first / std::abs(nom), errors.second / std::abs(nom));
+        }
+        if (estimates)
+        {
+            for (size_t i = 0; i < estimates->size(); ++i)
+            {
+                const std::pair<double, double> estimate = estimates->at(i).values.at(paramNames->at(iParam));
+                if (!std::isfinite(estimate.first) || !std::isfinite(estimate.second))
+                    continue;
+                TGraphAsymmErrors *graph = estimateGraphs.at(i);
+                const int point = graph->GetN();
+                const double shift = nomVals->at(iParam) == 0 ? 1.0 : 0.0;
+                graph->SetPoint(point, hPostFit->GetBinCenter(iParam + 1), (estimate.first + shift) / nom);
+                if (estimates->at(i).key == "posterior_mode" && estimates->at(i).regions.count(paramNames->at(iParam)))
+                {
+                    const std::vector<std::pair<double, double>> &regions = estimates->at(i).regions.at(paramNames->at(iParam));
+                    for (size_t j = 0; j < regions.size(); ++j)
+                    {
+                        const int region = modeRegions->GetN();
+                        const double centre = (regions[j].first + regions[j].second) / 2;
+                        const double width = (regions[j].second - regions[j].first) / 2 / std::abs(nom);
+                        const double xwidth = 0.39 * hPostFit->GetBinWidth(iParam + 1);
+                        modeRegions->SetPoint(region, hPostFit->GetBinCenter(iParam + 1), (centre + shift) / nom);
+                        modeRegions->SetPointError(region, xwidth, xwidth, width, width);
+                    }
+                }
+                const double halfWidth = (i == 0 ? 0.36 : 0.30) * hPostFit->GetBinWidth(iParam + 1);
+                graph->SetPointError(point, halfWidth, halfWidth,
+                                     estimate.second / std::abs(nom), estimate.second / std::abs(nom));
+            }
         }
         std::cout << "Par: " << paramNames->at(iParam) << std::endl;
         std::cout << "Nom Mean: " << nomVals->at(iParam) << std::endl;
@@ -298,6 +405,8 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     TCanvas *c1 = new TCanvas("c1", "Params", 1500, 1000);
     c1->SetBottomMargin(0.18);
     c1->SetRightMargin(0.12);
+    if (estimates)
+        c1->SetTopMargin(0.25);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
@@ -320,6 +429,18 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
             lower = std::min(lower, value - posterior->GetErrorYlow(i));
             upper = std::max(upper, value + posterior->GetErrorYhigh(i));
         }
+        for (size_t i = 0; i < estimateGraphs.size(); ++i)
+            for (int j = 0; j < estimateGraphs.at(i)->GetN(); ++j)
+            {
+                const double value = estimateGraphs.at(i)->GetY()[j];
+                lower = std::min(lower, value - estimateGraphs.at(i)->GetErrorYlow(j));
+                upper = std::max(upper, value + estimateGraphs.at(i)->GetErrorYhigh(j));
+            }
+        for (int i = 0; i < modeRegions->GetN(); ++i)
+        {
+            lower = std::min(lower, modeRegions->GetY()[i] - modeRegions->GetErrorYlow(i));
+            upper = std::max(upper, modeRegions->GetY()[i] + modeRegions->GetErrorYhigh(i));
+        }
         hConstr->GetYaxis()->SetRangeUser(lower, upper + 0.05 * (upper - lower));
     }
     hConstr->GetYaxis()->SetTitle("Relative to Nominal");
@@ -339,21 +460,62 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     hConstr->Draw("E1");
     if (posterior)
     {
-        posterior->SetLineColor(kRed);
+        posterior->SetLineColorAlpha(kRed, 0.8);
         posterior->SetLineWidth(2);
         posterior->SetMarkerStyle(20);
-        posterior->SetMarkerColor(kRed);
-        posterior->Draw("PZ SAME");
+        posterior->SetMarkerColorAlpha(kRed, 0.8);
+        if (estimates)
+        {
+            posterior->SetFillColorAlpha(kRed, 0.25);
+            posterior->SetFillStyle(1001);
+            posterior->Draw("2 SAME");
+            posterior->Draw("PX SAME");
+        }
+        else
+            posterior->Draw("PZ SAME");
     }
     else
         hPostFit->Draw("E1same");
 
-    TLegend *t1 = new TLegend(0.65, 0.73, 0.85, 0.88);
+    if (modeRegions->GetN())
+    {
+        modeRegions->SetFillColorAlpha(kCyan + 2, 0.25);
+        modeRegions->SetFillStyle(1001);
+        modeRegions->Draw("2 SAME");
+    }
+    for (size_t i = 0; i < estimateGraphs.size(); ++i)
+    {
+        TGraphAsymmErrors *graph = estimateGraphs.at(i);
+        graph->SetLineColorAlpha(estimates->at(i).color, 0.8);
+        graph->SetMarkerColorAlpha(estimates->at(i).color, 0.8);
+        graph->SetMarkerStyle(estimates->at(i).marker);
+        graph->SetMarkerSize(1.1);
+        graph->SetLineWidth(2);
+        graph->SetFillColorAlpha(estimates->at(i).color, 0.25);
+        graph->SetFillStyle(1001);
+        if (estimates->at(i).key == "posterior_mean" || estimates->at(i).key == "posterior_gaussian")
+            graph->Draw("2 SAME");
+        graph->Draw("PX SAME");
+    }
+
+    TLegend *t1 = estimates ? new TLegend(0.12, 0.80, 0.87, 0.96)
+                            : new TLegend(0.65, 0.73, 0.85, 0.88);
+    if (estimates)
+    {
+        t1->SetNColumns(3);
+        t1->SetBorderSize(0);
+        t1->SetFillStyle(0);
+    }
     t1->AddEntry(hConstr, "Prefit", "l");
     if (posterior)
-        t1->AddEntry(posterior, "MCMC median, 68% interval", "lp");
+        t1->AddEntry(posterior, "Median, 68% Equal-Tailed", estimates ? "fp" : "lp");
     else
         t1->AddEntry(hPostFit, "Postfit", "l");
+    for (size_t i = 0; i < estimateGraphs.size(); ++i)
+        t1->AddEntry(estimateGraphs.at(i), estimates->at(i).label.c_str(),
+                     estimates->at(i).key == "posterior_best" ? "p" : "fp");
+    if (estimates)
+        t1->SetTextSize(0.023);
     t1->SetLineWidth(2);
     t1->SetTextFont(42);
     t1->Draw();
@@ -377,6 +539,10 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
         posterior->Write("posterior_intervals");
         TNamed("uncertainty_method", "posterior_intervals: median and equal-tailed 68% interval; postfit histogram errors: posterior standard deviation").Write();
     }
+    for (size_t i = 0; i < estimateGraphs.size(); ++i)
+        estimateGraphs.at(i)->Write(estimates->at(i).key.c_str());
+    if (modeRegions->GetN())
+        modeRegions->Write("posterior_mode_hpd");
     c1->Write("c1");
 
     // Now plot the correlation matrix
@@ -415,7 +581,7 @@ inline void DrawFitParams(const char *filename, std::map<std::string, double> &b
     TCanvas *c2 = new TCanvas("c2", "Correlations", 1500, 1000);
     c2->SetBottomMargin(0.18);
     c2->SetRightMargin(0.16);
-    c2->SetLeftMargin(0.16);
+    c2->SetLeftMargin(0.18);
     gPad->SetFrameLineWidth(2);
     gStyle->SetOptStat(0);
     gPad->SetGrid(1);
