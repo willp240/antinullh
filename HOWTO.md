@@ -383,7 +383,7 @@ The existing comparison tools accept the new `plots/params.root` directly:
 root -l -b -q 'plotting/compareFitParams.C("/path/to/fixed/plots/params.root","Fixed","/path/to/floated/plots/params.root","Floated","/path/to/comparison")'
 ```
 
-For three fits use `compare3FitParams.C` with three filename/label pairs and an output basename. Choose a basename and create its parent directory first.
+For three fits use `compare3FitParams.C` with three filename/label pairs and an output basename. Choose a basename and create its parent directory first. MCMC inputs use the saved `posterior_intervals` graph (median and asymmetric 16th–84th percentile errors); fixed-oscillation and Minuit inputs retain their saved fitted values and errors. Comparisons check that parameter labels and ordering match, and expand the vertical range to include the intervals.
 
 Tables are a separate comparison step, for example:
 
@@ -620,13 +620,21 @@ The output includes:
 
 - `report.txt`: included samples, selected best sample, and diagnostic findings
 - `postfit.root`: parameter summaries and diagnostics, covariance and correlation matrices, best-step values and source location, nominal and reconstructed yields, and analysis settings. Optional transformed posterior draws and numerical plot histograms are stored here too
-- `parameter_table_osc.tex`, `parameter_table_syst.tex`, and `tables.pdf` when `pdflatex` is available: the established parameter names and table labels with asymmetric credible intervals
-- `plots/posteriors.pdf`, `traces.pdf`, `autocorrelations.pdf`, `acceptance.pdf`: parameter distributions and per-chain diagnostics; traces include a reduced drawing of the pre-cut samples
-- `plots/params.pdf`, `params.root`, `correlations.pdf`: the shared ROOT parameter and correlation plots; the posterior graph uses medians and asymmetric 68% intervals, while the compatibility histogram stores medians with posterior standard deviations
+- `parameter_table.csv`: one numerical table of parameter names, medians, asymmetric uncertainties (`error_low`, `error_high`) and 16th/84th percentile bounds (`interval_low`, `interval_high`). Includes all fitted parameters except `LogL`, plus physical rates and ratios when their posterior uncertainties were calculated. Raw fitted normalisations include buffer regions; physical-rate rows use non-buffer counts. No LaTeX tables or table PDF are generated; bespoke comparison tables can read `postfit.root` directly
+- `plots/posteriors.pdf`, `traces.pdf`, `autocorrelations.pdf`, `acceptance.pdf`: parameter distributions and per-chain diagnostics; traces include a reduced drawing of the pre-cut samples. Acceptance is shown separately for each chain in 40 approximately equal blocks after burn-in (or one block per step if fewer than 40 steps remain), at the mean step of each block
+- `plots/params.pdf`, `params.root`, `correlations.pdf`: the shared ROOT parameter and correlation plots; the default MCMC result is the median with its asymmetric equal-tailed 68% interval. This single-fit plot also shows overlapping translucent bands for the mean with standard deviation, Gaussian mean with fitted width, and mode with its highest-density 68% region. The compatibility histogram still stores medians with posterior standard deviations, while `posterior_intervals` stores the default asymmetric result
 - `plots/oscillation_posterior.pdf`: binned joint posterior and 68%/95% credible-density contours, distinct from fixed-grid likelihood confidence contours; binning detail follows the effective sample size
-- With `--rate-samples N`, `plots/yield_posteriors.pdf`: derived non-buffer yield and U/Th distributions from the selected draws
+- With `--rate-samples N`, `plots/rate_posteriors.pdf`: physical event counts outside the likelihood buffer bins, and U/Th ratios, from the selected draws
 - `plots/dist*` and `distgroup*`: the existing spectrum plots for PPO, bis-MSB and their sum, rebuilt at the selected best retained sample
 - `cfg/`: copies of the input configs; input paths, analysis versions and settings are recorded inside `postfit.root`
+
+The default MCMC extraction is the **median with the equal-tailed 68% interval**, bounded by the 16th and 84th percentiles. Parameter plots, tables and fit comparisons use this same definition. These bounds describe the sampled parameter distribution, rather than sampling error on the median itself.
+
+`posteriors.pdf` shows one pooled histogram per parameter using every retained step across all chains, including repeated states after rejected proposals. Only the median interval is shaded, with a matching shaded legend key. Mean, Gaussian fit, mode and maximum-LLH estimates remain visible as lines, with the corresponding widths described in the legend. Titles and axis labels use the saved config's `tex_label` fields, with `Steps` on the vertical axis. Legend values use two decimal places, with scientific notation for small values.
+
+`rate_posteriors.pdf` uses the same presentation for the selected non-buffer event-count draws and U/Th ratios. Its maximum-LLH marker comes from reconstructing the actual best retained step, even when that step was not in the selected subset. Mean/median summaries and credible intervals use the original sample values. The Gaussian fit and mode use 80-bin histograms; a failed Gaussian fit is labelled unavailable.
+
+Alternative estimates remain saved for inspection: Gaussian fitted mean with fitted width, mean with standard deviation, and mode with its highest-density 68% region. Highest-density bins are selected until they contain at least 68% of samples, with actual coverage in `hpd_mass` and possibly disconnected bounds in the `highest_density_regions` tree in `postfit.root`. These alternative bands are shown on the single-fit `params.pdf`; posterior histograms shade only the median interval. The mode legend gives its value and asymmetric distances to the highest-density bounds; for disconnected regions, these are the bounds of the region containing the mode, and the legend reports the number of regions.
 
 The driver calls `plotting/plotFitParams.C` directly for the parameter and correlation plots. To redraw just those plots from an existing MCMC result:
 

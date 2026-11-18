@@ -2,6 +2,7 @@
 """Analyse independent MCMC chains and make standard postfit products"""
 
 import argparse
+import csv
 import json
 import hashlib
 import os
@@ -126,26 +127,16 @@ def write_summary_table(output, result, rates=None):
     parameters = {name: values for name, values in result['parameters'].items() if name != 'LogL'}
     if rates:
         parameters.update(rates['parameters'])
-    # Use the established table row names and labels for consistency with Minuit tables
-    import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tables'))
-    from make_old_new_fit_tables import ROWS, fmt_value
-    rows = []
-    grouped = {'osc': [], 'syst': []}
-    for key, label, category in ROWS:
-        if key in parameters:
-            values = parameters[key]
-            cell = fmt_value(key, values['median'], (values['error_low'], values['error_high']), category)
-            rows.append(label + ' & ' + cell + r' \\')
-            grouped[category].append(rows[-1])
-    table = '\n'.join([r'\begin{tabular}{lr}', r'\hline', r'Parameter & MCMC posterior \\', r'\hline',
-                       *rows, r'\hline', r'\end{tabular}',
-                       '% Posterior medians and equal-tailed 68% credible intervals'])
-    (output / 'parameter_table.tex').write_text(table + '\n')
-    for category, category_rows in grouped.items():
-        (output / ('parameter_table_' + category + '.tex')).write_text('\n'.join([
-            r'\begin{tabular}{lr}', r'\hline', r'Parameter & MCMC posterior \\', r'\hline',
-            *category_rows, r'\hline', r'\end{tabular}']) + '\n')
+    fields = ['parameter', 'median', 'error_low', 'error_high', 'interval_low', 'interval_high']
+    with (output / 'parameter_table.csv').open('w', newline='') as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for name, values in parameters.items():
+            writer.writerow({'parameter': name, **{key: values[key] for key in fields[1:]}})
+    # Remove the previous automatically generated table products on reruns
+    for filename in ['parameter_table.tex', 'parameter_table_osc.tex', 'parameter_table_syst.tex',
+                     'tables.pdf', 'tables_compile.log']:
+        (output / filename).unlink(missing_ok=True)
 
 
 def main():

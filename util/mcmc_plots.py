@@ -143,29 +143,28 @@ def plot_diagnostics(repo, output, arrays, manifest, result, slices, max_lag):
             fig, ax = plt.subplots(figsize=(10, 4), layout='constrained')
             for i, record in enumerate(manifest['chains']):
                 preview = arrays['traces'][i]
-                ax.plot(preview['Step'], preview[name], lw=.6, label=f'Chain {i}')
+                ax.plot(preview['Step'], preview[name], lw=.6)
             ax.axvline(manifest['burn_in'], color='black', ls='--', label='Burn-In Cut')
-            ax.set(xlabel='Step Within Chain', ylabel=label, title=label)
-            ax.legend(fontsize=8)
+            ax.set(xlabel='Step', ylabel=label, title=label)
+            ax.legend(fontsize=12)
             traces.savefig(fig); plt.close(fig)
             if name == 'LogL':
                 continue
             fig, ax = plt.subplots(figsize=(9, 4), layout='constrained')
             for i, chain in enumerate(acfs):
                 if name in chain:
-                    ax.plot(np.arange(len(chain[name])), chain[name], label=f'Chain {i}', lw=1)
+                    ax.plot(np.arange(len(chain[name])), chain[name], lw=1)
             ax.axhline(0, c='black', lw=.5)
             ax.set(xlabel='Lag (Steps)', ylabel='Autocorrelation', title=label, ylim=(-.3, 1.02))
-            ax.legend(fontsize=8)
             correlations.savefig(fig); plt.close(fig)
     fig, ax = plt.subplots(figsize=(9, 4), layout='constrained')
     for i, selected in enumerate(slices):
         accepted = arrays['accepted'][selected]
         for_plot = np.array([chunk.mean() for chunk in np.array_split(accepted, min(40, len(accepted)))])
         steps = np.array([chunk.mean() for chunk in np.array_split(arrays['steps'][selected], len(for_plot))])
-        ax.plot(steps, for_plot, label=f'Chain {i}')
-    ax.set(xlabel='Step', ylabel='Acceptance Fraction In Blocks', title='Acceptance After Burn-In')
-    ax.legend(); fig.savefig(plots / 'acceptance.pdf'); plt.close(fig)
+        ax.plot(steps, for_plot)
+    ax.set(xlabel='Step', ylabel='Batched Acceptance Fraction', title='Acceptance After Burn-In')
+    fig.savefig(plots / 'acceptance.pdf'); plt.close(fig)
 
 
 def density_plot(output, x, y, xname, yname, filename, effective_draws=None):
@@ -183,8 +182,8 @@ def density_plot(output, x, y, xname, yname, filename, effective_draws=None):
                              counts.T, levels=levels, colors='black', linewidths=1)
         labels = {value: ('68%' if value == thresholds[0] else '95%') for value in levels}
         ax.clabel(contour, fmt=labels)
-    ax.set(xlabel=xname, ylabel=yname, title='Binned posterior density; 68% and 95% credible regions')
-    fig.colorbar(mesh, ax=ax, label='Retained draws')
+    ax.set(xlabel=xname, ylabel=yname)
+    fig.colorbar(mesh, ax=ax, label='Steps')
     fig.savefig(output / 'plots' / filename); plt.close(fig)
     with uproot.update(output / 'postfit.root') as handle:
         handle['densities/' + filename.removesuffix('.pdf')] = counts, xedges, yedges
@@ -197,17 +196,20 @@ def render(repo, output, arrays, manifest, result, slices, rates, derived, max_l
     log = output / 'root_plots.log'
     root_call(repo, 'plotting/plotFitParams.C(' + json.dumps(str(metadata)) + ',true)', log)
     names = manifest['names']
+    config = load_config(Path(manifest['chains'][0]['file']).parent / 'cfg/fit_config.ini')
     if 'deltam21' in names and 'sinsqtheta12' in names:
         effective = min(result['parameters'][name]['ess_bulk'] or 1 for name in ('deltam21', 'sinsqtheta12'))
         density_plot(output, arrays['samples'][:, names.index('deltam21')],
                      arrays['samples'][:, names.index('sinsqtheta12')],
-                     'deltam21 (eV squared)', 'sinsqtheta12', 'oscillation_posterior.pdf', effective)
+                     parameter_label(config, 'deltam21'), parameter_label(config, 'sinsqtheta12'),
+                     'oscillation_posterior.pdf', effective)
     chosen = list(itertools.combinations(names, 2)) if pairs == ['all'] else [tuple(pair.split(':')) for pair in pairs]
     for pair in chosen:
         if len(pair) != 2 or not all(name in names for name in pair):
             raise ValueError(f'Unknown parameter pair: {pair}')
         density_plot(output, arrays['samples'][:, names.index(pair[0])], arrays['samples'][:, names.index(pair[1])],
-                     pair[0], pair[1], 'pair_' + pair[0] + '_' + pair[1] + '.pdf',
+                     parameter_label(config, pair[0]), parameter_label(config, pair[1]),
+                     'pair_' + pair[0] + '_' + pair[1] + '.pdf',
                      min(result['parameters'][name]['ess_bulk'] or 1 for name in pair))
     if rates and rates['selected_draws']:
         config = load_config(Path(manifest['chains'][0]['file']).parent / 'cfg/fit_config.ini')
@@ -246,23 +248,3 @@ def render(repo, output, arrays, manifest, result, slices, rates, derived, max_l
         path = output / 'plots' / filename
         if not path.is_file() or path.stat().st_size == 0:
             raise RuntimeError('Missing expected plot ' + str(path))
-    if shutil.which('pdflatex'):
-        with tempfile.TemporaryDirectory(prefix='antinu-tables-') as temporary:
-            document = Path(temporary) / 'tables_document.tex'
-            document.write_text(r'''\documentclass{article}
-\usepackage[margin=1.5cm]{geometry}
-\usepackage{amsmath}
-\usepackage[version=4]{mhchem}
-\begin{document}
-\small
-\input{parameter_table_osc.tex}
-\newpage
-\input{parameter_table_syst.tex}
-\end{document}
-''')
-            for table in output.glob('parameter_table*.tex'):
-                shutil.copy2(table, Path(temporary) / table.name)
-            with (output / 'tables_compile.log').open('w') as handle:
-                subprocess.run(['pdflatex', '-interaction=nonstopmode', '-halt-on-error', document.name],
-                               cwd=temporary, stdout=handle, stderr=subprocess.STDOUT, check=True)
-            shutil.copy2(Path(temporary) / 'tables_document.pdf', output / 'tables.pdf')
