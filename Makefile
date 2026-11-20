@@ -40,7 +40,7 @@ VERSION_FLAGS := -DANTINU_GIT_REV='"$(ANTINU_GIT_REV)"' \
                  -DOXO_GIT_REV='"$(OXO_GIT_REV)"' \
                  -DANTINU_DIFF_HASH='"$(ANTINU_DIFF_HASH)"'
 
-all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/llh_scan bin/auto_corrs bin/reconstruct_mcmc_fit
+all: bin/prune_trees bin/make_reactor_json bin/fixedosc_llhscan bin/fixedosc_fit bin/makeFixedOscTree bin/mcmc bin/llh_scan
 
 bin/prune_trees: exec/prune_trees.cc $(LIB)
 	mkdir -p bin
@@ -66,14 +66,6 @@ bin/mcmc: exec/mcmc.cc Makefile $(LIB)
 	mkdir -p bin
 	$(CXX) exec/mcmc.cc $(VERSION_FLAGS) $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
 
-bin/reconstruct_mcmc_fit: exec/reconstruct_mcmc_fit.cc Makefile $(LIB)
-	mkdir -p bin
-	$(CXX) exec/reconstruct_mcmc_fit.cc $(INCLUDES) $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
-
-bin/auto_corrs: exec/auto_corrs.cc
-	mkdir -p bin
-	$(CXX) -O2 -Wall -Wextra exec/auto_corrs.cc $(ROOT_FLAGS) -o $@
-
 bin/makeFixedOscTree: exec/makeFixedOscTree.cc $(LIB)
 	mkdir -p bin
 	$(CXX)  exec/makeFixedOscTree.cc $(INCLUDES) -w $(LIBRARYDIRS) $(LIBRARYNAMES) $(ROOT_FLAGS) $(G4_FLAGS) ${GSL_FLAGS} -larmadillo -o $@
@@ -96,8 +88,6 @@ clean:
 	rm -f bin/fixedosc_fit
 	rm -f bin/fixedosc_llhscan
 	rm -f bin/mcmc
-	rm -f bin/auto_corrs
-	rm -f bin/reconstruct_mcmc_fit
 	rm -f bin/makeFixedOscTree
 	rm -rf build
 	rm -f lib/libantinullh.a

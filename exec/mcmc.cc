@@ -212,7 +212,19 @@ void mcmc(const std::string &fitConfigFile_,
         {"antinu_diff_hash", ANTINU_DIFF_HASH}, {"compiled", __DATE__ " " __TIME__},
         {"root_version", gROOT->GetVersion()}, {"iterations", nsteps},
         {"score", "LogL = -NLL including constraints; larger is better"},
-        {"all_steps_saved", true}};
+        {"all_steps_saved", true}, {"best_fit", bestFit},
+        {"best_fit_log_score", -finalLLH},
+        {"llh_buffer_bins", nlohmann::json::object()}};
+    for (const std::string &axis : setup.dataObs)
+    {
+      if (setup.pdfConfig.HasLLHBufferBins(axis))
+      {
+        const std::pair<int, int> bins = setup.pdfConfig.GetLLHBufferBins(axis);
+        metadata["llh_buffer_bins"][axis] = {bins.first, bins.second};
+      }
+      else
+        metadata["llh_buffer_bins"][axis] = {0, 0};
+    }
     metadata["free_parameters"] = nlohmann::json::array();
     for (ParameterDict::const_iterator parameter = fitParameters.noms.begin(); parameter != fitParameters.noms.end(); ++parameter)
       if (!fixedPars.at(parameter->first))

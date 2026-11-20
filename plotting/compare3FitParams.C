@@ -87,7 +87,10 @@ void compare3FitParams(std::string filename1, std::string label1, std::string fi
     intervals2->SetMarkerStyle(21);
     TGraphAsymmErrors *intervals3 = antinupostfit::ReadFitIntervals(*file3, hPostFit3, hConstr1, "postfit3");
     intervals3->SetMarkerStyle(22);
-    antinupostfit::SetFitComparisonRange(*hConstr1, {intervals1, intervals2, intervals3});
+    TGraphAsymmErrors *regions1 = antinupostfit::ReadFitRegions(*file1, hPostFit1, "regions1");
+    TGraphAsymmErrors *regions2 = antinupostfit::ReadFitRegions(*file2, hPostFit2, "regions2");
+    TGraphAsymmErrors *regions3 = antinupostfit::ReadFitRegions(*file3, hPostFit3, "regions3");
+    antinupostfit::SetFitComparisonRange(*hConstr1, {intervals1, intervals2, intervals3, regions1, regions2, regions3});
     hConstr1->GetYaxis()->SetTitle("Relative to Nominal");
     hConstr1->GetYaxis()->SetTitleOffset(1.2);
     hConstr1->GetXaxis()->SetLabelOffset(0.007);
@@ -102,15 +105,21 @@ void compare3FitParams(std::string filename1, std::string label1, std::string fi
     hConstr1->SetTitleFont(42);
 
     hConstr1->Draw("E1");
+    if (regions1->GetN())
+        regions1->Draw("Z SAME");
+    if (regions2->GetN())
+        regions2->Draw("Z SAME");
+    if (regions3->GetN())
+        regions3->Draw("Z SAME");
     intervals1->Draw("PZ SAME");
     intervals2->Draw("PZ SAME");
     intervals3->Draw("PZ SAME");
 
     TLegend *t1 = new TLegend(0.12, 0.80, 0.88, 0.97);
     t1->AddEntry(hConstr1, "Prefit", "lep");
-    t1->AddEntry(intervals1, ("Postfit " + label1 + (file1->Get("posterior_intervals") ? " (Median, 68% ET)" : "")).c_str(), "lep");
-    t1->AddEntry(intervals2, ("Postfit " + label2 + (file2->Get("posterior_intervals") ? " (Median, 68% ET)" : "")).c_str(), "lep");
-    t1->AddEntry(intervals3, ("Postfit " + label3 + (file3->Get("posterior_intervals") ? " (Median, 68% ET)" : "")).c_str(), "lep");
+    t1->AddEntry(intervals1, ("Postfit " + label1 + antinupostfit::FitIntervalLabel(*file1)).c_str(), "lep");
+    t1->AddEntry(intervals2, ("Postfit " + label2 + antinupostfit::FitIntervalLabel(*file2)).c_str(), "lep");
+    t1->AddEntry(intervals3, ("Postfit " + label3 + antinupostfit::FitIntervalLabel(*file3)).c_str(), "lep");
     t1->SetBorderSize(0);
     t1->SetFillStyle(0);
     t1->SetTextSize(0.025);

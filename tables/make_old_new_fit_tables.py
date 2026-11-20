@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import json
 import sys
 import re
 from pathlib import Path
@@ -99,18 +100,34 @@ def clean_label(label):
     return re.sub(r"[^a-z0-9]", "", label.lower())
 
 
+def find_mcmc_summary(path):
+    roots = [root for root in (path / 'rates.root', path / 'postfit.root') if root.is_file()]
+    if not roots:
+        return None
+    import uproot
+    combined = path / 'postfit.root'
+    if combined.is_file():
+        with uproot.open(combined.open('rb'), decompression_executor=uproot.TrivialExecutor(),
+                         interpretation_executor=uproot.TrivialExecutor()) as source:
+            if 'analysis' in source and 'rates' in json.loads(str(source['analysis'])):
+                return combined
+    for root in roots:
+        with uproot.open(root.open('rb'), decompression_executor=uproot.TrivialExecutor(),
+                         interpretation_executor=uproot.TrivialExecutor()) as source:
+            if 'parameter_summary' not in source:
+                continue
+            return root
+    return None
+
+
 def find_summary(path):
     path = Path(path)
     if path.is_file():
         return path
 
-    root = path / 'postfit.root'
-    if root.is_file():
-        import uproot
-        with uproot.open(root.open('rb'), decompression_executor=uproot.TrivialExecutor(),
-                         interpretation_executor=uproot.TrivialExecutor()) as source:
-            if 'parameter_summary' in source:
-                return root
+    root = find_mcmc_summary(path)
+    if root is not None:
+        return root
     direct = path / "postfit_summary.csv"
     if direct.exists():
         return direct
@@ -145,9 +162,27 @@ def read_summary(path):
         with uproot.open(path.open('rb'), decompression_executor=uproot.TrivialExecutor(),
                          interpretation_executor=uproot.TrivialExecutor()) as source:
             rows = source['parameter_summary'].arrays(library='np')
-        return {str(name): (float(central), (float(low), float(high)))
-                for name, central, low, high in zip(rows['name'], rows['median'],
-                                                    rows['error_low'], rows['error_high'])}
+        if 'best_fit' in rows:
+            values = {str(name): (float(central), (float(central - low), float(high - central)))
+                      for name, central, low, high in zip(rows['name'], rows['best_fit'],
+                                                        rows['interval_low'], rows['interval_high'])}
+        else:
+            values = {str(name): (float(central), (float(low), float(high)))
+                      for name, central, low, high in zip(rows['name'], rows['median'],
+                                                        rows['error_low'], rows['error_high'])}
+        if path.name == 'rates.root':
+            base = path.parent / 'postfit.root'
+            if base.is_file():
+                with uproot.open(base.open('rb'), decompression_executor=uproot.TrivialExecutor(),
+                                 interpretation_executor=uproot.TrivialExecutor()) as source:
+                    expected = json.loads(str(source['analysis']))['settings'].get('analysis_id')
+                with uproot.open(path.open('rb'), decompression_executor=uproot.TrivialExecutor(),
+                                 interpretation_executor=uproot.TrivialExecutor()) as source:
+                    recorded = json.loads(str(source['analysis']))['settings'].get('analysis_id')
+                if expected != recorded:
+                    raise ValueError('MCMC parameter and yield results use different chains or burn-in')
+                values = {**read_summary(base), **values}
+        return values
     data = {}
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
@@ -187,7 +222,7 @@ def read_fit_nominals(path):
     """Read parameter nominals and non-buffer counts from the supplied fit outputs"""
     path = Path(path).resolve()
     directory = path.parent if path.is_file() else path
-    root = path if path.suffix == '.root' else directory / 'postfit.root'
+    root = path if path.suffix == '.root' else (find_mcmc_summary(directory) or directory / 'postfit.root')
     if root.is_file():
         import uproot
         with uproot.open(root.open('rb'), decompression_executor=uproot.TrivialExecutor(),
@@ -260,7 +295,7 @@ def fmt_value(key, value, err, table_type, include_error=True):
     if include_error and isinstance(err, tuple):
         scale = 1e5 if key == "deltam21" else 1
         ndp = decimals(key, table_type)
-        cell = f"{value * scale:.{ndp}f}^{{+{err[1] * scale:.{ndp}f}}}_{{-{err[0] * scale:.{ndp}f}}}"
+        cell = f"{value * scale:.{ndp}f}^{{{err[1] * scale:+.{ndp}f}}}_{{{-err[0] * scale:+.{ndp}f}}}"
         return (f"$({cell})\\times10^{{-5}}$" if key == "deltam21" else f"${cell}$")
     if isinstance(err, tuple):
         err = None

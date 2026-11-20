@@ -275,7 +275,7 @@ Each job writes to its own subdirectory, `mcmcDefault_run1/mcmcDefault_<i>/`, an
 
 For reactor-analysis runs, use the data and Asimov configs in `cfg/reacAnalysis2025_mcmc_validation/` as templates. Proposal widths are stored directly in each free parameter's `sig`; the actual Gaussian proposal width is `sig * sigma_scale`, with `sigma_scale` set in `[summary]`. The current global scale is 0.42 and both recoil energy scales have `sig = 0.05`. To prepare another run, copy the config directory and adjust `iterations` and `output_directory` as needed; Condor submission sets the output directory in each job's copied config.
 
-Each chain saves a ROOT `posteriors` tree containing every step, including burn-in and repeated states after rejected proposals. There is no `burn_in` setting in the fit config; select the cut afterwards with `util/mcmc_postfit.py --burn-in N`. This tree is the primary input to posterior analysis. `Step` counts proposals within the original chain; `Accepted` records whether each proposal was accepted; `LogL` is minus the NLL including constraints, so larger is better.
+Each chain saves a ROOT `posteriors` tree containing every step, including burn-in and repeated states after rejected proposals. This tree is the primary input to posterior analysis. `Step` counts proposals within the original chain; `Accepted` records whether each proposal was accepted; `LogL` is minus the NLL including constraints, so larger is better.
 
 `random_seed` in `[summary]` is shared by fitting and scanning; the MCMC templates set it to zero to request automatic selection. If omitted it defaults to 4357. `submitCondor.py` writes a positive seed into each copied MCMC config. With an explicit nonzero seed, job `i` uses that seed plus `i` (wrapping within the positive 32-bit range). Seeds and chain identities are saved in `mcmc_metadata.json` and a `mcmc_metadata` object inside the chain file, together with ROOT and source versions, and the four configs.
 
@@ -322,10 +322,10 @@ Choose the command for the type of fit:
 | Fit type | Command |
 | --- | --- |
 | Floated oscillation Minuit | `util/minuit_postfit.sh FIT_DIRECTORY` |
-| MCMC | `python3 util/mcmc_postfit.py CHAIN_DIRECTORY --burn-in N` |
+| MCMC | `python3 util/mcmc_summary.py CHAIN_DIRECTORY --burn-in N` |
 | Fixed-oscillation grid | `util/fixedosc_postfit.sh CONFIG_DIRECTORY CORRELATED ALPHAN DATA` |
 
-The Minuit and MCMC paths share `plotFitParams.C` for parameters/correlations and `plotFitSpectra.C` for energy spectra. `FitParamDrawing.hh` supplies drawing code shared with the fixed-grid parameter macro. Numerical helpers for Minuit fits are in `util/minuit_results.py`; MCMC calculations are in `util/mcmc_results.py` and its plotting functions are in `util/mcmc_plots.py`.
+The Minuit and MCMC paths share `plotFitParams.C` for parameters/correlations and `plotFitSpectra.C` for energy spectra. `FitParamDrawing.hh` supplies drawing code shared with the fixed-grid parameter macro. Numerical helpers for Minuit fits are in `util/minuit_results.py`; MCMC summaries are in `util/mcmc_summary.py`, convergence calculations are in `util/mcmc_diagnostics.py`, and shared drawing functions are in `util/mcmc_plot_utils.py`.
 
 <h3>Floated Oscillation Minuit Fits</h3>
 
@@ -383,7 +383,7 @@ The existing comparison tools accept the new `plots/params.root` directly:
 root -l -b -q 'plotting/compareFitParams.C("/path/to/fixed/plots/params.root","Fixed","/path/to/floated/plots/params.root","Floated","/path/to/comparison")'
 ```
 
-For three fits use `compare3FitParams.C` with three filename/label pairs and an output basename. Choose a basename and create its parent directory first. MCMC inputs use the saved `posterior_intervals` graph (median and asymmetric 16th–84th percentile errors); fixed-oscillation and Minuit inputs retain their saved fitted values and errors. Comparisons check that parameter labels and ordering match, and expand the vertical range to include the intervals.
+For three fits use `compare3FitParams.C` with three filename/label pairs and an output basename. Choose a basename and create its parent directory first.  MCMC inputs use saved mode markers and all disconnected 68% highest-density regions. Fixed-oscillation and Minuit inputs retain their saved fitted values and errors. Comparisons check that parameter labels and ordering match, and expand the vertical range to include the intervals.
 
 Tables are a separate comparison step, for example:
 
@@ -600,87 +600,107 @@ There's also a script that just compares datafits with the parameter values in t
 
 <h3>MCMC</h3>
 
-Build the tools and run one driver:
+There are three runnable scripts: `mcmc_summary.py` for parameter/event-count summaries, `mcmc_diagnostics.py` for convergence checks, and `mcmc_plot.py` for plotting saved results. Source your usual environment and `env_my.sh` first.
 
 ```bash
-source /path/to/env/file
-source env_my.sh
-make OXSX_LIB_DIR=/path/to/oxo/cmake-build/src all
+fit=/path/to/completed/chains
 
-python3 util/mcmc_postfit.py \
-    /path/to/output/chains/directory \
-    --burn-in 2000
+# Diagnostics can run before or after summaries
+python3 util/mcmc_diagnostics.py "$fit" --burn-in 20000
+
+# Local parameter summaries and plots, using every post burn-in draw
+python3 util/mcmc_summary.py "$fit" --burn-in 20000
+
+# Alternatively, submit diagnostics to Condor
+python3 util/submitMCMCPostfit.py "$fit" --stage diagnostics --burn-in 20000 \
+    --env-file /path/to/batch/environment.sh
 ```
 
-`--output-dir` is optional: by default results go in `<input directory>/output/`. For a ROOT-file input, they go in `output/` beside that file. With multiple inputs, the first input determines the default location. Use `--output-dir /path/to/output/` to override it.
+`Step >= burn_in` applies separately to each chain, retaining repeated states after rejected proposals. Choose the cut from traces and convergence checks. Use the same inputs, cut and output directory for each stage. Inputs are validated for completeness, parameter ordering and compatible likelihood configs.
 
-Choose the burn-in from the traces and between-chain comparisons; 2000 above is an example for short tuning chains. `Step >= burn_in` is applied separately in each chain. Accepted and rejected steps both contribute with their original multiplicity. The driver checks step continuity, expected entry counts, successful job logs when present, free branches, and likelihood config compatibility. Duplicate inputs and merged trees with resetting steps are rejected. Multiple input directories or explicit original ROOT files may be supplied.
+`mcmc_summary.py` calculates summaries and covariance from every retained draw and selects the highest saved `LogL` across the retained samples. This score includes constraints. The CSV central values are the coordinates of that single sample, with the 16th and 84th percentiles as the central 68% interval. These endpoints are not forced to be symmetric about the best point and may not contain it. Mode/HD estimates remain available in ROOT and comparison plots.
 
-The output includes:
+Event counts come from integrating the selected chain's saved component spectra outside the configured likelihood buffer bins. The command verifies that the saved spectra were made at the selected point. Histogram binning must match the saved PDF configuration. Explicit buffer settings take precedence through the original run's effective metadata; without effective metadata, settings are read from `pdf_config.ini`. The low buffer setting is the first included ROOT bin, matching the fitter's convention.
 
-- `report.txt`: a quick run summary: chains and retained steps used, the maximum-LLH step selected, convergence warnings and reconstruction timing. R-hat above 1.01 flags disagreement between chains; low effective sample size means the correlated steps contain little independent information
-- `logs/`: reconstruction, autocorrelation and ROOT plotting logs (`reconstruct.log`, `autocorrelations.log`, `root_plots.log`)
-- `dists/`: reconstructed nominal and best-fit spectra used by the existing distribution plotter
-- `postfit.root`: parameter summaries and diagnostics, covariance and correlation matrices, best-step values and source location, nominal and reconstructed yields, and analysis settings. Optional transformed posterior draws and numerical plot histograms are stored here too
-- `parameter_table.csv`: one numerical table of parameter names, medians, asymmetric uncertainties (`error_low`, `error_high`) and 16th/84th percentile bounds (`interval_low`, `interval_high`). Includes all fitted parameters except `LogL`, plus physical rates and ratios when their posterior uncertainties were calculated. Raw fitted normalisations include buffer regions; physical-rate rows use non-buffer counts. No LaTeX tables or table PDF are generated; bespoke comparison tables can read `postfit.root` directly
-- `plots/posteriors.pdf`, `traces.pdf`, `autocorrelations.pdf`, `acceptance.pdf`: parameter distributions and per-chain diagnostics; traces include a reduced drawing of the pre-cut samples. Acceptance is shown separately for each chain in 40 approximately equal blocks after burn-in (or one block per step if fewer than 40 steps remain), at the mean step of each block
-- `plots/params.pdf`, `params.root`, `correlations.pdf`: the shared ROOT parameter and correlation plots; the default MCMC result is the median with its asymmetric equal-tailed 68% interval. This single-fit plot also shows overlapping translucent bands for the mean with standard deviation, Gaussian mean with fitted width, and mode with its highest-density 68% region. The compatibility histogram still stores medians with posterior standard deviations, while `posterior_intervals` stores the default asymmetric result
-- `plots/oscillation_posterior.pdf`: binned joint posterior and 68%/95% credible-density contours, distinct from fixed-grid likelihood confidence contours; binning detail follows the effective sample size
-- With `--rate-samples N`, `plots/rate_posteriors.pdf`: physical event counts outside the likelihood buffer bins, and U/Th ratios, from the selected draws
-- `plots/dist*` and `distgroup*`: the existing spectrum plots for PPO, bis-MSB and their sum, rebuilt at the selected best retained sample
-- `cfg/`: copies of the input configs; input paths, analysis versions and settings are recorded inside `postfit.root`
+Count uncertainties scale the retained normalisation samples by the fixed ratio of the saved non-buffer integral to the best-point normalisation. Shapes, oscillation effects and buffer acceptance stay fixed at that point. Totals and U/Th ratios use the scaled samples together, preserving normalisation correlations. These are approximate count uncertainties.
 
-The default MCMC extraction is the **median with the equal-tailed 68% interval**, bounded by the 16th and 84th percentiles. Parameter plots, tables and fit comparisons use this same definition. These bounds describe the sampled parameter distribution, rather than sampling error on the median itself.
+`mcmc_diagnostics.py` calculates rank-normalised folded split R-hat, bulk/tail ESS and raw per-chain autocorrelations. `--no-plots` saves numerical products without drawing.
 
-`posteriors.pdf` shows one pooled histogram per parameter using every retained step across all chains, including repeated states after rejected proposals. Only the median interval is shaded, with a matching shaded legend key. Mean, Gaussian fit, mode and maximum-LLH estimates remain visible as lines, with the corresponding widths described in the legend. Titles and axis labels use the saved config's `tex_label` fields, with `Steps` on the vertical axis. Legend values use two decimal places, with scientific notation for small values.
+Results default to `<fit>/output/`; each calculation accepts `--output-dir`. ROOT files contain input provenance and settings.
 
-`rate_posteriors.pdf` uses the same presentation for the selected non-buffer event-count draws and U/Th ratios. Its maximum-LLH marker comes from reconstructing the actual best retained step, even when that step was not in the selected subset. Mean/median summaries and credible intervals use the original sample values. The Gaussian fit and mode use 80-bin histograms; a failed Gaussian fit is labelled unavailable.
+```text
+output/
+  postfit.root              Parameter/count summaries, covariance, histograms, densities and trace previews
+  diagnostics.root          Convergence statistics and per-chain autocorrelations
+  parameter_table.csv       Parameter best-point values and central 68% endpoints
+  rate_table.csv            Non-buffer counts and approximate central 68% endpoints
+  dists/                    Copies of the selected chain's saved distributions
+  cfg/                      Saved configs shared by all stages
+  logs/                     Convergence results in diagnostics.txt
+  plots/                    All PDFs and editable ROOT canvas files
+```
 
-Alternative estimates remain saved for inspection: Gaussian fitted mean with fitted width, mean with standard deviation, and mode with its highest-density 68% region. Highest-density bins are selected until they contain at least 68% of samples, with actual coverage in `hpd_mass` and possibly disconnected bounds in the `highest_density_regions` tree in `postfit.root`. These alternative bands are shown on the single-fit `params.pdf`; posterior histograms shade only the median interval. The mode legend gives its value and asymmetric distances to the highest-density bounds; for disconnected regions, these are the bounds of the region containing the mode, and the legend reports the number of regions.
+<h4>Change and Redraw Plots</h4>
 
-The driver calls `plotting/plotFitParams.C` directly for the parameter and correlation plots. To redraw just those plots from an existing MCMC result:
+All MCMC drawing is in `util/mcmc_plot_utils.py`. The plotting command only reads saved products; it never reads chains, evaluates the model or calculates diagnostics. PDFs are exported from the saved editable ROOT canvases. `params.root` contains both the `params` and `violins` canvases, alongside individually editable graphs under `violin_shapes/<parameter>`; their PDFs are `params.pdf` and `params_violins.pdf`. Other PDFs have matching `.root` files. Multipage plots store one canvas per parameter, named with the parameter's branch name.
 
 ```bash
-root -l -b -q 'plotting/plotFitParams.C("/path/to/chains/output/postfit.root",true)'
+# All available figures from saved products
+python3 util/mcmc_plot.py "$fit"
+
+# One figure and a different vertical range
+python3 util/mcmc_plot.py "$fit" --only violins --y-range 0 3
+
+# Specific marginals or traces
+python3 util/mcmc_plot.py "$fit" --only posteriors --parameters class_a_ppo
+python3 util/mcmc_plot.py "$fit" --only traces --parameters deltam21 \
+    --x-range 80000 100000
+
+# Write an alternative version elsewhere, leaving the standard plots in place
+python3 util/mcmc_plot.py "$fit" --only violins --y-range 0 3 \
+    --output-dir /tmp/mcmc-plot-preview
 ```
 
-It also runs `bin/auto_corrs` separately on each original chain, using the requested `--burn-in` and `--max-lag`. Results are combined in `plots/autocorrelations.pdf`, with the histograms stored inside `postfit.root`; per-chain exchange files are temporary. With `--no-plots`, `auto_corrs` is skipped, while the Python R-hat and effective sample size calculations still run.
+`--only` accepts one or more of `params`, `violins`, `posteriors`, `oscillation`, `pairs`, `correlations`, `traces`, `acceptance`, `spectra`, `rate-posteriors`, `autocorrelations`. `--parameters` selects parameter names in summaries, marginals, correlations, traces and autocorrelations. `--x-range MIN MAX`, `--y-range MIN MAX`, `--title`, `--x-title` and `--y-title` apply to the selected figures. Selecting a subset replaces that figure's PDF/ROOT pair; use `--output-dir` to keep an alternative version.
 
-`mcmc_postfit.py` also reports mcmc diagnostic information. It reports R-hat above 1.01 and low effective sample sizes, indicating chians haven't yet converged. Diagnostics split each chain and use equal-length prefixes if retained chain lengths differ. Posterior summaries use all retained draws. The diagnostics follow the [Stan posterior-analysis definitions](https://mc-stan.org/docs/reference-manual/analysis.html), using rank normalisation, folded split R-hat and Geyer's positive monotone sequence for ESS. Reported ESS is conservatively capped at the number of draws. Quantiles and moments use the actual samples, not smoothed or Gaussian-fitted histograms.
+Parameter summaries y axis ranges default to 0–2 and violins to 0–3. Prefit errors overlap the posterior and span the displayed range when no Gaussian constraint exists; tight Gaussian errors retain their actual widths. Zero-nominal parameters use `1 + value`; other parameters use `value / nominal`. Violins use the saved 80-bin histograms, each scaled to its own peak, without smoothing. Changing ranges changes only the display, not modes or intervals. Single-fit parameter plots retain median/equal-tailed, mean/SD, Gaussian and maximum-LLH estimates alongside the primary mode/HD result. Comparison macros read the primary mode with all disconnected HD regions.
 
-<h4>Rates outside the buffer regions</h4>
+<h4>Postfit Settings</h4>
 
-`util/mcmc_postfit.py` directly selects reconstruction points, invokes `bin/reconstruct_mcmc_fit`, summarises yields and writes tables. The C++ helper reconstructs spectra and physical yields, and shares `BuildComponents` and `GetComponentRates` with the fitter. It applies all sampled shapes and oscillation parameters before integrating outside the configured buffer bins. The output quantities are expected event counts for the configured exposure. Per-dataset counts, totals, and U/Th ratios are calculated sample by sample before their posterior summaries.
+`mcmc_diagnostics.py INPUT --burn-in N --max-lag LAG` controls saved raw autocorrelations (default 10000); R-hat/ESS calculations are independent of this display limit. R-hat above 1.01 and low bulk ESS are reported. Unequal chains use equal-length prefixes for diagnostics; parameter summaries retain all post-burn-in draws.
 
-By default, only the highest-score retained step is reconstructed. This produces the best-fit spectra under `dists/` and physical component yields, totals and U/Th ratios in the `best_fit` tree in `postfit.root`. These best-step yields have no posterior uncertainty attached. Parameter posterior summaries and tables always use all retained draws; physical-yield rows enter the posterior tables only when yield uncertainties are explicitly requested.
+Condor defaults to one CPU, 16384 MB and 14400 seconds. Override with `--memory` and `--wall-time`. `--dry-run` writes submission files under `output/condor_mcmc_postfit/` without submitting. Jobs use the shared filesystem.
 
-Add `--rate-samples N` to calculate physical-yield posterior uncertainties using a stratified random subset of N retained draws, with selection seed 1729. Repeated states retain their correct multiplicities; duplicate parameter points are evaluated once and expanded back into the selected draws. Use `--rate-samples 0` to evaluate every retained draw. Check that intervals are stable as N increases: additional evaluations reduce subsampling error but cannot repair poor chain mixing.
+Run `mcmc_summary.py`, `mcmc_diagnostics.py` or `mcmc_plot.py` directly. Condor submission accepts `--stage parameters` or `--stage diagnostics`, selecting the corresponding standalone script. Parameter and count results are saved together in `postfit.root`; comparison tables read their best-point values and central 68% endpoints. Both CSVs use `parameter,best_fit,interval_low,interval_high`.
 
-`postfit.root` contains `parameter_summary` (medians, intervals, moments and diagnostics), `nominal` and `best_fit` trees, `covMatrix` and `corrMatrix`, and an `analysis` text object recording settings, best-step location, per-chain results and reconstruction timings. The optional `derived_samples` tree contains physical yields and ratios alongside the pooled sample index, chain index and original step. Posterior, autocorrelation and joint-density histograms are added to directories inside the same ROOT file when plotting. ROOT parameter and spectrum renderers are also stored under `plots/`.
+<h4>Code and Data Flow</h4>
 
-Useful options:
+The runnable scripts are:
+
+- `util/mcmc_summary.py` calculates parameter summaries, covariance, and event counts from saved spectra, saves results and draws their plots
+- `util/mcmc_diagnostics.py` calculates R-hat/ESS and per-chain autocorrelations directly in Python, saves results and draws diagnostic plots
+- `util/mcmc_plot.py` draws selected figures from saved products without reading raw chains or rerunning numerical calculations
+
+Shared supporting files are:
+
+- `util/mcmc_read_chains.py` finds chains, validates their configurations, applies the burn-in cut and reads samples
+- `util/mcmc_file_utils.py` reads/writes saved results, records provenance and manages output locks and publication
+- `util/mcmc_plot_utils.py` contains shared drawing functions
+
+`util/submitMCMCPostfit.py` submits either the summary or diagnostics script to Condor
+
+`mcmc_summary.py` writes `postfit.root`, both CSVs and copies of the selected chain's distributions. Spectrum drawing uses the shared `plotting/plotFitSpectra.C` macro. `mcmc_diagnostics.py` writes `diagnostics.root`, `logs/diagnostics.txt` and autocorrelation figures. Autocorrelations are calculated using NumPy FFTs and written directly into `diagnostics.root`.
+
+`mcmc_plot.py` reads saved ROOT products, `cfg/` and, for spectra, `dists/`.
+
+Small stage locks prevent two commands replacing the same outputs simultaneously. A separate publication lock protects the shared output directory while completed files are installed. These are ordinary file locks released automatically when a process exits; they do not change which chains or burn-in a worker uses. The recorded input identity prevents combining results from different chains or cuts. Plotting checks saved identities without requiring the raw chains.
+
+<h4>Autocorrelations</h4>
 
 ```bash
-# Fast parameter-only analysis and diagnostics
-python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT --skip-rates
-
-# Numerical summaries and tables without plotting
-python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT --no-plots
-
-# Optional physical-yield posterior uncertainties
-python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT --rate-samples 2000
-
-# Additional joint posterior plots, without repeated ROOT tree scans
-python3 util/mcmc_postfit.py BATCH --burn-in 10000 --output-dir OUTPUT \
-    --pairs geonu_U_norm:geonu_Th_norm p_recoil_energy_scale:class_a_ppo
+python3 util/mcmc_diagnostics.py /path/to/chains --burn-in 10000 --max-lag 10000
 ```
 
-`--pairs all` requests every free-parameter pair and can be expensive. `--max-lag` controls the diagnostic plot range, defaulting to 10000. Fixed parameters are excluded from posterior summaries and correlations.
+This also calculates R-hat and effective sample sizes. Raw autocorrelation curves are saved in `diagnostics.root` under `autocorrelations/chain_N/PARAMETER`, with matching plots in `plots/autocorrelations.pdf` and `.root`. Use `--no-plots` to save numerical results only, or redraw them later with `mcmc_plot.py RESULTS --only autocorrelations`.
 
-<h4>Standalone autocorrelations</h4>
-
-```bash
-./bin/auto_corrs original_chain.root --burn-in 10000 --max-lag 10000
-```
-
-This writes `original_chain_autoCorr.root` with per-parameter histograms in `Auto_Corrs`. Use `--output path.root` to choose another destination. Lag zero is the first visible bin and equals one. The maximum lag is inclusive and is capped at the number of retained entries minus one. Constant parameters are skipped. With no options, all steps are retained and lags zero through 1000 are calculated. The zero-padded FFT uses the full zero-lag sum of squared deviations for normalisation, matching the original direct calculation. Run it before combining chains: autocorrelations must not cross chain boundaries.
+Lag zero is the first visible bin and equals one. The maximum lag is inclusive and capped at the number of retained entries minus one. Constant parameters are skipped. Each chain uses all its retained entries, including repeated states, and is calculated separately. `--max-lag` defaults to 10000 and does not affect R-hat or effective sample sizes. The zero-padded FFT prevents wraparound and normalises each lag by the full zero-lag sum of squared deviations. No lag-dependent sample-count correction is applied. Values are centred after subtracting a reference to preserve precision for nearly constant parameters.
